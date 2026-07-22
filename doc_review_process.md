@@ -23,7 +23,7 @@ conversational answers, throwaway diagnostics, or internal scratch notes.
 
 **When the deliverable rests on NEW analysis code** (a figure or number produced by a
 script written for this task), the review extends to that code — not just the prose.
-Agents 6–7 below cover this.
+Agents 6–7 (RTFM, We Have That At Home) below cover this.
 
 ## The core principle
 
@@ -53,38 +53,40 @@ Spawn these as parallel subagents, each given the draft **and** pointers to the 
 sources (the data paths, the code, the companion docs, the handoffs). Each returns a
 structured finding list: *location · issue · severity · suggested fix · could-I-verify-it-against-a-source (yes/no)*.
 
-1. **Claim & data verifier.** Extract **every** factual and quantitative claim — numbers,
+1. **Claim & data verifier — "Receipts."** Extract **every** factual and quantitative claim — numbers,
    statistics, sample / record IDs, parameter values, and "X does Y" statements — and
    verify each against the actual data, code, store, or prior result. Flag any claim not
    verifiable from a real source, **especially numbers and attributions**.
-2. **Citation & reference validator.** For every reference or named attribution, confirm
+2. **Citation & reference validator — "Cite Unseen."** For every reference or named attribution, confirm
    the work **exists** and is **correctly attributed** (web search / DOI where needed).
    **Zero tolerance** for fabricated or guessed bibliographic metadata. Flag any
    "representative / placeholder / finalize-later" reference as not-yet-verified. When you
    need the paper itself, follow the **lit-cache protocol** below — check the library
    first, fetch the OA copy, flag what you can't get. Do **not** verify a claim against a
    paper you only half-remember: get the text or flag the paper.
-3. **Consistency auditor.** Cross-check **within** the document and **against companion
+3. **Consistency auditor — "The Countess."** Cross-check **within** the document and **against companion
    docs**: counts, totals, terminology, cross-references, and figure↔text agreement. Flag
    every contradiction.
-4. **Adversarial reviewer.** Read as a **hostile peer reviewer**. Attack every claim:
+4. **Adversarial reviewer — "Reviewer 2."** Read as a **hostile peer reviewer**. Attack every claim:
    overreach, unsupported leaps, conclusions the evidence does not support, missing
    caveats, and vague hand-waving. Demand the caveat wherever one is due. Also attack for
    **rigor**, not just craft — a labeled-and-consistent figure can still be soft:
    - **Undefined quantities.** Is every plotted/quoted quantity *defined*? (E.g. "how is
-     mean firing rate defined?" — events ÷ window duration, say it.)
+     'mean rate' defined?" — count ÷ window duration, say it.)
    - **Unjustified constants.** Every magic number (a bin width, a cutoff, a time
      constant, a threshold) must be **defined AND justified** on-figure/in-text. An
-     unexplained constant is a defect.
+     unexplained constant is a defect. (Boundary with RTFM: Reviewer 2 asks whether the
+     *reader* is told why; RTFM asks whether it's the *right* value for the method — same
+     number, two lenses. File it once.)
    - **Fragile statistics.** A claim resting on a single **max / extreme** is suspect —
      "we saw it happen once; how often?" Demand the **frequency / distribution**, not the
      bare maximum; a one-off must be visible as a one-off.
    - **Significance in titles.** A panel title/caption should state **why the result
      matters** (its inferential purpose), not merely name the quantity plotted.
-5. **Line editor.** Clarity and precision: undefined jargon, ambiguous sentences,
+5. **Line editor — "Red Pen."** Clarity and precision: undefined jargon, ambiguous sentences,
    redundancy, grammar, logical flow. Every sentence must earn its place and assert
    exactly one true thing.
-6. **Methods / domain expert.** *Spawn whenever the deliverable rests on a specific
+6. **Methods / domain expert — "RTFM."** *Spawn whenever the deliverable rests on a specific
    method, tool, or library* (a statistical model, a signal-processing routine, an
    inference algorithm, a numerical library). **Before** reviewing, ground in the actual
    method — the source paper(s) and the tool/API documentation the analysis depends on
@@ -96,7 +98,7 @@ structured finding list: *location · issue · severity · suggested fix · coul
    correction applied twice, a filter run along the wrong axis). This is the reviewer that
    catches a misused library call — the kind of error invisible to someone reading only
    the prose.
-7. **Reuse auditor.** When the analysis code **re-implements something the project already
+7. **Reuse auditor — "We Have That At Home."** When the analysis code **re-implements something the project already
    does in tested production code**, flag it and check two things: (a) should the new code
    just **call the existing code** instead of duplicating it? and (b) where it does
    re-implement, does it **match the reference exactly** — same parameters, orientation,
@@ -104,15 +106,15 @@ structured finding list: *location · issue · severity · suggested fix · coul
    The project's own working code is the reference; the default is to reuse it, not
    re-derive it.
 
-**When new analysis code underlies the deliverable**, add agents **6 (methods expert)** and
-**7 (reuse auditor)** — they review the code path that produced the numbers, not the prose.
+**When new analysis code underlies the deliverable**, add agents **6 (methods expert — RTFM)** and
+**7 (reuse auditor — We Have That At Home)** — they review the code path that produced the numbers, not the prose.
 Skip them only when no task-specific code was written (pure prose over already-verified data).
 
-**For figures**, agents 1, 3, and 4 adapt: does the caption match what is actually
+**For figures**, agents 1, 3, and 4 (Receipts, the Countess, Reviewer 2) adapt: does the caption match what is actually
 plotted? Does the figure or its caption **overclaim**? Are the plotted numbers consistent
 with the underlying data? Plus two **hard, non-negotiable figure-craft checks** (flag any
 violation):
-- **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `dF/F_0`). An unlabeled axis
+- **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `signal (a.u.)`). An unlabeled axis
   is a defect — flag it.
 - **Same data compared across panels → shared y-axis limits.** If panels show the same
   measurement two ways (e.g. condition A vs B), differing y-limits fake a difference via
