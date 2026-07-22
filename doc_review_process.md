@@ -104,14 +104,45 @@ structured finding list: *location · issue · severity · suggested fix · coul
    The project's own working code is the reference; the default is to reuse it, not
    re-derive it.
 
+8. **Naive-reader accessibility.** *Spawn for any deliverable meant to be understood by a
+   reader NOT already steeped in the work — an explainer, a slide deck, a figure a colleague
+   must read cold.* Read each slide/panel with ZERO prior context and flag every place such a
+   reader is lost. It exists because a deliverable can be every-number-correct, honest, and
+   craft-clean and still be **unreadable to the audience it is for** — a gap the rest of the
+   team does not cover. Checklist (rule groups):
+   - **Self-contained.** Each slide/panel stands alone; **define every named method, term, and
+     relative word the first time it appears there** — a relative word must name its referent
+     ("secondary *to what*", "soft *relative to what*"). Define every non-obvious **unit** on the
+     slide it first appears. Keep **internal code identifiers** (variable, function, field, and
+     parameter names) OUT of audience-facing text — use the plain-language concept.
+   - **Illustrate, don't name-drop.** Any non-trivial mechanism (a transform, a shuffle, a null
+     model) is introduced **graphically**; reuse an existing illustration if the project has one.
+   - **Terminology / reserved words.** Check every term against the project glossary; a reserved
+     word may not be reused for a different concept; any new term is added to the glossary **in
+     the same change**.
+   - **Figure-craft for a naive reader.** Label panels by **letter (A/B)**, never spatial words
+     ("left/right", "top/bottom"); **every line, marker, bracket, shaded span, arrow, and color
+     must be identified by an on-figure label or legend** (no unexplained line, no unlabeled
+     bracket); **do not annotate a histogram with vertical lines or bars** (they read as data
+     height) — mark features with a distinct glyph (e.g. a down-diamond); mark known-answer /
+     ground-truth elements with a **consistent glyph**; use **one glyph per concept**, identical
+     within and across panels; make category colors **clearly contrasting** (not a low-contrast
+     pair); axis labels state the **real quantity + units**, never a placeholder like "value".
+   - **Consistency.** Any count named in prose must be **visible in the figure** (text says
+     "two" → the figure shows two).
+   - **Tone.** Consistent **sentence case**; no scattered Capitals or ALL-CAPS emphasis in prose;
+     if the content is a list, **format it as a list** — never smuggle list items into a title or
+     legend with separators.
+
 **When new analysis code underlies the deliverable**, add agents **6 (methods expert)** and
 **7 (reuse auditor)** — they review the code path that produced the numbers, not the prose.
 Skip them only when no task-specific code was written (pure prose over already-verified data).
 
 **For figures**, agents 1, 3, and 4 adapt: does the caption match what is actually
 plotted? Does the figure or its caption **overclaim**? Are the plotted numbers consistent
-with the underlying data? Plus two **hard, non-negotiable figure-craft checks** (flag any
-violation):
+with the underlying data? For an **explainer or any non-expert-facing figure/slide, also add
+agent 8 (naive-reader accessibility)** — the reader-lost class of defect is invisible to the
+rest of the team. Plus two **hard, non-negotiable figure-craft checks** (flag any violation):
 - **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `dF/F_0`). An unlabeled axis
   is a defect — flag it.
 - **Same data compared across panels → shared y-axis limits.** If panels show the same
