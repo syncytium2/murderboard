@@ -161,6 +161,17 @@ structured finding list: *location · issue · severity · suggested fix · coul
      within and across panels; make category colors **clearly contrasting** (not a low-contrast
      pair); axis labels state the **real quantity + units**, never a placeholder like "value".
      (Self-describing names/labels are claims too: "X-free" must actually use no X — verify it.)
+   - **Consistent category order across figures.** When more than one figure/panel shares a
+     categorical grouping (experimental groups, conditions, timepoints), every one lists the
+     categories in the **same order** — the project's canonical order (check the glossary). Two
+     figures that disagree on category order are a defect: the reader cannot line them up.
+   - **Every colour must be explained by the colorbar or a legend.** A colorbar must span the full
+     range of values **actually rendered** — no colour appears in the image that lies outside the
+     colorbar. Any colour used as an **overlay marker** (something that is *not* a value on the colour
+     scale — e.g. a significant-point marker dropped on a heatmap/spectrogram) must be in a **legend**
+     and picked to **contrast with the colormap**, so it does not read as an out-of-range colour value
+     (a red dot on a parula map whose top colour is yellow reads as "off the top of the scale" unless
+     it is legended and edge-outlined).
    - **Consistency.** Any count named in prose must be **visible in the figure** (text says
      "two" → the figure shows two).
    - **Tone.** Consistent **sentence case**; no scattered Capitals or ALL-CAPS emphasis in prose;
@@ -263,7 +274,10 @@ seriously than a rule stated in the abstract.
   breakdown that actually carried the finding; a small-multiples grid was crammed edge-to-edge beside
   wide empty margins; validation panels were unlabeled as to which archetype each showed; and an edit
   that lengthened a slide's text pushed it into the figure below — a slide-level overlap the
-  within-figure zoom-crop pass never sees.
+  within-figure zoom-crop pass never sees; two bar charts on one slide ordered their experimental
+  groups differently, so the reader could not line them up; and a spectrogram's red
+  significant-peak overlay read as an out-of-range colour because the parula colorbar topped out at
+  yellow and the marker was never legended.
 - **Methods expert** (same review) — a detector's synthetic benchmark ran at *looser* gates than the
   shipped detector, so "9/10" validated a different tool than the one that made the results (at
   production settings it was 8/10); and "9/10 real bursts flagged" actually meant "9/10 mixed cases
