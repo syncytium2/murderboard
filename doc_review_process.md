@@ -154,6 +154,14 @@ violation):
   autoscaling — a slop bug. Deliberately different limits (full vs zoom vs detail) are allowed
   **only if explicitly marked** (asterisk on the deviating panel + a footnote that the scales
   differ). Unmarked scale changes → flag.
+- **Show the actual data, not only a summary or a schematic — humans need to see the data.**
+  When a deliverable rests on a dataset (real or synthetic), include a view of the **real
+  underlying records** — a sample of rows, a trace, a raster of events — so a human can *see* what
+  an aggregate or a schematic hides. A diagram of how the data *should* look, or a bar of summary
+  statistics, is **not a substitute** for the data itself: a summary can be exactly right while the
+  data is wrong (a spacing, a density, a jitter, an outlier, an artifact) in a way visible only
+  when a person looks at the records. Flag any data-driven figure/deliverable that shows only
+  schematics or aggregates and never lets the reader see the data.
 
 ## Literature handling — check the lit cache, keep the keepers, flag the gaps
 
