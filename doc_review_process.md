@@ -205,11 +205,15 @@ invisible to the rest of the team. Plus two **hard, non-negotiable figure-craft 
 violation):
 - **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `signal (a.u.)`). An unlabeled axis
   is a defect — flag it.
-- **Same data compared across panels → shared y-axis limits.** If panels show the same
-  measurement two ways (e.g. condition A vs B), differing y-limits fake a difference via
-  autoscaling — a slop bug. Deliberately different limits (full vs zoom vs detail) are allowed
-  **only if explicitly marked** (asterisk on the deviating panel + a footnote that the scales
-  differ). Unmarked scale changes → flag.
+- **Same data compared across plots → shared axis limits (x and y).** If plots show the same
+  measurement more than one way (condition A vs B, or the same series across panels), differing
+  limits fake a difference via autoscaling — a slop bug. Deliberately different limits (full vs
+  zoom vs detail, or naturally different ranges) are allowed **only if explicitly marked**
+  (asterisk on the deviating panel + a footnote that the scales differ). Unmarked scale changes →
+  flag. **When different limits are genuinely justified, prefer showing BOTH views** — the
+  fixed / shared-limit one (the honest comparison) **and** the free / per-panel one (the internal
+  detail) — rather than picking one: the shared view alone can hide each panel's structure, the
+  free view alone can hide the difference between panels.
 - **Overlap check covers the whole page/slide, not only inside a figure.** The zoom-crop overlap
   pass (slice the render into bands) catches label-on-tick collisions *within* a figure — but also
   check **shape-vs-shape on the slide**: a figure overlapping body text, a caption overflowing its
