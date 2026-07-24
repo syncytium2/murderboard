@@ -34,6 +34,13 @@ No fabricated or approximate citation. No internal contradiction. No filler.
 
 ## The process
 
+0. **Preflight — confirm the process itself is current.** This file is usually **vendored** into a
+   consumer repo, where it drifts behind its canonical source. Before running, verify THIS copy is up
+   to date with upstream — compare its vendored stamp/commit against the canonical repo's HEAD (search
+   the known repo locations if the source isn't obvious) and **re-vendor first if it is behind.** A
+   review run against a stale process is itself a slop defect: it silently omits rules the process has
+   already learned. (This step exists because a consumer shipped a slide-overlap defect using a
+   vendored copy that predated the slide-overlap rule.)
 1. **Draft** the document.
 2. **Review** — spawn the review team (below) in parallel via the Agent tool. Scale to
    stakes:
@@ -43,9 +50,17 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      against the same checklist. Do not burn a 5-agent fan-out on one sentence.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
    adjudicate each (fix / flag-inline / no-change), and **apply** the fixes.
-4. **Deliver** — the corrected document **plus a short review report**: which dimensions
-   were checked, how many issues found and fixed, and any residual `⚠` flags the human
-   must resolve before release. A document with unresolved `⚠` flags is **not "done."**
+4. **Verify the fixes (a fresh follow-up pass).** After applying, re-check the **corrected** artifact —
+   ideally with a subagent that did NOT do the original review — against the finding list: (a) every
+   finding is **actually resolved in the deliverable**, not merely claimed; (b) nothing was silently
+   dropped or quietly downgraded; (c) **no NEW defect was introduced by the edits** — re-run the
+   craft/overlap pass on the corrected RENDER, because a fix that lengthens text or moves a shape is a
+   classic regression. The deliverable is **not done** until this pass is clean. (This step exists
+   because a fix that lengthened captions pushed them onto the figure, and nothing re-checked the
+   applied edit.)
+5. **Deliver** — the corrected document **plus a short review report**: which dimensions
+   were checked, how many issues found and fixed, the verify-pass result, and any residual `⚠` flags
+   the human must resolve before release. A document with unresolved `⚠` flags is **not "done."**
 
 ## The review team
 
@@ -66,7 +81,9 @@ structured finding list: *location · issue · severity · suggested fix · coul
    paper you only half-remember: get the text or flag the paper.
 3. **Consistency auditor — "Cross-Examiner."** Cross-check **within** the document and **against companion
    docs**: counts, totals, terminology, cross-references, and figure↔text agreement. Flag
-   every contradiction.
+   every contradiction. **Watch for one population counted on different bases** (per-detector flags vs
+   a deduped roster; observations vs unique units; active-subset vs all): pin ONE canonical counting
+   basis and reconcile every figure/number to it, or the same "N" silently changes between slides.
 4. **Adversarial reviewer — "Reviewer 2."** Read as a **hostile peer reviewer**. Attack every claim:
    overreach, unsupported leaps, conclusions the evidence does not support, missing
    caveats, and vague hand-waving. Demand the caveat wherever one is due. Also attack for
@@ -83,6 +100,16 @@ structured finding list: *location · issue · severity · suggested fix · coul
      bare maximum; a one-off must be visible as a one-off.
    - **Significance in titles.** A panel title/caption should state **why the result
      matters** (its inferential purpose), not merely name the quantity plotted.
+   - **Enrichment must be a rate, not a raw count.** "More X in group G" / "G-enriched" claims must be
+     shown as a **rate normalized to G's denominator**, never a raw count — a big count in the largest
+     group is not enrichment. Demand the denominator and the per-group rate.
+   - **"Independent methods agree" — is it really independence?** When two methods are said to
+     corroborate, check they do not **share upstream data or derivation** (correlated errors make
+     agreement partly guaranteed). Validating one method on cases **selected by the other** is
+     circular — call it a consistency check, not independent validation.
+   - **A group difference asserted is a group difference tested.** "Opposite profiles", "highest in
+     G", "structured" imply a comparison — demand the actual test (effect size / CI / model), or the
+     claim is softened to "described, not tested".
 5. **Line editor — "Kill Your Darlings."** Clarity and precision: undefined jargon, ambiguous sentences,
    redundancy, grammar, logical flow. Every sentence must earn its place and assert
    exactly one true thing.
@@ -97,7 +124,11 @@ structured finding list: *location · issue · severity · suggested fix · coul
    a routine assumes, what each parameter actually controls, and known traps (e.g. a
    correction applied twice, a filter run along the wrong axis). This is the reviewer that
    catches a misused library call — the kind of error invisible to someone reading only
-   the prose.
+   the prose. **Also: a validation/benchmark must exercise the SHIPPED parameters.** A test run at
+   looser or specially-tuned settings validates a *different* tool than the one that produced the
+   results; re-run at the production settings and report the true score. And confirm a reported
+   metric counts what the prose says it counts (e.g. "9/10 real bursts flagged" vs "9/10 mixed cases
+   classified" are different claims).
 7. **Reuse auditor — "Reinventing the Wheel."** When the analysis code **re-implements something the project already
    does in tested production code**, flag it and check two things: (a) should the new code
    just **call the existing code** instead of duplicating it? and (b) where it does
@@ -119,9 +150,23 @@ structured finding list: *location · issue · severity · suggested fix · coul
      parameter names) OUT of audience-facing text — use the plain-language concept.
    - **Illustrate, don't name-drop.** Any non-trivial mechanism (a transform, a shuffle, a null
      model) is introduced **graphically**; reuse an existing illustration if the project has one.
+   - **Show the evidence the claim rests on, not only examples.** A validation / methods slide that
+     says "tested on synthetic signals / ground truth" must **show that ground-truth set** — the
+     actual synthetic cases with their known answers vs the tool's call — not merely a couple of
+     hand-picked near-threshold examples. Examples-of-the-margin belong on their own slide; they are
+     not the ground-truth test.
+   - **Break a result down by the experimental design variables.** A results figure pooled across the
+     factors the study manipulates (group, condition, timepoint, region) **hides the structure** and
+     invites "…in which condition?". Show the breakdown (e.g. one panel per condition, bars by group)
+     — a single pooled headline number is a defect for a results slide.
    - **Terminology / reserved words.** Check every term against the project glossary; a reserved
      word may not be reused for a different concept; any new term is added to the glossary **in
      the same change**.
+   - **Label each panel by what it demonstrates.** Beyond the letter, a validation / example-grid
+     panel must name **the archetype or category it shows** ("sustained", "non-oscillator control",
+     "rejected: noise") so the reader knows why it is there without hunting in the body text.
+   - **Small-multiples need real inter-panel spacing.** Cramped panels packed edge-to-edge while the
+     slide has wide empty margins is a craft defect — separate the panels and use the whitespace.
    - **Figure-craft for a naive reader.** Label panels by **letter (A/B)**, never spatial words
      ("left/right", "top/bottom"); **every line, marker, bracket, shaded span, arrow, and color
      must be identified by an on-figure label or legend** (no unexplained line, no unlabeled
@@ -131,6 +176,17 @@ structured finding list: *location · issue · severity · suggested fix · coul
      within and across panels; make category colors **clearly contrasting** (not a low-contrast
      pair); axis labels state the **real quantity + units**, never a placeholder like "value".
      (Self-describing names/labels are claims too: "X-free" must actually use no X — verify it.)
+   - **Consistent category order across figures.** When more than one figure/panel shares a
+     categorical grouping (experimental groups, conditions, timepoints), every one lists the
+     categories in the **same order** — the project's canonical order (check the glossary). Two
+     figures that disagree on category order are a defect: the reader cannot line them up.
+   - **Every colour must be explained by the colorbar or a legend.** A colorbar must span the full
+     range of values **actually rendered** — no colour appears in the image that lies outside the
+     colorbar. Any colour used as an **overlay marker** (something that is *not* a value on the colour
+     scale — e.g. a significant-point marker dropped on a heatmap/spectrogram) must be in a **legend**
+     and picked to **contrast with the colormap**, so it does not read as an out-of-range colour value
+     (a red dot on a parula map whose top colour is yellow reads as "off the top of the scale" unless
+     it is legended and edge-outlined).
    - **Consistency.** Any count named in prose must be **visible in the figure** (text says
      "two" → the figure shows two).
    - **Tone.** Consistent **sentence case**; no scattered Capitals or ALL-CAPS emphasis in prose;
@@ -154,6 +210,20 @@ violation):
   autoscaling — a slop bug. Deliberately different limits (full vs zoom vs detail) are allowed
   **only if explicitly marked** (asterisk on the deviating panel + a footnote that the scales
   differ). Unmarked scale changes → flag.
+- **Overlap check covers the whole page/slide, not only inside a figure.** The zoom-crop overlap
+  pass (slice the render into bands) catches label-on-tick collisions *within* a figure — but also
+  check **shape-vs-shape on the slide**: a figure overlapping body text, a caption overflowing its
+  box, a picture pushed off the page edge, or body text that grew past its box into the figure below
+  (a common regression after an edit lengthens the text). Verify every figure's box sits clear of
+  every text box, and nothing runs past the page bounds.
+  - **This pass requires a render of the FINAL COMPOSITED deliverable — you cannot skip it.** When the
+    deliverable is not already an image (a slide deck, a poster, a PDF), **render each slide/page to an
+    image first**, then run the zoom-crop bands on *that*. Inspecting the component figures, or the
+    source/extracted text, is NOT sufficient: a caption that overflows onto the figure is invisible in
+    both, and a shape bounding-box check misses it because text overflows its fixed-height box
+    **silently** (no reflow, no error). If the deliverable is generated by code, also **gate the build**
+    on an estimated-text-height check (lines = chars ÷ chars-per-line; fail if any text's estimated
+    bottom crosses a figure's top) — belt-and-suspenders for the render pass.
 
 ## Literature handling — check the lit cache, keep the keepers, flag the gaps
 
@@ -221,3 +291,25 @@ seriously than a rule stated in the abstract.
   orientation in the process. The fix was to call the existing code, not re-derive it.
 - **Figure-craft** — panels comparing the same measurement two ways were autoscaled
   independently, faking a difference that shared y-limits dissolved.
+- **Naive-reader / figure-craft** (a 2026-07 slide-deck review) — a "validation" slide claimed a
+  synthetic ground-truth test but showed only two near-threshold real examples (not the synthetic
+  set); a "result" slide reported one pooled prevalence number instead of the group×condition
+  breakdown that actually carried the finding; a small-multiples grid was crammed edge-to-edge beside
+  wide empty margins; validation panels were unlabeled as to which archetype each showed; and an edit
+  that lengthened a slide's text pushed it into the figure below — a slide-level overlap the
+  within-figure zoom-crop pass never sees; two bar charts on one slide ordered their experimental
+  groups differently, so the reader could not line them up; and a spectrogram's red
+  significant-peak overlay read as an out-of-range colour because the parula colorbar topped out at
+  yellow and the marker was never legended.
+- **Methods expert** (same review) — a detector's synthetic benchmark ran at *looser* gates than the
+  shipped detector, so "9/10" validated a different tool than the one that made the results (at
+  production settings it was 8/10); and "9/10 real bursts flagged" actually meant "9/10 mixed cases
+  classified" — the metric counted something other than the prose said.
+- **Adversarial reviewer** (same review) — "group-G-enriched" was printed as a raw count in the
+  largest group (true as a rate, but the rate was never shown); "two independent methods agree"
+  described two lenses computed from the *same* recording (and one was "validated" on cases the other
+  had selected — circular); and a "treatment amplifies the effect" headline rested on a single example
+  cell while the group-level rate moved the other way.
+- **Consistency auditor** (same review) — the same "TTX-oscillator" population appeared as 21+26, as
+  35, and as 25+14 on adjacent slides because three different counting bases (per-detector flags,
+  unique cells, deduped-roster primary type) were never reconciled to one.
