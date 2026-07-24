@@ -34,6 +34,13 @@ No fabricated or approximate citation. No internal contradiction. No filler.
 
 ## The process
 
+0. **Preflight — confirm the process itself is current.** This file is usually **vendored** into a
+   consumer repo, where it drifts behind its canonical source. Before running, verify THIS copy is up
+   to date with upstream — compare its vendored stamp/commit against the canonical repo's HEAD (search
+   the known repo locations if the source isn't obvious) and **re-vendor first if it is behind.** A
+   review run against a stale process is itself a slop defect: it silently omits rules the process has
+   already learned. (This step exists because a consumer shipped a slide-overlap defect using a
+   vendored copy that predated the slide-overlap rule.)
 1. **Draft** the document.
 2. **Review** — spawn the review team (below) in parallel via the Agent tool. Scale to
    stakes:
@@ -43,9 +50,17 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      against the same checklist. Do not burn a 5-agent fan-out on one sentence.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
    adjudicate each (fix / flag-inline / no-change), and **apply** the fixes.
-4. **Deliver** — the corrected document **plus a short review report**: which dimensions
-   were checked, how many issues found and fixed, and any residual `⚠` flags the human
-   must resolve before release. A document with unresolved `⚠` flags is **not "done."**
+4. **Verify the fixes (a fresh follow-up pass).** After applying, re-check the **corrected** artifact —
+   ideally with a subagent that did NOT do the original review — against the finding list: (a) every
+   finding is **actually resolved in the deliverable**, not merely claimed; (b) nothing was silently
+   dropped or quietly downgraded; (c) **no NEW defect was introduced by the edits** — re-run the
+   craft/overlap pass on the corrected RENDER, because a fix that lengthens text or moves a shape is a
+   classic regression. The deliverable is **not done** until this pass is clean. (This step exists
+   because a fix that lengthened captions pushed them onto the figure, and nothing re-checked the
+   applied edit.)
+5. **Deliver** — the corrected document **plus a short review report**: which dimensions
+   were checked, how many issues found and fixed, the verify-pass result, and any residual `⚠` flags
+   the human must resolve before release. A document with unresolved `⚠` flags is **not "done."**
 
 ## The review team
 
