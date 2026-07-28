@@ -100,6 +100,11 @@ boundary.
      and a reviewer reading only the prose will accept the citation as provenance.
    - **Self-describing names and labels are claims too.** "X-free", "matched", "controlled",
      "independent" assert something checkable — verify each against what the code actually did.
+   - **A retracted claim stays retracted.** When a source document carries a correction, read the
+     **retraction together with the original** — a draft written from the original brief silently
+     re-inherits the claim the project already measured and withdrew. And **verify the REPLACEMENT
+     as hard as the claim it replaces**: a correction is a new claim, and the first fix is often a
+     different unsound mechanism that the same figure's own numbers refute.
 2. **Citation & reference validator — "DOI or Die."** For every reference or named attribution, confirm
    the work **exists** and is **correctly attributed** (web search / DOI where needed).
    **Zero tolerance** for fabricated or guessed bibliographic metadata. Flag any
@@ -243,6 +248,12 @@ boundary.
       because the rows describe a file that is not the one shipping.
     - **Nothing overlaps; nothing runs off the page.** Run the render/zoom-crop pass specified
       below — within each figure AND shape-vs-shape across the whole slide.
+    - **Everything the source implies is actually THERE.** Walk the generator's element list against
+      the render: a dropped element leaves its caption and source line behind and reads as
+      deliberate. Absence is invisible in the source — only the image shows it. (Spec below.)
+    - **Document properties name THIS file, not the template it was built from.** Generated files
+      inherit their blank template's creation date and author verbatim. Check and stamp
+      created / modified / author / title on the final artifact. (Spec below.)
     - **Every axis is labeled with NAME and UNITS**, never a placeholder like "value".
     - **Same measurement across panels → shared y-limits**, or the deviation is explicitly marked.
     - **Panels are lettered (A/B)** — never referred to by spatial words ("left/right",
@@ -292,8 +303,8 @@ output.
 plotted? Does the figure or its caption **overclaim**? Are the plotted numbers consistent
 with the underlying data? For an **explainer or any non-expert-facing figure/slide, also add
 agent 8 (naive-reader accessibility — You Lost Me)** — the reader-lost class of defect is
-invisible to the rest of the team. **Agent 10 (Ship It) owns the mechanical checks**; the three
-below are its most-violated rows, spelled out in full because each has a trap in it (flag any
+invisible to the rest of the team. **Agent 10 (Ship It) owns the mechanical checks**; the rows below
+are spelled out in full because each has a trap in it that a one-line checklist entry loses (flag any
 violation):
 - **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `signal (a.u.)`). An unlabeled axis
   is a defect — flag it.
@@ -318,6 +329,22 @@ violation):
     bottom crosses a figure's top) — belt-and-suspenders for the render pass. **"Final composited"
     means the freshly rebuilt file** (step 4): a render of a build that predates the last fix proves
     nothing about what ships.
+- **Presence check: the render must contain everything the source implies.** Overlap is not the only
+  render defect — a generated element can be **silently dropped**. Adding a table to the wrong kind of
+  placeholder, an unsupported object in a container, a missing asset path: the library emits no error,
+  the build succeeds, and the artifact simply lacks the element while its caption and source line
+  remain, which reads as deliberate. Walk the generator's element list against the render and confirm
+  each one is actually visible. Absence is invisible in the source; it is only detectable in the image.
+- **Provenance / document properties of a GENERATED deliverable.** Libraries that build files from a
+  bundled blank template (python-pptx, MATLAB Report Generator, docx/LaTeX templates) copy that
+  template's metadata verbatim and never rewrite it. The finished artifact then advertises the
+  **template's** birthday and the **template author's** name — e.g. decks created today reporting
+  `created 2013-01-27, lastModifiedBy "Steve Canny"` (the author of python-pptx) or `created 2014,
+  modified 2019` (Report Generator). Check created/modified/author/title on the FINAL file and stamp
+  them. Also check any derived field the generator does not refresh when code changes geometry (e.g.
+  `PresentationFormat` still reading "4:3" for a widescreen deck). This matters most for anything
+  leaving the group: a shared deliverable that shows a decade-old creation date and a stranger as its
+  last editor discredits itself before it is read.
 
 ## Literature handling — check the lit cache, keep the keepers, flag the gaps
 
@@ -423,3 +450,17 @@ seriously than a rule stated in the abstract.
   true and no rule asked whether they should have been a picture. The verbosity was also
   **load-bearing** (the caveats and competing readings are what the review earned), which is why the
   rule that came out of it relocates prose to the notes pane rather than cutting it.
+- **Render presence** (a 2026-07 status-deck build) — a slide's table was added to a placeholder type
+  that silently discards tables. The build succeeded, the caption and source line rendered normally,
+  and the slide simply had no data on it. Nothing in the source or the logs showed this; it was found
+  only by exporting the slide to an image and looking at it.
+- **Provenance / document properties** (same build) — decks generated that day reported creation dates
+  of 2013 and 2014 and named the author of a Python library as their last editor, because both
+  generators copy their bundled blank template's metadata and never rewrite it. One of the affected
+  files was the copy most likely to be shared outside the group.
+- **Correction discipline** (same build) — a claim the project had already measured and explicitly
+  retracted ("neighbour centres 7-15 px apart"; the note said *do not re-inherit it*) was reproduced in
+  a new draft because the author read the original brief rather than the correction. The first fix then
+  replaced it with a *different* unsound mechanism that the same slide's own number refuted. Lesson:
+  when a source document carries a retraction, review the retraction and the original together — and
+  re-verify the REPLACEMENT claim as hard as the one it replaced.
