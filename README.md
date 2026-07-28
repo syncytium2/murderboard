@@ -8,7 +8,7 @@ It is two files you vendor into a project:
 
 | File | What it is |
 |---|---|
-| [`doc_review_process.md`](doc_review_process.md) | The process. A team of adversarial reviewer roles (claim/data verifier, citation validator, consistency auditor, hostile peer reviewer, line editor, methods expert, reuse auditor) that check **every claim against a real source**, verify **every citation**, and attack overreach — before a doc, figure, or report is handed over. |
+| [`doc_review_process.md`](doc_review_process.md) | The process. A team of adversarial reviewer roles (claim/data verifier, citation validator, consistency auditor, hostile peer reviewer, line editor, methods expert, reuse auditor, naive-reader accessibility, density/figure-first) that check **every claim against a real source**, verify **every citation**, attack overreach, and ask what should have been a figure — before a doc, figure, or report is handed over. |
 | [`fetch_paper.py`](fetch_paper.py) | The lit tool. Fetches open-access papers, **caches** them, checks a curated library **before** downloading (`--have`), **promotes** keepers into it (`--promote`), and **flags** anything it can't reach to a want-list (`--need`, and auto on any failed/paywalled fetch). |
 
 Neither depends on the other at runtime; the process doc simply tells its reviewer agents
