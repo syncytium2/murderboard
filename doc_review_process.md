@@ -80,10 +80,26 @@ Spawn these as parallel subagents, each given the draft **and** pointers to the 
 sources (the data paths, the code, the companion docs, the handoffs). Each returns a
 structured finding list: *location · issue · severity · suggested fix · could-I-verify-it-against-a-source (yes/no)*.
 
+**Roles are split by what it COSTS to satisfy them, not by which reader they serve.** A judgment
+call ("would a cold reader follow this?") can be satisfied by thinking about it; a mechanical check
+("is this axis labeled?") can only be satisfied by opening the rendered file. Bundle the two into
+one reviewer and its prose answer covers for the file it never opened — so every mechanical check
+lives in agent **10**, whose output is a table, and every judgment call lives with the role whose
+mode of thought it matches. When a rule could sit in two places, **file it once** and note the
+boundary.
+
 1. **Claim & data verifier — "Prove It."** Extract **every** factual and quantitative claim — numbers,
    statistics, sample / record IDs, parameter values, and "X does Y" statements — and
    verify each against the actual data, code, store, or prior result. Flag any claim not
    verifiable from a real source, **especially numbers and attributions**.
+   - **Return a claim ledger, not an impression.** One row per quantity: *quoted value · cited
+     source · recomputed value · match / mismatch / unverifiable*. **Recompute — do not eyeball.**
+     A number that "looks about right" against a file has not been checked.
+   - **A cited source must actually CONTAIN the quantity.** Check the source holds the field being
+     quoted before comparing values — a footer can point at a real file that has no such column,
+     and a reviewer reading only the prose will accept the citation as provenance.
+   - **Self-describing names and labels are claims too.** "X-free", "matched", "controlled",
+     "independent" assert something checkable — verify each against what the code actually did.
 2. **Citation & reference validator — "DOI or Die."** For every reference or named attribution, confirm
    the work **exists** and is **correctly attributed** (web search / DOI where needed).
    **Zero tolerance** for fabricated or guessed bibliographic metadata. Flag any
@@ -96,6 +112,15 @@ structured finding list: *location · issue · severity · suggested fix · coul
    every contradiction. **Watch for one population counted on different bases** (per-detector flags vs
    a deduped roster; observations vs unique units; active-subset vs all): pin ONE canonical counting
    basis and reconcile every figure/number to it, or the same "N" silently changes between slides.
+   - **Any count named in prose must be visible in the figure.** Text says "two" → the figure shows
+     two. Text says "n = 2 vs 2" → the figure's axis does not still say 3 vs 2.
+   - **Consistent category order across figures.** When more than one figure/panel shares a
+     categorical grouping (experimental groups, conditions, timepoints), every one lists the
+     categories in the **same order** — the project's canonical order (check the glossary). Two
+     figures that disagree on category order are a defect: the reader cannot line them up.
+   - **Terminology / reserved words.** Check every term against the project glossary; a reserved
+     word may not be reused for a different concept; any new term is added to the glossary **in
+     the same change**.
 4. **Adversarial reviewer — "Reviewer 2."** Read as a **hostile peer reviewer**. Attack every claim:
    overreach, unsupported leaps, conclusions the evidence does not support, missing
    caveats, and vague hand-waving. Demand the caveat wherever one is due. Also attack for
@@ -122,6 +147,15 @@ structured finding list: *location · issue · severity · suggested fix · coul
    - **A group difference asserted is a group difference tested.** "Opposite profiles", "highest in
      G", "structured" imply a comparison — demand the actual test (effect size / CI / model), or the
      claim is softened to "described, not tested".
+   - **Show the evidence the claim rests on, not only examples.** A validation / methods claim that
+     says "tested on synthetic signals / ground truth" must **show that ground-truth set** — the
+     actual synthetic cases with their known answers vs the tool's call — not merely a couple of
+     hand-picked near-threshold examples. Examples-of-the-margin belong on their own slide; they are
+     not the ground-truth test.
+   - **Break a result down by the experimental design variables.** A result pooled across the
+     factors the study manipulates (group, condition, timepoint, region) **hides the structure** and
+     invites "…in which condition?". Demand the breakdown (e.g. one panel per condition, bars by
+     group) — a single pooled headline number is a defect for a results claim.
 5. **Line editor — "Kill Your Darlings."** Clarity and precision: undefined jargon, ambiguous sentences,
    redundancy, grammar, logical flow. Every sentence must earn its place and assert
    exactly one true thing.
@@ -154,7 +188,9 @@ structured finding list: *location · issue · severity · suggested fix · coul
    must read cold.* Read each slide/panel with ZERO prior context and flag every place such a
    reader is lost. It exists because a deliverable can be every-number-correct, honest, and
    craft-clean and still be **unreadable to the audience it is for** — a gap the rest of the
-   team does not cover. Checklist (rule groups):
+   team does not cover. This role holds only the checks that require **reading as a stranger**;
+   its mechanical figure rules moved to agent 10, its cross-figure rules to agent 3, and its
+   evidence-adequacy rules to agent 4. Checklist:
    - **Self-contained.** Each slide/panel stands alone; **define every named method, term, and
      relative word the first time it appears there** — a relative word must name its referent
      ("secondary *to what*", "soft *relative to what*"). Define every non-obvious **unit** on the
@@ -162,45 +198,10 @@ structured finding list: *location · issue · severity · suggested fix · coul
      parameter names) OUT of audience-facing text — use the plain-language concept.
    - **Illustrate, don't name-drop.** Any non-trivial mechanism (a transform, a shuffle, a null
      model) is introduced **graphically**; reuse an existing illustration if the project has one.
-   - **Show the evidence the claim rests on, not only examples.** A validation / methods slide that
-     says "tested on synthetic signals / ground truth" must **show that ground-truth set** — the
-     actual synthetic cases with their known answers vs the tool's call — not merely a couple of
-     hand-picked near-threshold examples. Examples-of-the-margin belong on their own slide; they are
-     not the ground-truth test.
-   - **Break a result down by the experimental design variables.** A results figure pooled across the
-     factors the study manipulates (group, condition, timepoint, region) **hides the structure** and
-     invites "…in which condition?". Show the breakdown (e.g. one panel per condition, bars by group)
-     — a single pooled headline number is a defect for a results slide.
-   - **Terminology / reserved words.** Check every term against the project glossary; a reserved
-     word may not be reused for a different concept; any new term is added to the glossary **in
-     the same change**.
-   - **Label each panel by what it demonstrates.** Beyond the letter, a validation / example-grid
-     panel must name **the archetype or category it shows** ("sustained", "non-oscillator control",
-     "rejected: noise") so the reader knows why it is there without hunting in the body text.
-   - **Small-multiples need real inter-panel spacing.** Cramped panels packed edge-to-edge while the
-     slide has wide empty margins is a craft defect — separate the panels and use the whitespace.
-   - **Figure-craft for a naive reader.** Label panels by **letter (A/B)**, never spatial words
-     ("left/right", "top/bottom"); **every line, marker, bracket, shaded span, arrow, and color
-     must be identified by an on-figure label or legend** (no unexplained line, no unlabeled
-     bracket); **do not annotate a histogram with vertical lines or bars** (they read as data
-     height) — mark features with a distinct glyph (e.g. a down-diamond); mark known-answer /
-     ground-truth elements with a **consistent glyph**; use **one glyph per concept**, identical
-     within and across panels; make category colors **clearly contrasting** (not a low-contrast
-     pair); axis labels state the **real quantity + units**, never a placeholder like "value".
-     (Self-describing names/labels are claims too: "X-free" must actually use no X — verify it.)
-   - **Consistent category order across figures.** When more than one figure/panel shares a
-     categorical grouping (experimental groups, conditions, timepoints), every one lists the
-     categories in the **same order** — the project's canonical order (check the glossary). Two
-     figures that disagree on category order are a defect: the reader cannot line them up.
-   - **Every colour must be explained by the colorbar or a legend.** A colorbar must span the full
-     range of values **actually rendered** — no colour appears in the image that lies outside the
-     colorbar. Any colour used as an **overlay marker** (something that is *not* a value on the colour
-     scale — e.g. a significant-point marker dropped on a heatmap/spectrogram) must be in a **legend**
-     and picked to **contrast with the colormap**, so it does not read as an out-of-range colour value
-     (a red dot on a parula map whose top colour is yellow reads as "off the top of the scale" unless
-     it is legended and edge-outlined).
-   - **Consistency.** Any count named in prose must be **visible in the figure** (text says
-     "two" → the figure shows two).
+   - **Label each panel by what it demonstrates.** Beyond the letter (agent 10 checks the letter is
+     there), a validation / example-grid panel must name **the archetype or category it shows**
+     ("sustained", "non-oscillator control", "rejected: noise") so the reader knows why it is there
+     without hunting in the body text.
    - **Tone.** Consistent **sentence case**; no scattered Capitals or ALL-CAPS emphasis in prose;
      if the content is a list, **format it as a list** — never smuggle list items into a title or
      legend with separators.
@@ -228,6 +229,41 @@ structured finding list: *location · issue · severity · suggested fix · coul
    - **A caption is a caption.** It states **what the figure shows and why it matters** — not the
      slide's whole argument. Anything past that moves to notes or its own slide.
 
+10. **Build & craft gate — "Ship It."** *Spawn for every deliverable that renders — a figure, a
+    slide deck, a poster, a PDF.* Owns every check whose answer is decided by **looking at a
+    rendered file or running a script**, never by reasoning about the source. It is a separate role
+    for one reason: a judgment call can be satisfied by thinking and a mechanical one cannot, so
+    when the two share a checklist the prose answer covers for the file nobody opened.
+    - **Output contract: a table, not findings.** One row per slide / page / panel, each row naming
+      **the render it was checked against**. Prose in place of the table is a failed run, and
+      **"not run" is a failure, not a clean result** — an empty finding list from this agent means
+      nothing unless the renders exist.
+    - **The build is current.** For a generated deliverable, the built file is **newer than the last
+      fix and newer than every input it embeds** (see step 4). A stale build fails every row below,
+      because the rows describe a file that is not the one shipping.
+    - **Nothing overlaps; nothing runs off the page.** Run the render/zoom-crop pass specified
+      below — within each figure AND shape-vs-shape across the whole slide.
+    - **Every axis is labeled with NAME and UNITS**, never a placeholder like "value".
+    - **Same measurement across panels → shared y-limits**, or the deviation is explicitly marked.
+    - **Panels are lettered (A/B)** — never referred to by spatial words ("left/right",
+      "top/bottom"), in the figure or in the text that describes it.
+    - **Every line, marker, bracket, shaded span, arrow, and colour is identified** by an on-figure
+      label or a legend. No unexplained line, no unlabeled bracket — including a line that is
+      labeled in one panel and repeated unlabeled in another.
+    - **No vertical lines or bars annotating a histogram** — they read as data height. Mark features
+      with a distinct glyph (e.g. a down-diamond).
+    - **One glyph per concept**, identical within and across panels; known-answer / ground-truth
+      elements carry a **consistent glyph**.
+    - **Category colours are clearly contrasting**, not a low-contrast pair.
+    - **Every colour is explained by the colorbar or a legend.** A colorbar spans the full range of
+      values **actually rendered** — no colour appears in the image that lies outside it. Any colour
+      used as an **overlay marker** (not a value on the scale — e.g. a significant-point marker on a
+      heatmap) must be in a **legend** and picked to **contrast with the colormap**, or it reads as
+      an out-of-range value (a red dot on a parula map topping out at yellow reads as "off the top
+      of the scale" unless legended and edge-outlined).
+    - **Small multiples have real inter-panel spacing.** Panels packed edge-to-edge while the page
+      has wide empty margins is a defect — separate them and use the whitespace.
+
 **When new analysis code underlies the deliverable**, add agents **6 (methods expert — RTFM)** and
 **7 (reuse auditor — Reinventing the Wheel)** — they review the code path that produced the numbers, not the prose.
 Skip them only when no task-specific code was written (pure prose over already-verified data).
@@ -236,11 +272,28 @@ Skip them only when no task-specific code was written (pure prose over already-v
 **9 (density & figure-first — Show, Don't Tell)**. No other role has standing to say "this should be
 a figure," so without it a deck ships as an essay in twelve parts.
 
+### Spawn matrix
+
+| Deliverable has… | Spawn |
+|---|---|
+| any document at all | **1, 3, 4, 5** (Prove It · Cross-Examiner · Reviewer 2 · Kill Your Darlings) |
+| references or named attributions | **+ 2** (DOI or Die) |
+| new analysis code / a specific method or library | **+ 6, 7** (RTFM · Reinventing the Wheel) |
+| a non-expert audience | **+ 8** (You Lost Me) |
+| multiple slides or pages | **+ 9** (Show, Don't Tell) |
+| anything that renders | **+ 10** (Ship It) |
+
+Agent **10 is never dropped for scale.** When step 2 scales a small deliverable down to a
+single-pass self-review, the judgment roles collapse into one pass — the mechanical table still
+runs. It is the cheapest agent in the team and the only one whose absence leaves no trace in the
+output.
+
 **For figures**, agents 1, 3, and 4 (Prove It, Cross-Examiner, Reviewer 2) adapt: does the caption match what is actually
 plotted? Does the figure or its caption **overclaim**? Are the plotted numbers consistent
 with the underlying data? For an **explainer or any non-expert-facing figure/slide, also add
 agent 8 (naive-reader accessibility — You Lost Me)** — the reader-lost class of defect is
-invisible to the rest of the team. Plus two **hard, non-negotiable figure-craft checks** (flag any
+invisible to the rest of the team. **Agent 10 (Ship It) owns the mechanical checks**; the three
+below are its most-violated rows, spelled out in full because each has a trap in it (flag any
 violation):
 - **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `signal (a.u.)`). An unlabeled axis
   is a defect — flag it.
