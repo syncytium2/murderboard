@@ -308,6 +308,22 @@ are spelled out in full because each has a trap in it that a one-line checklist 
 violation):
 - **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `signal (a.u.)`). An unlabeled axis
   is a defect — flag it.
+- **Any distance BETWEEN STRUCTURES is edge-to-edge, never centroid-to-centroid.** Applies to prose,
+  tables, captions and axis labels, not only to plots. Centroid separation exceeds the gap a reader
+  pictures by roughly one structure diameter, so it silently overstates distance — measured on one
+  real population, edge-to-edge 8.10 px vs centroid 15.84 px, nearly 2×. Ask of every separation
+  claim: **which metric produced this number, and does the text say so?** Three traps:
+  - **Overlapping structures have an edge-to-edge distance of 0 by definition.** A distance quoted
+    for overlapping objects is a centroid distance wearing a disguise — require **overlap** instead
+    (IoU, or intersection over the smaller object).
+  - **A distance compared to a size must use the same kind of quantity.** "2–3 cell widths" derived
+    by dividing a *centroid distance* by a *diameter* is a category error; it retracted a whole
+    slide. Edge-to-edge on the same data gave 1.11 cell widths — adjacent, not remote.
+  - **A centroid metric is legitimate as an ALGORITHMIC quantity** (an assignment cost, a
+    "is this centroid inside the border" test). Flag only if the text fails to **say so at the point
+    of use** and give the edge-to-edge equivalent. The two metrics **rank pairs differently** and are
+    not interconvertible: on one dataset, matching by centroid proximity found ~45 % fewer pairs than
+    matching by overlap, so swapping the metric changes results, not wording.
 - **Same data compared across panels → shared y-axis limits.** If panels show the same
   measurement two ways (e.g. condition A vs B), differing y-limits fake a difference via
   autoscaling — a slop bug. Deliberately different limits (full vs zoom vs detail) are allowed
