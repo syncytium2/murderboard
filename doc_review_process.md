@@ -335,6 +335,12 @@ violation):
   box, a picture pushed off the page edge, or body text that grew past its box into the figure below
   (a common regression after an edit lengthens the text). Verify every figure's box sits clear of
   every text box, and nothing runs past the page bounds.
+  - **An automated overlap gate has blind spots — know which.** A checker that compares text boxes
+    against IMAGES will pass a caption sitting on a TABLE, and text overrunning a footer or another
+    text box, because neither is an image. Tables are the worst case: they GROW to fit their content,
+    so a table's rendered height is not the height the code asked for, and the gap you left below it
+    may not exist. Treat a clean automated pass as necessary, never sufficient, and say in the report
+    which classes the gate cannot see.
   - **This pass requires a render of the FINAL COMPOSITED deliverable — you cannot skip it.** When the
     deliverable is not already an image (a slide deck, a poster, a PDF), **render each slide/page to an
     image first**, then run the zoom-crop bands on *that*. Inspecting the component figures, or the
@@ -345,6 +351,40 @@ violation):
     bottom crosses a figure's top) — belt-and-suspenders for the render pass. **"Final composited"
     means the freshly rebuilt file** (step 4): a render of a build that predates the last fix proves
     nothing about what ships.
+- **Text inside an embedded figure is sized by its PLACED size, not by the figure.** The size a
+  reader sees is roughly `source_pt × (placed width ÷ the figure's own nominal width)`. A figure
+  authored 20 in wide and placed 8 in wide renders its 11 pt labels at about 4.5 pt — perfectly
+  legible while you are making it, unreadable in the deliverable. Compute that ratio and check the
+  SMALLEST text in every embedded figure against the deliverable's own minimum type size. A house
+  rule like "all fonts ≥ 11 pt" is otherwise satisfied only by the text the document set itself,
+  and silently exempts every figure — which is most of what the reader is trying to read.
+- **Raising a figure's fonts CLIPS its long strings. Any font change is a layout change.** Titles
+  and supertitles are laid out against the axes or the figure width, so enlarging the type makes an
+  already-long string overflow, and it is cut off at BOTH ends with no error and no warning. After
+  any font or size change, re-render and re-read every string end to end — do not assume a fix to
+  legibility left the content intact.
+- **Explanatory prose belongs in the caption, not inside the figure.** A definition, key or legend
+  embedded in a supertitle is the first thing to become illegible when the figure is scaled down and
+  the first thing to be clipped when its fonts are raised. Keep figure-internal text to labels that
+  name what they sit next to; put the sentence beside the figure, where it is set in the document's
+  own type size and can be read.
+- **A label annotating a region must be anchored CLEAR of that region's border, not centred near
+  it.** Text centred on a coordinate close to the edge of a patch, box or shaded span puts half its
+  glyph height across the line, and renders as a strike-through. Anchor it outside the shape's
+  extent (bottom-aligned above, top-aligned below) so the two cannot collide however long the string
+  later grows.
+- **A borrowed figure imports its owner's defects.** Reusing a panel from another deliverable
+  inherits its clipping, contrast and font problems, and "it was already like that" stops being a
+  defence the moment you ship it. Hold a borrowed asset to the same bar as one you made; when it
+  fails, fix it **at its source** rather than cropping around it, and record where the fix belongs
+  so the other consumer gets it too.
+- **If the point of the page is "how does this work", the figure must show the MECHANISM, not the
+  output.** A figure of finished results cannot answer a process question: the reader substitutes
+  their own model of the algorithm, and a wrong model can survive many readings without anyone
+  noticing, because nothing on the page contradicts it. When a reader says they do not understand a
+  method the deliverable supposedly covers, check whether any figure actually shows the intermediate
+  steps — usually none does. Prefer a purpose-built figure that computes its annotated numbers from
+  the same code path it is explaining, so the illustration cannot drift from the implementation.
 - **Presence check: the render must contain everything the source implies.** Overlap is not the only
   render defect — a generated element can be **silently dropped**. Adding a table to the wrong kind of
   placeholder, an unsupported object in a container, a missing asset path: the library emits no error,
@@ -480,3 +520,19 @@ seriously than a rule stated in the abstract.
   replaced it with a *different* unsound mechanism that the same slide's own number refuted. Lesson:
   when a source document carries a retraction, review the retraction and the original together — and
   re-verify the REPLACEMENT claim as hard as the one it replaced.
+- **Figure legibility and figure-vs-text collisions** (a 19-slide generated deck) — embedded plots
+  authored ~20 in wide and placed ~8 in wide rendered their 11 pt labels at 5-6 pt, so the deck's own
+  ">= 11 pt" rule was met only by the slide text. Raising the source fonts then CLIPPED every long
+  supertitle at both ends, which the first render caught and the source did not. Separately, a
+  context-window annotation centred just above a shaded patch was struck through by the patch border;
+  a borrowed panel arrived with its own titles already clipped and a low-contrast label; and a caption
+  landed on a TABLE twice, invisible to a text-vs-picture overlap checker because a table is not a
+  picture and had grown past its requested height. Lesson: figure text is sized by where it LANDS,
+  every font change is a layout change, and only the render of the composited page shows any of it.
+- **Mechanism vs output** (same deck) — a reader reported not understanding a method the deck
+  "explained", saying they kept expecting a sliding window where the algorithm actually uses fixed
+  non-overlapping bins. The deck had borrowed a figure showing two FINISHED episodes and never showed
+  the binning, so nothing on the page could have corrected the wrong model. The fix was a purpose-built
+  figure of the intermediate steps that recomputes its annotated numbers from the same logic it
+  illustrates. Lesson: a results figure cannot answer a process question, and a plausible wrong model
+  is invisible until someone says it out loud.
