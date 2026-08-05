@@ -228,6 +228,17 @@ selftest() {
   if [ "$rc" -eq 1 ]; then printf '  %sPASS%s  %-34s (rc=1)\n' "$GRN" "$RST" "--hook warm cache still FIRES"
   else printf '  %sFAIL%s  %-34s (rc=%s, want 1)\n%s\n' "$RED" "$RST" "--hook warm cache still FIRES" "$rc" "$out"; fails=$((fails+1)); fi
 
+  # A cache that is merely BEHIND must not be reported as a stale consumer. Non-hook, the
+  # live re-check overrules it. (Real case: push upstream, re-vendor, and every consumer
+  # holding a <=12h cache gets told its brand-new copy is stale — exactly backwards.)
+  printf '%s\n' "<!-- vendored @ 6fab342 -->" > "$tmp/f.md"
+  printf '0000000%s remote %s\n' "1111111111111111111111111111111" "$(( $(date +%s) + 9999 ))" \
+    > "$tmp/behind"
+  out=$(MURDERBOARD_CACHE="$tmp/behind" MURDERBOARD_HEAD= \
+        bash "$SELF" --file "$tmp/f.md" --upstream 6fab342 --verbose 2>&1); rc=$?
+  if [ "$rc" -eq 0 ]; then printf '  %sPASS%s  %-34s (rc=0)\n' "$GRN" "$RST" "a cache that is BEHIND is not stale"
+  else printf '  %sFAIL%s  %-34s (rc=%s, want 0)\n%s\n' "$RED" "$RST" "a cache that is BEHIND is not stale" "$rc" "$out"; fails=$((fails+1)); fi
+
   # The detached-refresh MECHANISM must actually run. This case exists because the first
   # version's spawn was a silent no-op on this platform, which made --hook permanently
   # quiet — indistinguishable, in the briefing, from "everything is current".
@@ -346,6 +357,26 @@ if same_commit "$stamp" "$head_sha"; then
   [ "$VERBOSE" -eq 1 ] && \
     echo "${GRN}murderboard: current${RST} (@ $stamp, via $source)"
   exit 0
+fi
+
+# MISMATCH — but do not accuse on hearsay. A CACHED upstream can simply be behind: the
+# moment someone pushes upstream and re-vendors, a consumer holding a <=12h old cache sees
+# its brand-new stamp disagree with a stale HEAD and gets told it is stale, backwards.
+# So re-verify live before declaring it. In --hook mode we must not touch the network, so
+# instead queue a detached refresh and label the number as cached.
+if [ "${source#*cached}" != "$source" ]; then
+  if [ "$HOOK" -eq 1 ]; then
+    spawn_bg bash "$SELF" --refresh
+  elif ans=$(resolve_upstream); then
+    head_sha=${ans%% *}; source=${ans##* }
+    [ "$source" != "explicit" ] && [ "$source" != "env" ] \
+      && printf '%s %s %s\n' "$head_sha" "$source" "$((NOW + TTL))" > "$cache" 2>/dev/null
+    if same_commit "$stamp" "$head_sha"; then
+      [ "$VERBOSE" -eq 1 ] && \
+        echo "${GRN}murderboard: current${RST} (@ $stamp, via $source — the cache was behind)"
+      exit 0
+    fi
+  fi
 fi
 
 echo "${RED}--- !! MURDERBOARD IS STALE — re-vendor BEFORE running a review ---${RST}"
