@@ -514,11 +514,23 @@ violation):
     of use** and give the edge-to-edge equivalent. The two metrics **rank pairs differently** and are
     not interconvertible: on one dataset, matching by centroid proximity found ~45 % fewer pairs than
     matching by overlap, so swapping the metric changes results, not wording.
-- **Same data compared across panels → shared y-axis limits.** If panels show the same
-  measurement two ways (e.g. condition A vs B), differing y-limits fake a difference via
-  autoscaling — a slop bug. Deliberately different limits (full vs zoom vs detail) are allowed
-  **only if explicitly marked** (asterisk on the deviating panel + a footnote that the scales
-  differ). Unmarked scale changes → flag.
+- **Same data compared across plots → shared axis limits (x and y).** If plots show the same
+  measurement more than one way (condition A vs B, or the same series across panels), differing
+  limits fake a difference via autoscaling — a slop bug. Deliberately different limits (full vs
+  zoom vs detail, or naturally different ranges) are allowed **only if explicitly marked**
+  (asterisk on the deviating panel + a footnote that the scales differ). Unmarked scale changes →
+  flag. **When different limits are genuinely justified, prefer showing BOTH views** — the
+  fixed / shared-limit one (the honest comparison) **and** the free / per-panel one (the internal
+  detail) — rather than picking one: the shared view alone can hide each panel's structure, the
+  free view alone can hide the difference between panels.
+- **Show the actual data, not only a summary or a schematic — humans need to see the data.**
+  When a deliverable rests on a dataset (real or synthetic), include a view of the **real
+  underlying records** — a sample of rows, a trace, a raster of events — so a human can *see* what
+  an aggregate or a schematic hides. A diagram of how the data *should* look, or a bar of summary
+  statistics, is **not a substitute** for the data itself: a summary can be exactly right while the
+  data is wrong (a spacing, a density, a jitter, an outlier, an artifact) in a way visible only
+  when a person looks at the records. Flag any data-driven figure/deliverable that shows only
+  schematics or aggregates and never lets the reader see the data.
 - **Overlap check covers the whole page/slide, not only inside a figure.** The zoom-crop overlap
   pass (slice the render into bands) catches label-on-tick collisions *within* a figure — but also
   check **shape-vs-shape on the slide**: a figure overlapping body text, a caption overflowing its
