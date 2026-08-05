@@ -220,27 +220,27 @@ selftest() {
     fails=$((fails+1))
   fi
 
-  # --hook with a TRUSTED warm cache (resolved against THIS stamp) must still fire
+  # --hook with a TRUSTED warm cache (resolved AFTER the file was written) must still fire
   exp=$(( $(date +%s) + 9999 ))
-  printf 'aaaaaaa%s remote %s 850bf81\n' "1111111111111111111111111111111" "$exp" > "$tmp/warm"
+  printf 'aaaaaaa%s remote %s %s\n' "1111111111111111111111111111111" "$exp" "$exp" > "$tmp/warm"
   out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_CACHE="$tmp/warm" \
         bash "$SELF" --hook --file "$tmp/f.md" 2>&1); rc=$?
   if [ "$rc" -eq 1 ]; then printf '  %sPASS%s  %-34s (rc=1)\n' "$GRN" "$RST" "--hook trusted cache FIRES"
   else printf '  %sFAIL%s  %-34s (rc=%s, want 1)\n%s\n' "$RED" "$RST" "--hook trusted cache FIRES" "$rc" "$out"; fails=$((fails+1)); fi
 
-  # A cache that is merely BEHIND must never be reported as a stale consumer. This is the
+  # A cache resolved BEFORE the file was last written must never accuse. This is the
   # normal path right after an upstream push + re-vendor: the stamp moved, the cache did
   # not, and the consumer's brand-new copy would be called stale — exactly backwards.
-  # Marker: the cache records which stamp it was judged against.
+  # Marker: the cache records WHEN it was resolved.
   printf '%s\n' "<!-- vendored @ 6fab342 -->" > "$tmp/new.md"
-  printf '0000000%s remote %s 850bf81\n' "1111111111111111111111111111111" "$exp" > "$tmp/behind"
+  printf '0000000%s remote %s 1\n' "1111111111111111111111111111111" "$exp" > "$tmp/behind"
   out=$(MURDERBOARD_CACHE="$tmp/behind" MURDERBOARD_HEAD=6fab342 \
         bash "$SELF" --file "$tmp/new.md" --verbose 2>&1); rc=$?
   if [ "$rc" -eq 0 ]; then printf '  %sPASS%s  %-34s (rc=0)\n' "$GRN" "$RST" "a BEHIND cache is not stale"
   else printf '  %sFAIL%s  %-34s (rc=%s, want 0)\n%s\n' "$RED" "$RST" "a BEHIND cache is not stale" "$rc" "$out"; fails=$((fails+1)); fi
 
   # ...and in --hook mode, which cannot verify, it must stay SILENT rather than accuse.
-  printf '0000000%s remote %s 850bf81\n' "1111111111111111111111111111111" "$exp" > "$tmp/behind2"
+  printf '0000000%s remote %s 1\n' "1111111111111111111111111111111" "$exp" > "$tmp/behind2"
   out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_CACHE="$tmp/behind2" \
         bash "$SELF" --hook --file "$tmp/new.md" 2>&1); rc=$?
   if [ "$rc" -eq 0 ] && [ -z "$out" ]; then
@@ -324,8 +324,12 @@ fi
 # The cache stores its OWN expiry, so ageing it costs no stat(1). Machine-local (git
 # common dir), shared by every worktree of this repo, never committed.
 cache="${MURDERBOARD_CACHE:-$cm/murderboard-head.cache}"
-head_sha=; source=; expires=0; seen=; trusted=1
+head_sha=; source=; expires=0; resolved=0; trusted=1
 now
+
+# stat(1) is GNU on Linux/Git-Bash and BSD on macOS; getting it wrong must not silently
+# read as "0", which would mark every cache trustworthy. Only called when a cache exists.
+mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 9999999999; }
 
 fresh=0
 # $MURDERBOARD_HEAD overrides the LIVE lookup (inside resolve_upstream), not the cache;
@@ -334,14 +338,19 @@ if [ -z "$FORCE_UPSTREAM" ] && [ "$REFRESH" -eq 0 ]; then
   # NOTE the redirection ORDER. `read ... < "$cache" 2>/dev/null` does NOT suppress a
   # missing-file error: bash applies redirections left to right, so `< "$cache"` fails
   # and reports before 2>/dev/null is in effect. Put the stderr redirect FIRST.
-  read -r head_sha source expires seen 2>/dev/null < "$cache" \
-    || { head_sha=; source=; expires=0; seen=; }
+  read -r head_sha source expires resolved 2>/dev/null < "$cache" \
+    || { head_sha=; source=; expires=0; resolved=0; }
   if [ -n "$head_sha" ] && [ "${expires:-0}" -gt "$NOW" ] 2>/dev/null; then
     fresh=1; source="$source, cached"
-    # The cache also records WHICH vendored stamp it was last judged against. If the stamp
-    # has changed since (i.e. someone just re-vendored), the cached HEAD may simply be
-    # BEHIND the copy in front of us, and is not trustworthy enough to accuse with.
-    [ "${seen:-}" = "$stamp" ] || trusted=0
+    # TRUST TEST: was this cache resolved AFTER the vendored file was last written?
+    # If not, the file may have been re-vendored since and the cached HEAD is merely
+    # BEHIND it — not grounds to accuse.
+    #
+    # An earlier version recorded the STAMP the cache was judged against instead. That is
+    # wrong for a multi-worktree repo: the cache lives in the shared git common dir, so
+    # ~17 worktrees sitting at different stamps each invalidated the others' trust and the
+    # check went silent almost everywhere. A timestamp is per-file and survives sharing.
+    [ "${resolved:-0}" -ge "$(mtime "$target")" ] 2>/dev/null || trusted=0
   fi
 fi
 
@@ -360,7 +369,7 @@ if [ -z "$head_sha" ]; then
   if ans=$(resolve_upstream); then
     head_sha=${ans%% *}; source=${ans##* }; trusted=1
     [ "$source" != "explicit" ] && [ "$source" != "env" ] \
-      && printf '%s %s %s %s\n' "$head_sha" "$source" "$((NOW + TTL))" "$stamp" \
+      && printf '%s %s %s %s\n' "$head_sha" "$source" "$((NOW + TTL))" "$NOW" \
          > "$cache" 2>/dev/null
   fi
 fi
@@ -393,7 +402,7 @@ if [ "$trusted" -eq 0 ]; then
   elif ans=$(resolve_upstream); then
     head_sha=${ans%% *}; source=${ans##* }
     [ "$source" != "explicit" ] && [ "$source" != "env" ] \
-      && printf '%s %s %s %s\n' "$head_sha" "$source" "$((NOW + TTL))" "$stamp" \
+      && printf '%s %s %s %s\n' "$head_sha" "$source" "$((NOW + TTL))" "$NOW" \
          > "$cache" 2>/dev/null
     if same_commit "$stamp" "$head_sha"; then
       [ "$VERBOSE" -eq 1 ] && \
