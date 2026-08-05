@@ -199,8 +199,12 @@ selftest() {
   else printf '  %sFAIL%s  %-34s (rc=%s, want 2)\n' "$RED" "$RST" "missing file is undetermined" "$rc"; fails=$((fails+1)); fi
 
   # unresolvable upstream must be undetermined, never "current". Hermetic: no network
-  # (MURDERBOARD_NO_NET), and HOME redirected so no real clone can answer.
+  # (MURDERBOARD_NO_NET), HOME redirected so no real clone can answer, and MURDERBOARD_CACHE
+  # pointed at nothing — WITHOUT that last one this case reads the ambient repo cache and
+  # passes or fails depending on which repo you happen to run it in. (It did exactly that:
+  # green in the upstream checkout, red in the first consumer that vendored it.)
   out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO=/nonexistent HOME="$tmp/nohome" \
+        MURDERBOARD_CACHE="$tmp/nocache" \
         bash "$SELF" --file "$tmp/f.md" --verbose 2>&1); rc=$?
   if [ "$rc" -eq 2 ]; then printf '  %sPASS%s  %-34s (rc=2)\n' "$GRN" "$RST" "no upstream is undetermined"
   else printf '  %sFAIL%s  %-34s (rc=%s, want 2)\n' "$RED" "$RST" "no upstream is undetermined" "$rc"; fails=$((fails+1)); fi
