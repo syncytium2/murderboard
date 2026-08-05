@@ -41,6 +41,20 @@ No fabricated or approximate citation. No internal contradiction. No filler.
    review run against a stale process is itself a slop defect: it silently omits rules the process has
    already learned. (This step exists because a consumer shipped a slide-overlap defect using a
    vendored copy that predated the slide-overlap rule.)
+   - **Do not do this by hand — run `murderboard_freshness.sh`.** It compares the vendored stamp
+     against upstream HEAD and exits **0 current · 1 STALE · 2 could-not-determine** (never a false
+     "current"). It is silent when current, so it can run unattended. **Wire it into your
+     session-start hook** with `--hook`, which serves a cached answer and refreshes detached, so it
+     never blocks startup on the network:
+     ```
+     bash tools/murderboard_freshness.sh --hook      # session-start: silent unless stale
+     bash tools/murderboard_freshness.sh --verbose   # on demand: always prints the verdict
+     bash tools/murderboard_freshness.sh --selftest  # prove every branch can still fire
+     ```
+     This step was prose for its whole life and got skipped exactly when it mattered. A rule that
+     depends on being remembered is not a gate. The reason it now fires by itself: the consumer it
+     was written for went 10 commits and 11 days stale while ~17 of its worktrees branched from the
+     stale copy, and nothing said a word.
 1. **Draft** the document.
 2. **Review** — run the review team (below). **Every role runs on every deliverable; what
    scales to stakes is how you run them, never which ones you run.**

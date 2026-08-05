@@ -27,7 +27,9 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > **re-review the repaired artifact — blind pass first**, and deliver the corrected document
 > **plus a short review report** with any residual `⚠` flags. When an agent needs a paper,
 > use `tools/fetch_paper.py` with `MURDERBOARD_LIT` set — check `--have` first, `--need`
-> what you can't reach. Vendored from `syncytium2/murderboard`.
+> what you can't reach. Vendored from `syncytium2/murderboard` — put
+> `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
+> itself instead of silently omitting rules you have already paid for.
 
 ## Practicing what it preaches
 
