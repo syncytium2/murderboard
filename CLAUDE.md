@@ -23,7 +23,8 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > When asked for a **document** deliverable — explainer, methods/manuscript/abstract text,
 > a figure or its caption, a report, or a human-facing handoff — do **not** hand over a
 > first draft. Draft it, then run the review process in `docs/doc_review_process.md`
-> (scale the reviewer team to stakes), apply the fixes, and deliver the corrected document
+> (**every role runs** — scale *how* you run them to stakes, never *which* ones), apply the fixes,
+> **re-review the repaired artifact — blind pass first**, and deliver the corrected document
 > **plus a short review report** with any residual `⚠` flags. When an agent needs a paper,
 > use `tools/fetch_paper.py` with `MURDERBOARD_LIT` set — check `--have` first, `--need`
 > what you can't reach. Vendored from `syncytium2/murderboard`.
