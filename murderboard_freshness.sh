@@ -69,7 +69,7 @@ tools/murderboard_freshness.sh
 if [ -t 1 ]; then RED=$'\033[31m'; YEL=$'\033[33m'; GRN=$'\033[32m'; RST=$'\033[0m'
 else RED=; YEL=; GRN=; RST=; fi
 
-VERBOSE=0; FORCE_UPSTREAM=; ONE_FILE=; REFRESH=0; HOOK=0
+VERBOSE=0; FORCE_UPSTREAM=; ONE_FILE=; REFRESH=0; HOOK=0; DEFER=
 
 # --- portable helpers --------------------------------------------------------
 # SPAWN BUDGET. This runs inside a SessionStart hook that blocks session startup, on a
@@ -250,6 +250,27 @@ selftest() {
     fails=$((fails+1))
   fi
 
+  # --defer must print the previous verdict, then refresh it in the background.
+  rm -f "$tmp/verdict"
+  printf 'PREVIOUS VERDICT\n' > "$tmp/verdict"
+  out=$(cd "$tmp" && bash "$SELF" --defer "$tmp/verdict" 2>&1); rc=$?
+  if [ "$rc" -eq 0 ] && [ "$out" = "PREVIOUS VERDICT" ]; then
+    printf '  %sPASS%s  %-34s\n' "$GRN" "$RST" "--defer prints the last verdict"
+  else
+    printf '  %sFAIL%s  %-34s (rc=%s, out=%s)\n' "$RED" "$RST" "--defer prints the last verdict" "$rc" "$out"
+    fails=$((fails+1))
+  fi
+  # ...and the background writer must actually replace it (here: with a stale-copy report)
+  printf '%s\n' "<!-- vendored @ 850bf81 -->" > "$tmp/doc_review_process.md"
+  n=0; while [ $n -lt 60 ] && grep -q "PREVIOUS VERDICT" "$tmp/verdict" 2>/dev/null; do
+    sleep 0.25; n=$((n+1)); done
+  if ! grep -q "PREVIOUS VERDICT" "$tmp/verdict" 2>/dev/null; then
+    printf '  %sPASS%s  %-34s\n' "$GRN" "$RST" "--defer refreshes the file"
+  else
+    printf '  %sFAIL%s  %-34s (verdict never replaced)\n' "$RED" "$RST" "--defer refreshes the file"
+    fails=$((fails+1))
+  fi
+
   # The detached-refresh MECHANISM must actually run. This case exists because the first
   # version's spawn was a silent no-op on this platform, which made --hook permanently
   # quiet — indistinguishable, in the briefing, from "everything is current".
@@ -280,6 +301,12 @@ while [ $# -gt 0 ]; do
     --upstream)    FORCE_UPSTREAM="${2:-}"; shift ;;
     --refresh)     REFRESH=1 ;;
     --hook)        HOOK=1 ;;
+    --defer)       DEFER="${2:-}"; shift ;;
+    --_defer-write) # internal: recompute and atomically replace the verdict file
+                   out=$(bash "$SELF" 2>/dev/null); rc=$?
+                   printf '%s' "$out" > "${2:-}.tmp" 2>/dev/null \
+                     && mv -f "${2:-}.tmp" "${2:-}" 2>/dev/null
+                   exit "$rc" ;;
     --selftest)    selftest; exit $? ;;
     --_spawn-probe) spawn_bg touch "${2:-}"; exit 0 ;;   # selftest only
     -h|--help)     sed -n '2,40p' "$0"; exit 0 ;;
@@ -287,6 +314,21 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+# --- --defer: zero-work mode for a hot session-start hook ----------------------
+# Prints the PREVIOUS verdict (a plain file read) and recomputes in the background. The
+# blocking cost is one file read plus one spawn — no git, no stat, no network, ever.
+#
+# Why this exists: the consumer's SessionStart hook already measured 31-39s against a 45s
+# timeout and a hard 60s session abort, with ~8s of run-to-run variance. Even a 3-7s check
+# is too much to add to that path, and "the briefing sometimes kills the session" is a far
+# worse outcome than "the staleness notice is one session late". Staleness does not change
+# minute to minute; a lagging answer costs nothing.
+if [ -n "$DEFER" ]; then
+  [ -s "$DEFER" ] && cat "$DEFER"
+  spawn_bg bash "$SELF" --_defer-write "$DEFER"
+  exit 0
+fi
 
 # --- locate the vendored file -------------------------------------------------
 # ONE git call for both paths — two rev-parse spawns measured ~1s each on Windows.
