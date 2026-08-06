@@ -590,6 +590,26 @@ violation):
   SMALLEST text in every embedded figure against the deliverable's own minimum type size. A house
   rule like "all fonts ≥ 11 pt" is otherwise satisfied only by the text the document set itself,
   and silently exempts every figure — which is most of what the reader is trying to read.
+- **A figure collides with ITSELF, not only with the page — and the causes are different.** The
+  slide-level checks above assume a composited document; a single multi-panel figure fails the same
+  way for reasons no bounding-box or slide render reaches. Check each explicitly: a **supertitle or
+  subtitle is one line that does not wrap**, so a string built by interpolation (an id, a list, a
+  value printed to 3 s.f.) runs off *both* page edges; **per-panel titles collide sideways**, because
+  each panel is only `width ÷ ncols` wide while the title font is usually larger than the axis font;
+  and a plotting library's **layout padding may not survive export** (a tight-crop export discards
+  it, putting ink against the page edge with no headroom for any later font change). Report the ink
+  bounding box against the page — ink touching the edge is text off the page, ink within a few px is
+  a clip waiting for the next edit. This is decidable mechanically and belongs in agent 10's table.
+- **Publishing IS delivery. Render to a private path, inspect, and only then write where the reader
+  looks.** Reviewing a render you have already dropped into the shared folder — the review directory,
+  the synced drive, the channel — is inspection *after* publication: the reader can have seen the
+  defect before you looked, and every intermediate iteration is visible as if it were a draft you
+  chose to show. State the deliverable's publication boundary and keep unvetted renders on the other
+  side of it. (Incident: every render of a figure was opened and checked, and the author still shipped
+  two defective versions — a supertitle off both page edges, then panel titles colliding after a
+  review fix lengthened them — because each render was written straight into the folder the reviewer
+  reads from. The inspection was real; it was one step too late. The reviewer's note was that this
+  class had been raised with them "many times".)
 - **Raising a figure's fonts CLIPS its long strings. Any font change is a layout change.** Titles
   and supertitles are laid out against the axes or the figure width, so enlarging the type makes an
   already-long string overflow, and it is cut off at BOTH ends with no error and no warning. After
