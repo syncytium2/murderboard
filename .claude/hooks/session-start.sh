@@ -1,16 +1,48 @@
 #!/usr/bin/env bash
-# vendored from interface2 @ 46da2c3 — do NOT edit here; update interface2 tools/session-start.hook.sh and re-copy
+# vendored from interface2 @ b01259f — do NOT edit here; update interface2 tools/session-start.hook.sh and re-copy
 # Generic SessionStart briefing — runs at every session start / resume.
-# Its stdout is injected into the session's context. NON-blocking: it must never
-# fail a session, so every command is guarded and the script always exits 0.
+# Its stdout is injected into the session's context.
 #
 # CANONICAL SOURCE: interface2 tools/session-start.hook.sh (vendored elsewhere).
 # It is self-configuring (derives the repo name and the sibling worktrees dir), so
 # a consumer repo copies it to .claude/hooks/session-start.sh unchanged and wires it
 # in .claude/settings.json (see docs/session_protocol.md). A repo may layer its own
 # repo-specific checks around this core; keep the core intact so it stays re-copyable.
+#
+# ---------------------------------------------------------------------------------
+# HARD CONSTRAINT — this hook BLOCKS session initialization until it exits, and the
+# SDK aborts the whole session at 60s ("Subprocess initialization did not complete
+# within 60000ms"; the message blames auth/network, which is a red herring). Exiting 0
+# is therefore NOT sufficient: "never fails" is not "never blocks". A hook that always
+# succeeds but returns too late takes the session down anyway.
+#
+# This cost us ~half a day in interface2 on 2026-07-30 at 32 worktrees. Full writeup:
+# interface2 docs/postmortems/session-start-hook-timeout.md. Two rules came out of it:
+#   * Bound the WHOLE script with a deadline, not each call. Per-call caps MULTIPLY
+#     (32 worktrees x 3s = 96s, which is the bug again).
+#   * Degrade LOUDLY. A section dropped for budget must say so, or a silent all-clear
+#     masquerades as a real one.
+# Wire a `"timeout"` into the settings.json hook entry as a second line of defence,
+# set ABOVE this budget and below the SDK's 60s.
+#
+# Tune with env vars if a consumer repo needs to: IF2_HOOK_BUDGET (seconds).
+# ---------------------------------------------------------------------------------
 
 set +e
+
+BUDGET="${IF2_HOOK_BUDGET:-20}"   # total wall-clock seconds for git/scan work
+started=$SECONDS
+
+# timeout(1) ships with Git for Windows, but Windows also has an incompatible
+# System32\timeout.exe that may shadow it. Probe, and degrade to running bare.
+if /usr/bin/timeout --version >/dev/null 2>&1; then
+  TO() { /usr/bin/timeout "$@"; }
+else
+  TO() { shift; "$@"; }
+fi
+left()  { local r=$(( BUDGET - (SECONDS - started) )); [ "$r" -lt 1 ] && r=1; echo "$r"; }
+spent() { [ $(( SECONDS - started )) -ge "$BUDGET" ]; }
+trunc=""   # accumulated "this section was dropped" notices — always printed
 
 root=$(git rev-parse --show-toplevel 2>/dev/null)
 [ -z "$root" ] && { echo "[session-start] not a git repo — skipping briefing."; exit 0; }
@@ -55,22 +87,37 @@ fi
 # --- unpushed / uncommitted alarm: surface single-copy work so it is never lost.
 # A branch is flagged only if it has commits on NO remote at all (safe if those same
 # commits live on any other remote branch). Uncommitted = tracked changes only.
+#
+# `rev-list --count <b> --not --remotes` walks EVERY remote ref on each call, so running
+# it per branch is the single most expensive thing here. Pre-filter in one for-each-ref
+# pass — but note the trap: a configured upstream does NOT mean the branch is on a
+# remote. Once the remote-tracking ref is deleted (any `fetch --prune` after the remote
+# branch goes away, e.g. when an MR merges), %(upstream) STILL prints the configured
+# name while %(upstream:track) reports "[gone]". Filtering on %(upstream) alone would
+# silently skip exactly the branches most likely to hold the only copy of the work —
+# in the alarm whose entire job is to prevent that. Skip only a LIVE upstream.
 alarm=""
-for b in $(git for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null); do
-  n=$(git rev-list --count "$b" --not --remotes 2>/dev/null)
+while IFS='|' read -r b up track; do
+  [ -n "$up" ] && [ "$track" != "[gone]" ] && continue
+  spent && { trunc="${trunc}   (branch scan truncated — budget)\n"; break; }
+  n=$(TO 3 git rev-list --count "$b" --not --remotes 2>/dev/null)
   [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null && \
     alarm="${alarm}   ! ${b}: ${n} commit(s) on NO remote — git push -u origin ${b}\n"
-done
+done < <(git for-each-ref --format='%(refname:short)|%(upstream)|%(upstream:track)' refs/heads 2>/dev/null)
+
+# One `git status` per worktree. On a slow/scanned filesystem a cold one can take
+# seconds, so bound by the remaining DEADLINE rather than capping each call.
 while IFS= read -r wt; do
   [ -d "$wt" ] || continue
-  m=$(git -C "$wt" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')
+  spent && { trunc="${trunc}   (worktree scan truncated — budget; run 'git worktree list' manually)\n"; break; }
+  m=$(TO "$(left)" git -C "$wt" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')
   [ -n "$m" ] && [ "$m" -gt 0 ] 2>/dev/null && \
     alarm="${alarm}   ! $(basename "$wt"): ${m} uncommitted change(s) — commit + push\n"
-done < <(git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
-if [ -n "$alarm" ]; then
+done < <(TO 5 git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
+if [ -n "$alarm" ] || [ -n "$trunc" ]; then
   echo
   echo "--- !! UNPUSHED / UNCOMMITTED WORK — back it up (feature branches: push freely) ---"
-  printf "%b" "$alarm"
+  printf "%b" "$alarm$trunc"
 fi
 
 # --- did THIS branch move under you? ---------------------------------------
@@ -104,12 +151,14 @@ fi
 # bytecode, so editing a function that executes inside parfor silently yields wrong
 # numbers.
 matlab_procs() {
+  # Both process listers are capped: tasklist in particular can hang for seconds on a
+  # busy or scanned Windows box, and this runs on the blocking path.
   if command -v tasklist >/dev/null 2>&1; then
     # Windows (MSYS/Cygwin bash). CSV: name,pid,session,#,mem ("12,345 K").
-    tasklist /FI "IMAGENAME eq MATLAB.exe" /FO CSV /NH 2>/dev/null \
+    TO 5 tasklist /FI "IMAGENAME eq MATLAB.exe" /FO CSV /NH 2>/dev/null \
       | tr -d '"' | awk -F, 'NF>=5 { gsub(/[^0-9]/,"",$5); print $2, $5*1024 }'
   elif command -v ps >/dev/null 2>&1; then
-    ps -eo pid=,rss=,comm= 2>/dev/null \
+    TO 5 ps -eo pid=,rss=,comm= 2>/dev/null \
       | awk 'tolower($3) ~ /matlab/ { print $1, $2*1024 }'
   fi
 }
@@ -132,8 +181,8 @@ else
 fi
 
 echo
-echo "--- worktrees ---";      git worktree list 2>/dev/null
-echo "--- recent commits ---"; git log --oneline -6 --all 2>/dev/null
+echo "--- worktrees ---";      TO 5 git worktree list 2>/dev/null || echo "(timed out)"
+echo "--- recent commits ---"; TO 5 git log --oneline -6 --all 2>/dev/null || echo "(timed out)"
 
 echo "--- session board: ${board} ---"
 if [ -f "$board" ]; then cat "$board"; else
@@ -143,5 +192,9 @@ fi
 echo
 echo "RULES: your own worktree; never commit on main; push feature branches promptly;"
 echo "claim shared external outputs on the board before writing. Full policy: docs/session_protocol.md"
+# Standing canary. BUDGET bounds the scan sections above, NOT this tail, so true wall
+# time runs ~10s beyond it. If this number creeps toward the settings.json hook timeout,
+# fix it BEFORE it crosses the SDK's 60s and takes the session down.
+echo "briefing took $(( SECONDS - started ))s"
 echo "==================================================================="
 exit 0
