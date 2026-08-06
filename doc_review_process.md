@@ -34,6 +34,16 @@ No fabricated or approximate citation. No internal contradiction. No filler.
 
 ## The process
 
+> **Call-up.** Where the consumer has installed the skill (`.claude/skills/murderboard/`, vendored
+> from `skills/murderboard/SKILL.md` upstream), **invoke it — `/murderboard <artifact>` — rather than
+> working from this file by hand.** The skill owns only the mechanics that must not depend on being
+> remembered: the freshness gate fires at the moment of review instead of at session start, the
+> roster is *derived* from this file instead of recalled, the artifact is resolved to the built file
+> rather than its generator, and the run leaves a record that can be checked. This file remains the
+> authority on *what* each role does — the skill loads it and follows it. Reading this file directly
+> still works and is the fallback for a consumer without the skill installed; it is simply the mode
+> in which each of those four steps can be silently skipped.
+
 0. **Preflight — confirm the process itself is current.** This file is usually **vendored** into a
    consumer repo, where it drifts behind its canonical source. Before running, verify THIS copy is up
    to date with upstream — compare its vendored stamp/commit against the canonical repo's HEAD (search
@@ -656,9 +666,30 @@ with the `MURDERBOARD_LIT` environment variable (see the tool's header). Three s
 
 ## Output contract
 
-Deliver **(1)** the corrected document and **(2)** a 3–6 line review report: dimensions
-checked, issues found / fixed, and any remaining `⚠` flags. If nothing survived review,
-say so plainly — do not manufacture findings to look thorough.
+Deliver **(1)** the corrected document, **(2)** a short plain-language summary — dimensions
+checked, issues found / fixed, verify rounds, any remaining `⚠` flags — and **(3)** a **role
+ledger: one row per role in the roster, all of them**, each carrying either its findings or
+its "no findings, and here is what I checked" line. If nothing survived review, say so
+plainly — do not manufacture findings to look thorough.
+
+**The ledger is not bureaucracy; it is the only evidence the team ran.** This contract used to
+ask for "a 3–6 line review report", which cannot physically carry a trace from eleven roles —
+so the document demanded that every role run, then specified an output too small to show
+whether they had. A run that fired 7 of 11 roles and a run that fired all 11 cleanly produced
+reports a reader could not tell apart. That is this process's own "can the alarm ring?" rule
+turned on itself: *"no findings from role 9"* is worth nothing if role 9 was never spawned.
+
+**Check the ledger mechanically rather than by eye** — `murderboard_roster.sh` parses the
+roster out of this file and verifies the report accounts for every role:
+
+```
+murderboard_roster.sh list            # the roster, derived from this file (never recalled)
+murderboard_roster.sh check REPORT.md # 0 = every role accounted for, 1 = one is missing
+```
+
+Because the roster is derived, adding a role here propagates to every consumer's check with no
+edit anywhere else. A failing check does not mean "write more" — it means a role either never
+ran or left no trace, and both are defects.
 
 ---
 

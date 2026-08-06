@@ -1,12 +1,21 @@
 # CLAUDE.md — murderboard
 
 This repo is the canonical source of the **murderboard**: an anti-slop review process
-(`doc_review_process.md`) and a literature tool (`fetch_paper.py`). It is *consumed* by
-other projects, which vendor copies of those two files. See [`README.md`](README.md).
+(`doc_review_process.md`), a literature tool (`fetch_paper.py`), two gates that keep the
+process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`), and the call-up skill
+(`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
+See [`README.md`](README.md).
+
+**The division of labour matters when editing.** `doc_review_process.md` is the authority on
+*what* gets reviewed and by whom; the skill owns only *how the review is summoned* — the parts
+that must not depend on being remembered. A new **rule** goes in the process file. A new step
+that would otherwise be skipped goes in the skill. Putting a rule in the skill hides it from
+consumers who read the process directly; putting call-up mechanics in the process file is how
+they ended up as prose in the first place.
 
 ## If you are working IN this repo
 
-- Keep both files **project-neutral.** No hardcoded paths, project names, or domain jargon
+- Keep every file **project-neutral.** No hardcoded paths, project names, or domain jargon
   in the core — the calcium-imaging origin lives only in the appendix of
   `doc_review_process.md` and in explicit back-compat branches of `fetch_paper.py`
   (`IF2_LIT`/`IF2_PAPERS`, the `01-lit` autodetect). New machinery is env-driven.
@@ -22,14 +31,19 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > ## Document deliverables — run the murderboard first (anti-slop)
 > When asked for a **document** deliverable — explainer, methods/manuscript/abstract text,
 > a figure or its caption, a report, or a human-facing handoff — do **not** hand over a
-> first draft. Draft it, then run the review process in `docs/doc_review_process.md`
-> (**every role runs** — scale *how* you run them to stakes, never *which* ones), apply the fixes,
+> first draft. **Invoke `/murderboard <artifact>`** (the vendored skill in
+> `.claude/skills/murderboard/`); it gates freshness, derives the role roster, resolves the
+> **built** artifact rather than its generator, and emits a checkable run record. Without the
+> skill, follow `docs/doc_review_process.md` by hand: draft, run the review team (**every role
+> runs** — scale *how* you run them to stakes, never *which* ones), apply the fixes,
 > **re-review the repaired artifact — blind pass first**, and deliver the corrected document
-> **plus a short review report** with any residual `⚠` flags. When an agent needs a paper,
+> **plus a summary and a role ledger** with any residual `⚠` flags. When an agent needs a paper,
 > use `tools/fetch_paper.py` with `MURDERBOARD_LIT` set — check `--have` first, `--need`
 > what you can't reach. Vendored from `syncytium2/murderboard` — put
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
-> itself instead of silently omitting rules you have already paid for.
+> itself instead of silently omitting rules you have already paid for, and run
+> `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
+> pass as a clean one.
 
 ## Practicing what it preaches
 

@@ -1,0 +1,7 @@
+# Shell scripts are checked out LF on EVERY platform.
+#
+# This repo's checkouts include Windows boxes with core.autocrlf=true, which would
+# otherwise hand out CRLF copies of the gates. A `\r` in a shell script is the worst
+# class of bug this repo has: bash fails in ways that read as "the check found nothing"
+# rather than "the check could not run". Pin the line endings instead.
+*.sh text eol=lf
