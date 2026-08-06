@@ -1,5 +1,12 @@
 # murderboard
 
+> **Authorship.** The code and documentation in this repository were **written by Claude**
+> (Anthropic's Claude Code), working under the direction of Richard DeFazio — who set the
+> problems, made the design and domain calls, reviewed the output and merged it, but did
+> **not** write the implementation. Agent commits carry a `Co-Authored-By: Claude` trailer;
+> commits predating 2026-08-06 are from before that was enforced automatically, so **assume
+> agent authorship unless a commit says otherwise.**
+
 A project-neutral **anti-slop review harness** for document deliverables, plus the
 literature tool that feeds it. The name is the old sense of *murderboard*: a panel that
 tries to tear a thing apart before it ships, so what survives is trustworthy.
