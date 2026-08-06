@@ -18,7 +18,13 @@
 # USAGE
 #   murderboard_freshness.sh                 check; silent if current, report if stale
 #   murderboard_freshness.sh --verbose       always print the verdict
-#   murderboard_freshness.sh --file PATH     check this vendored file (default: autodetect)
+#   murderboard_freshness.sh --file PATH     check this vendored file (default: autodetect).
+#                                            Repeatable; naming files also SCOPES the
+#                                            cross-stamp check to just those files.
+#   murderboard_freshness.sh --label NAME    what is being checked (default: murderboard).
+#                                            Appears in every message.
+#   murderboard_freshness.sh --slug O/R      upstream repo (default: syncytium2/murderboard)
+#   murderboard_freshness.sh --clone PATH    where a local clone of that upstream lives
 #   murderboard_freshness.sh --upstream SHA  skip upstream lookup (testing / offline)
 #   murderboard_freshness.sh --refresh       ignore the cache, re-resolve upstream now
 #   murderboard_freshness.sh --hook          never touch the network; serve the cache and
@@ -37,6 +43,12 @@
 # CACHE. Upstream HEAD is cached for $TTL seconds in the git common dir (machine-local,
 # shared by every worktree, never committed), because this runs in a SessionStart hook
 # that blocks session startup and cannot afford a network call every time.
+#
+# NOT MURDERBOARD-ONLY ANY MORE. The failure it catches — a vendored copy drifting with
+# nothing to announce it — is not specific to this repo, and it bit in the other direction
+# too: three consumers ran interface2's PRE-FIX SessionStart hook for weeks, including the
+# commit written expressly so they would not inherit that outage. One gate, pointed at a
+# family with --label/--slug/--clone/--file, serves every vendoring relationship.
 #
 # Project-neutral: no hardcoded consumer paths. Override anything via the env vars below.
 
@@ -73,6 +85,13 @@ if [ -t 1 ]; then RED=$'\033[31m'; YEL=$'\033[33m'; GRN=$'\033[32m'; RST=$'\033[
 else RED=; YEL=; GRN=; RST=; fi
 
 VERBOSE=0; FORCE_UPSTREAM=; ONE_FILE=; REFRESH=0; HOOK=0; DEFER=
+
+# What this run is checking. The tool started life murderboard-only, but the SAME staleness
+# failure runs in the other direction too — a consumer's vendored copy of some OTHER
+# upstream (interface2's session-protocol pair, say) drifts with nothing to announce it.
+# --label/--slug/--clone make one gate serve any vendor family; --file scopes it.
+LABEL="${MURDERBOARD_LABEL:-murderboard}"
+EXPLICIT_FILES=
 
 # --- portable helpers --------------------------------------------------------
 # SPAWN BUDGET. This runs inside a SessionStart hook that blocks session startup, on a
@@ -287,6 +306,60 @@ selftest() {
            "$RED" "$RST" "detached refresh actually spawns"; fails=$((fails+1))
   fi
 
+  # --- multi-family use (--label / --slug / --file scoping) --------------------
+
+  # The label must reach the output, or a consumer checking two upstreams gets two
+  # identical-looking alerts and cannot tell which one went stale.
+  printf 'x @ 1111111 x\n' > "$tmp/other.md"
+  out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_CACHE="$tmp/lbl" MURDERBOARD_HEAD=2222222 \
+        bash "$SELF" --label session-protocol --file "$tmp/other.md" --verbose 2>&1); rc=$?
+  case "$out" in
+    *SESSION-PROTOCOL*) printf '  %sPASS%s  %-34s (rc=%s)\n' "$GRN" "$RST" "--label reaches the alert" "$rc" ;;
+    *) printf '  %sFAIL%s  %-34s (out=%s)\n' "$RED" "$RST" "--label reaches the alert" "$out"; fails=$((fails+1)) ;;
+  esac
+
+  # --file must SCOPE the cross-stamp notes. Unscoped, a repo vendoring two upstreams
+  # reports every file of the OTHER family as wrongly stamped — noise that reads as
+  # findings. Run from a repo root that really does carry murderboard-stamped files.
+  case "$out" in
+    *"doc_review_process.md is stamped"*)
+      printf '  %sFAIL%s  %-34s (leaked another family)\n' "$RED" "$RST" "--file scopes cross-stamp notes"; fails=$((fails+1)) ;;
+    *) printf '  %sPASS%s  %-34s\n' "$GRN" "$RST" "--file scopes cross-stamp notes" ;;
+  esac
+
+  # THE BUG THIS FILE SHIPPED WITH until multi-family use existed: the cache was ONE fixed
+  # filename in the git common dir, so a second family's cached upstream HEAD was compared
+  # against the first family's stamp — a confident, completely wrong verdict in BOTH
+  # directions. Prove the cache path is keyed by slug.
+  # Asserted on OBSERVABLE behaviour, not on an internal variable: run two families in a
+  # throwaway repo (so the cache lands in ITS git dir) and require two distinct cache files.
+  # A single shared file is the poisoning bug.
+  # NB the head must come from a resolution source that CACHES. --upstream/$MURDERBOARD_HEAD
+  # deliberately do not write a cache, so driving this with either proves nothing — the
+  # first version of this test did exactly that and found 0 files, looking like the bug.
+  # Build a real local upstream and resolve through --clone.
+  ( git init -q --bare "$tmp/up.git" 2>/dev/null
+    git init -q "$tmp/seed" 2>/dev/null
+    cd "$tmp/seed" || exit 1
+    git -c user.email=t@t -c user.name=t commit -q --allow-empty -m seed 2>/dev/null
+    git branch -M main 2>/dev/null
+    git remote add origin "$tmp/up.git" 2>/dev/null
+    git push -q origin main 2>/dev/null
+    git clone -q "$tmp/up.git" "$tmp/clone" 2>/dev/null
+
+    git init -q "$tmp/repo" 2>/dev/null
+    cd "$tmp/repo" || exit 1
+    printf 'x @ 1111111 x\n' > v.md
+    MURDERBOARD_NO_NET=1 bash "$SELF" --slug fam/one --clone "$tmp/clone" --file v.md >/dev/null 2>&1
+    MURDERBOARD_NO_NET=1 bash "$SELF" --slug fam/two --clone "$tmp/clone" --file v.md >/dev/null 2>&1 )
+  n=$(ls "$tmp/repo/.git/" 2>/dev/null | grep -c 'murderboard-head\..*\.cache')
+  if [ "${n:-0}" -eq 2 ]; then
+    printf '  %sPASS%s  %-34s (2 distinct caches)\n' "$GRN" "$RST" "cache is keyed per upstream"
+  else
+    printf '  %sFAIL%s  %-34s (%s cache file(s); shared cache poisons both verdicts)\n' \
+           "$RED" "$RST" "cache is keyed per upstream" "${n:-0}"; fails=$((fails+1))
+  fi
+
   echo
   if [ "$fails" -eq 0 ]; then echo "${GRN}all checks pass${RST}"; else echo "${RED}$fails FAILED${RST}"; fi
   return $fails
@@ -300,7 +373,12 @@ TMPD=
 while [ $# -gt 0 ]; do
   case "$1" in
     --verbose|-v)  VERBOSE=1 ;;
-    --file)        ONE_FILE="${2:-}"; shift ;;
+    --file)        ONE_FILE="${2:-}"; EXPLICIT_FILES="$EXPLICIT_FILES
+${2:-}"; shift ;;
+    --label)       LABEL="${2:-}"; shift ;;
+    --slug)        REPO_SLUG="${2:-}"; shift ;;
+    --clone)       CLONE_CANDIDATES="${2:-}
+$CLONE_CANDIDATES"; shift ;;
     --upstream)    FORCE_UPSTREAM="${2:-}"; shift ;;
     --refresh)     REFRESH=1 ;;
     --hook)        HOOK=1 ;;
@@ -360,15 +438,21 @@ if [ -z "$target" ] || [ ! -r "$target" ]; then
   exit 2
 fi
 if [ -z "$stamp" ]; then
-  echo "${YEL}murderboard: ${target#$root/} carries NO vendored stamp — cannot tell if it is current.${RST}"
-  echo "   Add one:  vendored from https://github.com/$REPO_SLUG @ <short-sha>"
+  echo "${YEL}$LABEL: ${target#$root/} carries NO vendored stamp — cannot tell if it is current.${RST}"
+  echo "   Add one:  vendored from $REPO_SLUG @ <short-sha>"
   exit 2
 fi
 
 # --- upstream HEAD, cached ----------------------------------------------------
 # The cache stores its OWN expiry, so ageing it costs no stat(1). Machine-local (git
 # common dir), shared by every worktree of this repo, never committed.
-cache="${MURDERBOARD_CACHE:-$cm/murderboard-head.cache}"
+# KEYED BY SLUG, not a fixed name. A repo can vendor from more than one upstream (this
+# tool now polices any of them via --slug/--label), and a shared cache file would let one
+# family's cached HEAD be compared against another family's stamp — producing a confident,
+# completely wrong verdict in BOTH directions. The key is the slug with non-alphanumerics
+# folded to '-', so it is a legal filename on every platform.
+cache_key=$(printf '%s' "$REPO_SLUG" | tr -c 'A-Za-z0-9' '-')
+cache="${MURDERBOARD_CACHE:-$cm/murderboard-head.$cache_key.cache}"
 head_sha=; source=; expires=0; resolved=0; trusted=1
 now
 
@@ -420,15 +504,15 @@ if [ -z "$head_sha" ]; then
 fi
 
 if [ -z "$head_sha" ]; then
-  echo "${YEL}murderboard: cannot reach upstream ($REPO_SLUG) — freshness UNKNOWN.${RST}"
-  echo "   Vendored stamp is $stamp. Check by hand before running a review."
+  echo "${YEL}$LABEL: cannot reach upstream ($REPO_SLUG) — freshness UNKNOWN.${RST}"
+  echo "   Vendored stamp is $stamp. Check by hand before relying on this copy."
   exit 2
 fi
 
 # --- verdict ------------------------------------------------------------------
 if same_commit "$stamp" "$head_sha"; then
   [ "$VERBOSE" -eq 1 ] && \
-    echo "${GRN}murderboard: current${RST} (@ $stamp, via $source)"
+    echo "${GRN}$LABEL: current${RST} (@ $stamp, via $source)"
   exit 0
 fi
 
@@ -451,24 +535,30 @@ if [ "$trusted" -eq 0 ]; then
          > "$cache" 2>/dev/null
     if same_commit "$stamp" "$head_sha"; then
       [ "$VERBOSE" -eq 1 ] && \
-        echo "${GRN}murderboard: current${RST} (@ $stamp, via $source — the cache was behind)"
+        echo "${GRN}$LABEL: current${RST} (@ $stamp, via $source — the cache was behind)"
       exit 0
     fi
   fi
 fi
 
-echo "${RED}--- !! MURDERBOARD IS STALE — re-vendor BEFORE running a review ---${RST}"
+echo "${RED}--- !! $(printf '%s' "$LABEL" | tr '[:lower:]' '[:upper:]') IS STALE — re-vendor before relying on it ---${RST}"
 echo "   vendored: $stamp   upstream: ${head_sha%${head_sha#???????}}   (via $source)"
 echo "   file:     ${target#$root/}"
+[ "$LABEL" = murderboard ] && \
 echo "   A review run against a stale process silently omits rules already paid for."
-echo "   Re-copy from https://github.com/$REPO_SLUG and bump the stamp on EVERY"
-echo "   vendored file, then land it on the DEFAULT BRANCH — vendoring onto a leaf"
-echo "   branch leaves every new worktree inheriting the old copy."
+echo "   Re-copy from $REPO_SLUG and bump the stamp on EVERY vendored file of this"
+echo "   family, then land it on the DEFAULT BRANCH — vendoring onto a leaf branch"
+echo "   leaves every new worktree inheriting the old copy."
 
-# disagreeing stamps across the vendored set are their own defect
-for f in $STAMPED_FILES; do
-  [ -r "$root/$f" ] || continue
-  stamp_of "$root/$f" || continue
+# Disagreeing stamps across the vendored set are their own defect. SCOPED to the family
+# being checked: when the caller named files explicitly, only those are cross-checked.
+# Otherwise a repo vendoring two upstreams reports every file of the OTHER family as
+# "wrongly stamped" — noise that reads as findings and buries the real line.
+for f in ${EXPLICIT_FILES:-$STAMPED_FILES}; do
+  ff="$f"; [ -r "$ff" ] || ff="$root/$f"
+  [ -r "$ff" ] || continue
+  [ "$ff" = "$target" ] && continue
+  stamp_of "$ff" || continue
   same_commit "$STAMP" "$stamp" || echo "   note: $f is stamped $STAMP, not $stamp"
 done
 

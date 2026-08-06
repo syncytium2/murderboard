@@ -11,7 +11,7 @@ it honest, and the skill that calls it up:
 |---|---|
 | [`doc_review_process.md`](doc_review_process.md) | The process. A team of adversarial reviewer roles (claim/data verifier, citation validator, consistency auditor, hostile peer reviewer, line editor, methods expert, reuse auditor, naive-reader accessibility, density/figure-first, build & craft gate, argument order) that check **every claim against a real source**, verify **every citation**, attack overreach, ask whether a null result could ever have failed, ask what should have been a figure, read the order the case is made in, and run the mechanical checks against a **render** — before a doc, figure, or report is handed over. **Every role runs on every deliverable**; what scales to stakes is how you run them, not which ones. Roles are split along two axes: what it **costs** to satisfy them (judgment calls sit with the reviewer whose mode of thought they match; every check a script or a render decides sits in one role with a table for an output, so a skipped check leaves a visible hole), and their **unit of analysis** (a defect whose unit is the whole sequence or the whole page is invisible to every per-slide reader). |
 | [`fetch_paper.py`](fetch_paper.py) | The lit tool. Fetches open-access papers, **caches** them, checks a curated library **before** downloading (`--have`), **promotes** keepers into it (`--promote`), and **flags** anything it can't reach to a want-list (`--need`, and auto on any failed/paywalled fetch). |
-| [`murderboard_freshness.sh`](murderboard_freshness.sh) | The freshness gate. Answers "is this consumer's vendored copy current?" by comparing the stamp against upstream HEAD — **0 current · 1 stale · 2 unknown**, never a false "current". Silent when current, so it runs unattended; `--hook` serves a cached answer and refreshes detached, so a SessionStart hook never blocks on the network. `--selftest` proves every branch can still fire. This is step 0 of the process, mechanized. |
+| [`murderboard_freshness.sh`](murderboard_freshness.sh) | The freshness gate. Answers "is this consumer's vendored copy current?" by comparing the stamp against upstream HEAD — **0 current · 1 stale · 2 unknown**, never a false "current". Silent when current, so it runs unattended; `--hook` serves a cached answer and refreshes detached, so a SessionStart hook never blocks on the network. `--selftest` proves every branch can still fire. This is step 0 of the process, mechanized. **Not murderboard-only:** `--label`/`--slug`/`--clone`/`--file` point the same gate at *any* vendoring relationship, so a repo can police every upstream it vendors from with one tool. |
 | [`murderboard_roster.sh`](murderboard_roster.sh) | The coverage gate. **Derives** the role roster from `doc_review_process.md` (never recalled, so a new role propagates to every consumer for free) and checks that a finished review report accounts for **every** role — **0 all present · 1 one missing · 2 unknown**. It exists because "every role runs" was prose: a run that fired 7 of 11 roles and one that fired all 11 cleanly produced reports no reader could tell apart. |
 | [`skills/murderboard/SKILL.md`](skills/murderboard/SKILL.md) | The call-up, for consumers using Claude Code. `/murderboard <artifact>` runs the process **as a sequence that cannot be half-executed**: freshness gated at the moment of review (not at session start), roster derived, artifact resolved to the built file rather than its generator and fingerprinted before/after, and a run record emitted and then checked by `murderboard_roster.sh`. Vendor it to `.claude/skills/murderboard/`. |
 
@@ -47,6 +47,18 @@ that motivated each rule.)
    bash tools/murderboard_freshness.sh --hook       # SessionStart: silent unless stale
    bash tools/murderboard_roster.sh check REPORT.md # after a run: 1 if a role is missing
    ```
+   **If the repo vendors from more than one upstream, wire one freshness entry per family.**
+   Staleness is not a murderboard-specific disease — it is a property of vendoring. Example,
+   policing a vendored copy of another repo's files:
+   ```
+   bash tools/murderboard_freshness.sh --hook \
+        --label session-protocol --slug <owner>/<repo> --clone ~/path/to/that/clone \
+        --file docs/session_protocol.md --file .claude/hooks/session-start.sh
+   ```
+   Naming `--file` also **scopes** the cross-stamp check to that family, so the other
+   family's files are not reported as wrongly stamped. Each family caches upstream HEAD
+   under its own key — a shared cache would compare one family's HEAD against another's
+   stamp and be confidently wrong in both directions.
 4. **Invoke it from your `CLAUDE.md`.** Add a rule that document deliverables run through the
    murderboard before delivery — pointing at `/murderboard` where the skill is installed, and
    at `doc_review_process.md` otherwise. See this repo's [`CLAUDE.md`](CLAUDE.md) for a
