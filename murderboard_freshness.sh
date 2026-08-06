@@ -64,6 +64,9 @@ doc_review_process.md
 tools/fetch_paper.py
 fetch_paper.py
 tools/murderboard_freshness.sh
+tools/murderboard_roster.sh
+murderboard_roster.sh
+.claude/skills/murderboard/SKILL.md
 "
 
 if [ -t 1 ]; then RED=$'\033[31m'; YEL=$'\033[33m'; GRN=$'\033[32m'; RST=$'\033[0m'
