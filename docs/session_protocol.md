@@ -1,4 +1,4 @@
-<!-- vendored from interface2 @ 7065f5e — canonical source; do NOT edit here, update upstream (interface2 docs/session_protocol.md) and re-copy -->
+<!-- vendored from interface2 @ b01259f — canonical source; do NOT edit here, update upstream (interface2 docs/session_protocol.md) and re-copy -->
 # Session protocol — multi-session coordination
 
 > **Canonical source.** This file lives canonically in **interface2** (`docs/session_protocol.md`)
@@ -66,40 +66,117 @@ working tree, invisible to every other session and one disk failure from gone.
 
 ## The session board (the Tier-2 ledger)
 
-A plain file **outside the repo and NOT in git** — e.g. `../<repo>-worktrees/SESSIONS.md`. It is
-machine-local on purpose: it tracks this machine's *live* state and the shared *external* paths git
-can't see. Each session:
+**The board is TWO files, and the split is the whole point.** A single machine-local board was
+tried first and failed in a way worth carrying to any repo that adopts this: it *structurally*
+cannot deliver a message to another machine.
 
-- **adds a block at startup** — id, branch, task, which external paths it will write, status;
-- **marks it DONE on exit;**
+- **`docs/SESSIONS.md` — in git.** Claims on shared external paths, exclusive-write claims,
+  messages to another session, freezes, who is live where. **Default here.**
+- **`../<repo>-worktrees/SESSIONS.md` — outside git, machine-local.** Only what genuinely cannot
+  travel: live process ids, that box's free disk, local scratch paths.
+
+The routing test is **not** "is this about my machine?" It is:
+
+> **Can a session on another machine see, reach, or damage the thing you are claiming?**
+
+Shared storage is the trap — a Dropbox or network mount is visible from *every* machine, so a claim
+on it is cross-machine even though it feels local. Put it in git.
+
+Each session:
+
+- **adds a block at startup** — address (`<machine>/<branch>`), task, which external paths it will
+  write, status;
+- **marks it DONE on exit**, and releases any exclusive claim explicitly;
 - **scans the board before writing any shared external output** — if an ACTIVE block claims it,
   use a different namespace or wait.
+
+> **Evidence for the split, from the origin repo.** With a machine-local-only board: posts written
+> on one machine addressed to the other were invisible to it, and an **exclusive write claim on a
+> 127 GB canonical archive went unseen by the second machine for sixteen days.** Nothing was
+> corrupted — but nothing prevented it either. The claim was real, correctly written, and unreadable
+> from the only place it mattered.
 
 ## Durable knowledge lives in git, not machine-local memory
 
 Machine-local Claude memory (`~/.claude/...`) does **not** sync between machines — it silently
-diverges. Put durable cross-session / cross-project knowledge **in git** (a short rule in
-`CLAUDE.md`, or a doc under `docs/`). Reserve memory for genuinely per-machine facts (a drive
-letter, that box's role) — never project topology, decisions, or task state.
+diverges. Put durable cross-session / cross-project knowledge **in git**. Reserve memory for
+genuinely per-machine facts (a drive letter, that box's role) — never project topology,
+decisions, or task state.
+
+### …and in `docs/`, not only in `CLAUDE.md` (Tony, 2026-08-04)
+
+> *"CLAUDE.md is not reliable and sometimes gets ignored."*
+
+`CLAUDE.md` is a **pointer, not a home**. It is long, it is read at a moment when there is
+nothing to attach it to, and it gets skipped — so a rule that lives *only* there is a rule that
+will eventually be missed. The ordering:
+
+1. **Mechanize it** — a sapper rule, a git hook, a runnable check. Fires without anyone
+   remembering. Always the first choice.
+2. **Write a doc under `docs/`** — the full version, with the evidence and the cost, so a
+   future session can act on it without having read `CLAUDE.md` at all.
+3. **One line in `CLAUDE.md`** pointing at the doc. Never the detail itself.
+
+Two failure modes this exists to stop, both observed here:
+
+- **Pointers to files that are not on `main`.** Audited 2026-08-04: `CLAUDE.md` named
+  `docs/FOUNDATIONS.md`, `docs/verification_gotchas.md`, `docs/style_conventions.md` and
+  `tools/figcrop.py` — **all four existed only on feature branches**, so anyone working from
+  `main` followed a link to nothing. `FOUNDATIONS.md` was the sharpest case: `CLAUDE.md`'s
+  opening rule says to read it *and* tells the story of it having been missing once before.
+  Land durable docs on a `main`-based branch, not on whichever branch you were standing in.
+- **`CLAUDE.md` itself diverging per branch.** Same audit: 448–553 lines across branches, and
+  `main` was missing the entire "read the foundations pair first" section that other branches
+  had. Which rules applied depended on which worktree you were in. Prefer docs — additive and
+  merge-friendly — over growing per-branch copies of one giant file.
+
+**Mechanized:** `python tools/check_doc_links.py` reports every pointer in `CLAUDE.md` and
+`docs/**` that names a file this branch does not have (exit 1 on findings; `--selftest` proves
+it can still fire). It deliberately ignores vendored docs — `FOUNDATIONS.md` links to its home
+repo's `docs/adr/*`, which is upstream's business, and including them buried the real findings
+35-deep — and files that are gitignored by design. It is **not** wired into a hook yet, because
+12 pre-existing orphans would block every commit; scope it to newly-added lines (the way
+`sapper.sh` reads only what a commit ADDS) before gating on it.
+
+Standing orphan list as of 2026-08-04 (run the tool for the current one): `pilot_no_sham.md`,
+`TASK_sapper_rule_gaps.md`, `mlspike_param_review.md`, `murderboard_proposal_2026-07-29.md`,
+`build_bakeoff_deck.py`, and four `foundations_md_audit.md` targets. Each lives on some feature
+branch; each needs landing on `main` or its pointer corrected.
 
 ## Automate the scan — the SessionStart hook
 
 [`tools/session-start.hook.sh`](../tools/session-start.hook.sh) runs the startup briefing
 automatically at every session start/resume: current branch, an **unpushed / uncommitted alarm**
 across all worktrees, the worktree list, recent commits, and the session board. It is
-**non-blocking** (never fails a session) and **self-configuring** (derives the repo name and the
-worktrees dir). Wire it in `.claude/settings.json`:
+**self-configuring** (derives the repo name and the worktrees dir) and **deadline-bounded** (see
+the warning below). Wire it in `.claude/settings.json`:
 
 ```json
 {
   "hooks": {
     "SessionStart": [
-      { "matcher": "startup", "hooks": [ { "type": "command", "command": "bash .claude/hooks/session-start.sh" } ] },
-      { "matcher": "resume",  "hooks": [ { "type": "command", "command": "bash .claude/hooks/session-start.sh" } ] }
+      { "matcher": "startup", "hooks": [ { "type": "command", "command": "bash .claude/hooks/session-start.sh", "timeout": 45 } ] },
+      { "matcher": "resume",  "hooks": [ { "type": "command", "command": "bash .claude/hooks/session-start.sh", "timeout": 45 } ] }
     ]
   }
 }
 ```
+
+> **Do not drop the `timeout`, and do not let this hook get slow.** SessionStart hooks **block**
+> initialization, and the SDK aborts the entire session at 60s with `Subprocess initialization did
+> not complete within 60000ms` — an error that blames auth and network and will send you chasing
+> the wrong thing for an hour. Exiting 0 is not enough: **"never fails" is not "never blocks."**
+> A hook that always succeeds but returns too late takes the session down anyway.
+>
+> Set the hook `timeout` **above** the script's own `BUDGET` (so the script degrades loudly on its
+> own terms first) and **below** 60 (so Claude Code kills the hook rather than the SDK killing the
+> session). `timeout` is a sibling of `type`/`command` on the command object — not on the matcher,
+> not on the `hooks` array.
+>
+> Cost scales with worktree and branch count, so a hook that is comfortable at 5 worktrees can be
+> fatal at 32. Watch the `briefing took Ns` line the hook prints, and act when it climbs — do not
+> wait for it to fail. Full incident writeup, including why the obvious fix (prune worktrees) did
+> **not** work: interface2 `docs/postmortems/session-start-hook-timeout.md`.
 
 ## What this canNOT do (set expectations)
 
