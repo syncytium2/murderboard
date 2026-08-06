@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vendored from interface2 @ b01259f — do NOT edit here; update interface2 tools/session-start.hook.sh and re-copy
+# vendored from interface2 @ 6e8aff6 — do NOT edit here; update interface2 tools/session-start.hook.sh and re-copy
 # Generic SessionStart briefing — runs at every session start / resume.
 # Its stdout is injected into the session's context.
 #

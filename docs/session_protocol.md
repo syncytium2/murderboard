@@ -1,4 +1,4 @@
-<!-- vendored from interface2 @ b01259f — canonical source; do NOT edit here, update upstream (interface2 docs/session_protocol.md) and re-copy -->
+<!-- vendored from interface2 @ 6e8aff6 — canonical source; do NOT edit here, update upstream (interface2 docs/session_protocol.md) and re-copy -->
 # Session protocol — multi-session coordination
 
 > **Canonical source.** This file lives canonically in **interface2** (`docs/session_protocol.md`)
