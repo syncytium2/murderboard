@@ -522,22 +522,28 @@ are spelled out in full because each has a trap in it that a one-line checklist 
 violation):
 - **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `signal (a.u.)`). An unlabeled axis
   is a defect — flag it.
-- **Any distance BETWEEN STRUCTURES is edge-to-edge, never centroid-to-centroid.** Applies to prose,
-  tables, captions and axis labels, not only to plots. Centroid separation exceeds the gap a reader
-  pictures by roughly one structure diameter, so it silently overstates distance — measured on one
-  real population, edge-to-edge 8.10 px vs centroid 15.84 px, nearly 2×. Ask of every separation
-  claim: **which metric produced this number, and does the text say so?** Three traps:
-  - **Overlapping structures have an edge-to-edge distance of 0 by definition.** A distance quoted
-    for overlapping objects is a centroid distance wearing a disguise — require **overlap** instead
-    (IoU, or intersection over the smaller object).
-  - **A distance compared to a size must use the same kind of quantity.** "2–3 cell widths" derived
-    by dividing a *centroid distance* by a *diameter* is a category error; it retracted a whole
-    slide. Edge-to-edge on the same data gave 1.11 cell widths — adjacent, not remote.
-  - **A centroid metric is legitimate as an ALGORITHMIC quantity** (an assignment cost, a
-    "is this centroid inside the border" test). Flag only if the text fails to **say so at the point
-    of use** and give the edge-to-edge equivalent. The two metrics **rank pairs differently** and are
-    not interconvertible: on one dataset, matching by centroid proximity found ~45 % fewer pairs than
-    matching by overlap, so swapping the metric changes results, not wording.
+- **Any distance BETWEEN STRUCTURES states its convention — edge-to-edge (gap) or centre-to-centre
+  (centroid).** Applies to prose, tables, captions and axis labels, not only to plots. **Neither is
+  universally correct**; they answer different questions. The defect is leaving it *unstated*,
+  because the two are not interconvertible and a reader will assume whichever suits the claim. Ask
+  of every separation claim: **which metric produced this number, and does the text say so?**
+  - **Choose the one that matches the question.** *Edge-to-edge* when the claim is about proximity
+    or contact — is there a gap, how far must something cross, are these adjacent. *Centre-to-centre*
+    when the claim is about position or arrangement independent of size — nearest-neighbour spacing,
+    spatial regularity, drift or registration offsets, assignment costs — and when structures may
+    overlap, since edge-to-edge saturates at 0 there and can no longer discriminate.
+  - **An unstated convention is not a rounding difference.** The two differ by roughly one structure
+    diameter: measured on one real population, edge-to-edge 8.10 px vs centroid 15.84 px, nearly 2×.
+    A reader told "8 px apart" pictures a gap; if the number was centroid, the gap is about half it.
+  - **Never mix conventions inside one comparison.** "2–3 cell widths" obtained by dividing a
+    *centroid distance* by a *diameter* is a category error; it retracted a whole slide. Edge-to-edge
+    on the same data gave 1.11 cell widths — adjacent, not remote.
+  - **Overlapping structures have an edge-to-edge distance of 0 by definition.** If the point is to
+    tell overlapping objects apart, edge-to-edge cannot do it — use **overlap** (IoU, or intersection
+    over the smaller object), or centre-to-centre with the choice stated.
+  - **They rank pairs differently and do not convert by a constant.** On one dataset, matching by
+    centroid proximity found ~45 % fewer pairs than matching by overlap. Swapping the metric changes
+    results, not wording — so a change of convention mid-analysis is itself a finding.
 - **Same data compared across plots → shared axis limits (x and y).** If plots show the same
   measurement more than one way (condition A vs B, or the same series across panels), differing
   limits fake a difference via autoscaling — a slop bug. Deliberately different limits (full vs
