@@ -179,6 +179,17 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      and a reviewer reading only the prose will accept the citation as provenance.
    - **Self-describing names and labels are claims too.** "X-free", "matched", "controlled",
      "independent" assert something checkable — verify each against what the code actually did.
+   - **Count the MISSING, not just the present — and compare against an older artifact.** A
+     table, figure or export can be complete in shape and empty in meaning: right columns,
+     right row count, plausible numbers, and a category column that is silently blank. Check
+     the count of empty / `NA` / `<missing>` values in every labelled column, and check that
+     the label vocabulary matches its source of truth (the workbook, the dictionary, the
+     other stack). *Incident:* a treatment dictionary ported between two stacks was missing
+     two rules the source had; **67% of rows in a published export carried no treatment
+     label** and the downstream stack dropped them as NA. Every summary statistic still
+     computed. It was caught only because an OLDER export of the same data disagreed — so
+     when a deliverable is a REGENERATION, diff it against what it replaces and account for
+     every difference, including a changed row count.
    - **A retracted claim stays retracted.** When a source document carries a correction, read the
      **retraction together with the original** — a draft written from the original brief silently
      re-inherits the claim the project already measured and withdrew. And **verify the REPLACEMENT
@@ -706,6 +717,12 @@ calcium-imaging analysis project the murderboard grew out of; they are **illustr
 not part of the process. Keep them because a rule with its scar attached is easier to take
 seriously than a rule stated in the abstract.
 
+- **Claim/data verifier** — a regenerated export was complete in shape and empty in meaning:
+  a ported treatment dictionary was missing two rules its source stack had, so **67% of rows
+  carried no treatment label** while every summary statistic still computed. Found only by
+  diffing against an older export of the same data. Hence: count the missing, check the label
+  vocabulary against its source, and account for every difference when a deliverable replaces
+  an earlier one.
 - **Claim/data verifier** — a manuscript misattributed a method to the wrong tool; a slice
   ID was copied wrong; per-detector z-values disagreed with the run they summarized.
 - **Citation validator** — a "representative" reference list was written from memory, with
