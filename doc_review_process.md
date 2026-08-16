@@ -89,20 +89,20 @@ No fabricated or approximate citation. No internal contradiction. No filler.
    - **A fix may not degrade what it was not aimed at — re-review the SLIDE, not the finding.** Every
      fix is a new draft of the thing it touched, so re-run that slide's **full** craft row, not only
      the cell that failed. The named sub-checks, in the order they bite:
-     **(a) Legibility.** If the fix deleted, moved, shrank, or recoloured a title, legend, key, or
+     **(a) Legibility.** If the fix deleted, moved, shrank, or recolored a title, legend, key, or
      label — is the thing it identified **still identifiable**? Removing a colliding label resolves
      the collision by destroying the identification.
      **(b) Relocated, not vanished.** Every element the fix removed must land somewhere **named**:
      the notes pane, an appendix slide, an adjacent legend. "Deleted to resolve the overlap" is a
      finding, not a fix.
-     **(c) Prominence.** An element demoted to grey, small, or bottom-of-page must still be findable
+     **(c) Prominence.** An element demoted to gray, small, or bottom-of-page must still be findable
      **by the reader who needs it, at the moment they need it**. Presence is not availability.
      **(d) Geometry.** The classic reflow regression — a fix that lengthens text or moves a shape
      pushes something else out of its box or off the page.
      **(e) Scope.** A fix made inside a shared helper changes every artifact that calls it; re-check
      the other consumers, not just the one that prompted it.
      (This exists because a figure-title collision was fixed by deleting the title and moving its
-     colour key into grey footer text. The overlap re-check passed — it was the only thing re-run —
+     color key into gray footer text. The overlap re-check passed — it was the only thing re-run —
      and the deliverable shipped with an unreadable legend that the fix itself created.)
    - **A generated deliverable is the BUILT FILE, not its generator.** When a script produces the
      document (a slide-deck builder, a LaTeX/Quarto/Typst source, a plotting script), editing the
@@ -182,7 +182,7 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
    - **Count the MISSING, not just the present — and compare against an older artifact.** A
      table, figure or export can be complete in shape and empty in meaning: right columns,
      right row count, plausible numbers, and a category column that is silently blank. Check
-     the count of empty / `NA` / `<missing>` values in every labelled column, and check that
+     the count of empty / `NA` / `<missing>` values in every labeled column, and check that
      the label vocabulary matches its source of truth (the workbook, the dictionary, the
      other stack). *Incident:* a treatment dictionary ported between two stacks was missing
      two rules the source had; **67% of rows in a published export carried no treatment
@@ -272,10 +272,10 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
        ("did THIS item survive?"), never an aggregate rate that averages it away.
 
      **When the draft itself explains why the number did not move, that is the confession, not the
-     defence** — escalate it to blocking. (Incident: a deck proposed discarding footprint "islands"
+     defense** — escalate it to blocking. (Incident: a deck proposed discarding footprint "islands"
      and cleared the risk with "recall unchanged". Recall was already 100% on 2 of 3 slices, and was
      scored by matching 175 tool footprints against 27 human ROIs — so a real cell knocked off its
-     ROI is silently covered by a neighbouring footprint and the number cannot move. The slide's own
+     ROI is silently covered by a neighboring footprint and the number cannot move. The slide's own
      caption said "another covers it". Boundary with RTFM: RTFM asks whether the metric was
      **computed correctly**; this asks whether a correctly computed metric could ever have
      **answered the question** — same number, two lenses, file it once. Boundary with Prove It:
@@ -349,7 +349,7 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      structure: a mask with an interior hole outlines as **two nested contours** and reads as two
      objects; a threshold contour reads as a boundary the data does not have; overlapping
      translucent masks read as a third category. (Boundary with Ship It: agent 10 asks whether the
-     panel is present, labeled, and clear of its neighbours; this asks whether, having looked at it,
+     panel is present, labeled, and clear of its neighbors; this asks whether, having looked at it,
      a stranger can say what it IS. Incident: an annular footprint that rendered as two concentric
      outlines passed every mechanical row, and was the one panel the PI singled out as
      uninterpretable.)
@@ -420,29 +420,29 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
     - **Same measurement across panels → shared y-limits**, or the deviation is explicitly marked.
     - **Panels are lettered (A/B)** — never referred to by spatial words ("left/right",
       "top/bottom"), in the figure or in the text that describes it.
-    - **Every line, marker, bracket, shaded span, arrow, and colour is identified** by an on-figure
+    - **Every line, marker, bracket, shaded span, arrow, and color is identified** by an on-figure
       label or a legend. No unexplained line, no unlabeled bracket — including a line that is
       labeled in one panel and repeated unlabeled in another.
     - **No vertical lines or bars annotating a histogram** — they read as data height. Mark features
       with a distinct glyph (e.g. a down-diamond).
     - **One glyph per concept**, identical within and across panels; known-answer / ground-truth
       elements carry a **consistent glyph**.
-    - **Category colours are clearly contrasting**, not a low-contrast pair.
-    - **Every colour is explained by the colorbar or a legend.** A colorbar spans the full range of
-      values **actually rendered** — no colour appears in the image that lies outside it. Any colour
+    - **Category colors are clearly contrasting**, not a low-contrast pair.
+    - **Every color is explained by the colorbar or a legend.** A colorbar spans the full range of
+      values **actually rendered** — no color appears in the image that lies outside it. Any color
       used as an **overlay marker** (not a value on the scale — e.g. a significant-point marker on a
       heatmap) must be in a **legend** and picked to **contrast with the colormap**, or it reads as
       an out-of-range value (a red dot on a parula map topping out at yellow reads as "off the top
       of the scale" unless legended and edge-outlined).
-      - **A colour key must render IN its colours, adjacent to what it explains, at body size.** A
-        key that names colours in plain grey body text ("magenta = footprint, red = manual ROI"), or
+      - **A color key must render IN its colors, adjacent to what it explains, at body size.** A
+        key that names colors in plain gray body text ("magenta = footprint, red = manual ROI"), or
         that sits in the footer / source line beneath a paragraph, technically exists and is
-        functionally absent — existence is not the check, identification is. Colour the words (or
+        functionally absent — existence is not the check, identification is. Color the words (or
         set a swatch), place the key next to the figure, never at source-line size. (Incident: a fix
-        that removed a colliding figure title relocated its colour key into grey caption text at the
+        that removed a colliding figure title relocated its color key into gray caption text at the
         bottom of the slide; the overlap re-check passed clean, and the PI's note was "the profiles
         need to be identified clearly — the legend is buried at the bottom of the page and lacks
-        colour".)
+        color".)
     - **Small multiples have real inter-panel spacing.** Panels packed edge-to-edge while the page
       has wide empty margins is a defect — separate them and use the whitespace.
     - **Report every figure's RENDERED box, not its requested size.** A fit-to-box / bottom-limit
@@ -533,14 +533,14 @@ are spelled out in full because each has a trap in it that a one-line checklist 
 violation):
 - **Every axis labeled with NAME and UNITS** (e.g. `time (s)`, `signal (a.u.)`). An unlabeled axis
   is a defect — flag it.
-- **Any distance BETWEEN STRUCTURES states its convention — edge-to-edge (gap) or centre-to-centre
+- **Any distance BETWEEN STRUCTURES states its convention — edge-to-edge (gap) or center-to-center
   (centroid).** Applies to prose, tables, captions and axis labels, not only to plots. **Neither is
   universally correct**; they answer different questions. The defect is leaving it *unstated*,
   because the two are not interconvertible and a reader will assume whichever suits the claim. Ask
   of every separation claim: **which metric produced this number, and does the text say so?**
   - **Choose the one that matches the question.** *Edge-to-edge* when the claim is about proximity
-    or contact — is there a gap, how far must something cross, are these adjacent. *Centre-to-centre*
-    when the claim is about position or arrangement independent of size — nearest-neighbour spacing,
+    or contact — is there a gap, how far must something cross, are these adjacent. *Center-to-center*
+    when the claim is about position or arrangement independent of size — nearest-neighbor spacing,
     spatial regularity, drift or registration offsets, assignment costs — and when structures may
     overlap, since edge-to-edge saturates at 0 there and can no longer discriminate.
   - **An unstated convention is not a rounding difference.** The two differ by roughly one structure
@@ -551,7 +551,7 @@ violation):
     on the same data gave 1.11 cell widths — adjacent, not remote.
   - **Overlapping structures have an edge-to-edge distance of 0 by definition.** If the point is to
     tell overlapping objects apart, edge-to-edge cannot do it — use **overlap** (IoU, or intersection
-    over the smaller object), or centre-to-centre with the choice stated.
+    over the smaller object), or center-to-center with the choice stated.
   - **They rank pairs differently and do not convert by a constant.** On one dataset, matching by
     centroid proximity found ~45 % fewer pairs than matching by overlap. Swapping the metric changes
     results, not wording — so a change of convention mid-analysis is itself a finding.
@@ -631,14 +631,14 @@ violation):
   the first thing to be clipped when its fonts are raised. Keep figure-internal text to labels that
   name what they sit next to; put the sentence beside the figure, where it is set in the document's
   own type size and can be read.
-- **A label annotating a region must be anchored CLEAR of that region's border, not centred near
-  it.** Text centred on a coordinate close to the edge of a patch, box or shaded span puts half its
+- **A label annotating a region must be anchored CLEAR of that region's border, not centered near
+  it.** Text centered on a coordinate close to the edge of a patch, box or shaded span puts half its
   glyph height across the line, and renders as a strike-through. Anchor it outside the shape's
   extent (bottom-aligned above, top-aligned below) so the two cannot collide however long the string
   later grows.
 - **A borrowed figure imports its owner's defects.** Reusing a panel from another deliverable
   inherits its clipping, contrast and font problems, and "it was already like that" stops being a
-  defence the moment you ship it. Hold a borrowed asset to the same bar as one you made; when it
+  defense the moment you ship it. Hold a borrowed asset to the same bar as one you made; when it
   fails, fix it **at its source** rather than cropping around it, and record where the fix belongs
   so the other consumer gets it too.
 - **If the point of the page is "how does this work", the figure must show the MECHANISM, not the
@@ -766,7 +766,7 @@ seriously than a rule stated in the abstract.
   that lengthened a slide's text pushed it into the figure below — a slide-level overlap the
   within-figure zoom-crop pass never sees; two bar charts on one slide ordered their experimental
   groups differently, so the reader could not line them up; and a spectrogram's red
-  significant-peak overlay read as an out-of-range colour because the parula colorbar topped out at
+  significant-peak overlay read as an out-of-range color because the parula colorbar topped out at
   yellow and the marker was never legended.
 - **Methods expert** (same review) — a detector's synthetic benchmark ran at *looser* gates than the
   shipped detector, so "9/10" validated a different tool than the one that made the results (at
@@ -805,7 +805,7 @@ seriously than a rule stated in the abstract.
   generators copy their bundled blank template's metadata and never rewrite it. One of the affected
   files was the copy most likely to be shared outside the group.
 - **Correction discipline** (same build) — a claim the project had already measured and explicitly
-  retracted ("neighbour centres 7-15 px apart"; the note said *do not re-inherit it*) was reproduced in
+  retracted ("neighbor centers 7-15 px apart"; the note said *do not re-inherit it*) was reproduced in
   a new draft because the author read the original brief rather than the correction. The first fix then
   replaced it with a *different* unsound mechanism that the same slide's own number refuted. Lesson:
   when a source document carries a retraction, review the retraction and the original together — and
@@ -814,7 +814,7 @@ seriously than a rule stated in the abstract.
   — a deck proposed discarding fragmented-footprint "islands" and cleared the obvious risk (that the
   islands are real cells) with "recall unchanged". The review noticed recall was **saturated at 100%
   on 2 of 3 slices** but stopped there. The sharper defect was structural: recall matched **175 tool
-  footprints against 27 human ROIs**, so a real cell knocked off its ROI is covered by a neighbouring
+  footprints against 27 human ROIs**, so a real cell knocked off its ROI is covered by a neighboring
   footprint and the metric cannot move — the control had **no power to detect the harm the claim
   denied**, and the slide's own caption said so ("another covers it"). The PI got it from the picture
   in under a minute: the discarded islands were visibly **adjacent cells with their own bright
@@ -833,10 +833,10 @@ seriously than a rule stated in the abstract.
   table asked how many words were on the slide and nothing asked how much of the slide the figure
   got.
 - **Regression from a fix** (same deck) — a two-line figure title colliding with panel titles was
-  correctly flagged, and fixed by **deleting the title** and moving its colour key into grey caption
+  correctly flagged, and fixed by **deleting the title** and moving its color key into gray caption
   text at the bottom of the slide. The verify pass re-ran the overlap check, which passed. Nothing
-  checked whether the legend was still legible; the shipped slide identified its colours in
-  uncoloured 12 pt grey below a paragraph. The fix created the defect the review then missed.
+  checked whether the legend was still legible; the shipped slide identified its colors in
+  uncolored 12 pt gray below a paragraph. The fix created the defect the review then missed.
 - **Argument order** (same deck) — twelve slides, every one true and individually readable, in an
   order that reached the fix before the reader had seen the problem. The slide showing what the
   problem looks like was **slide 6**; the PI moved it to the front. No role in the team read the
@@ -860,7 +860,7 @@ seriously than a rule stated in the abstract.
   authored ~20 in wide and placed ~8 in wide rendered their 11 pt labels at 5-6 pt, so the deck's own
   ">= 11 pt" rule was met only by the slide text. Raising the source fonts then CLIPPED every long
   supertitle at both ends, which the first render caught and the source did not. Separately, a
-  context-window annotation centred just above a shaded patch was struck through by the patch border;
+  context-window annotation centered just above a shaded patch was struck through by the patch border;
   a borrowed panel arrived with its own titles already clipped and a low-contrast label; and a caption
   landed on a TABLE twice, invisible to a text-vs-picture overlap checker because a table is not a
   picture and had grown past its requested height. Lesson: figure text is sized by where it LANDS,
