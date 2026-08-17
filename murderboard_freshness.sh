@@ -92,6 +92,9 @@ fetch_paper.py
 tools/murderboard_freshness.sh
 tools/murderboard_roster.sh
 murderboard_roster.sh
+.claude/hooks/require-commit-before-message.sh
+tools/require_commit_before_message.sh
+require_commit_before_message.sh
 .claude/skills/murderboard/SKILL.md
 "
 
