@@ -139,12 +139,33 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      - Role **10 re-runs in full in the blind pass**, always — it is the cheapest role, and every
        repair to a rendering deliverable changes the file it inspects. Its table must name the NEW
        render.
-     - Iterate until a **blind** pass produces no new findings. **Report the number of rounds** — a
-       deliverable that needed three is a different object from one that needed none, and the reader
-       should know which they are holding.
+     - **Stop on SEVERITY, not on silence, and cap the rounds.** Stop when a blind round produces
+       **no blocking and no major** findings, **or after 3 blind rounds**, whichever comes first.
+       Minors surviving the final round are **recorded as residual `⚠`, not fixed** — fixing them
+       starts a round you have already decided not to run.
+     - **"Iterate until a blind pass produces no new findings" was the rule here until 2026-08-18,
+       and it does not terminate.** This process states two things that together make it
+       unbounded: *"a repaired deliverable has not been reviewed"*, and every fix is new text. So
+       each round manufactures the surface the next round reviews, and on a complex artifact the
+       generation rate can exceed the retirement rate indefinitely. A reviewer told to find
+       problems in unreviewed text will find some; that is the role working, not the artifact
+       failing. Measured on the run that produced this rule — a cross-project reply resting on new
+       code and a generated data folder — findings ran ~60 / 10 / 20 / 15 across four rounds while
+       blocking findings ran 6 / 0 / 3 / 0. It was stopped by a human at round 3, still producing.
+     - **Report findings by severity per round, as a table.** That table is the convergence
+       evidence and it replaces the bare round count: a run whose blocking findings go 6 → 0 → 3 → 0
+       has converged in the way that matters even if minors keep arriving. State the stopping
+       reason explicitly — *severity floor reached* or *round cap reached* — and never present a
+       capped run as a clean one.
+     - **If severity is NOT falling across rounds, stop and escalate to the human.** A flat or
+       rising blocking count after two rounds does not mean review harder; it means the artifact
+       has a structural problem that patching will not retire, and continuing to patch converts a
+       fixable draft into a long tail of edits nobody has reviewed together.
 5. **Deliver** — the corrected document **plus a short review report**: which dimensions
-   were checked, how many issues found and fixed, the verify-pass result, and any residual `⚠` flags
-   the human must resolve before release. For a generated deliverable, state that the shipped file
+   were checked, the **per-round findings-by-severity table** and the stopping reason (severity
+   floor, or round cap), the verify-pass result, and any residual `⚠` flags the human must resolve
+   before release. **A run stopped at the cap is delivered as unconverged**, with the open items
+   named — a capped run and a clean run must not read alike. For a generated deliverable, state that the shipped file
    was **rebuilt after the last fix** and verified in that state. A document with unresolved `⚠`
    flags is **not "done."**
 
