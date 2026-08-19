@@ -169,6 +169,24 @@ No fabricated or approximate citation. No internal contradiction. No filler.
    was **rebuilt after the last fix** and verified in that state. A document with unresolved `⚠`
    flags is **not "done."**
 
+### The run record is a deliverable, and this process applies to it
+
+The record this process produces is a document, and it is the one document nobody
+reviews. Its prescribed shape — header, role ledger, finding list — is ordered by
+**process** rather than by **argument**: it can prove every role ran and cannot tell a
+reader what was found out. Roles 9 and 11 would catch that in any other document and are
+never pointed at this one.
+
+So the record **opens with the problem**, shown as a figure wherever the subject is
+visual, then places the work — where it fits and why it was worth doing — then states
+what would validate it and how it generalises beyond the project that produced it. The
+ledger and the finding list move to an appendix, where a reader who wants to audit
+coverage can still find every role.
+
+This is not a style preference. A record organised by process is read once by its author
+and never again, so the findings it contains stop being available to the next person —
+which is the same failure the murderboard exists to prevent, one level up.
+
 ## The review team
 
 Spawn these as parallel subagents, each given the draft **and** pointers to the real
@@ -211,6 +229,19 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      computed. It was caught only because an OLDER export of the same data disagreed — so
      when a deliverable is a REGENERATION, diff it against what it replaces and account for
      every difference, including a changed row count.
+   - **The sources a deliverable did NOT consult are part of the check.** Verifying every
+     claim against the sources a document *names* still passes a document that never opened
+     the one it should have. Most projects keep a **record of experimental design and unit
+     membership** separately from the measurements: which condition, group, or subject each
+     unit belongs to, which units share a subject, and which units have been withdrawn.
+     Locate that record before reviewing, then check the deliverable against it — were
+     withdrawn units included, does the unit count reconcile, and are units sharing a subject
+     counted as independent? If the project appears to have **no** such record, report that
+     as a finding: *"there is no source of record for group membership"* is a serious claim
+     about a project, not a default. (Incident: a corpus result was reviewed by eleven roles
+     and shipped including a recording its own lab had marked excluded, in a column no role
+     knew existed. The same review reported a pooled across-group number as unavoidable
+     while the grouping sat in a column of the file the analysis had already loaded.)
    - **A retracted claim stays retracted.** When a source document carries a correction, read the
      **retraction together with the original** — a draft written from the original brief silently
      re-inherits the claim the project already measured and withdrew. And **verify the REPLACEMENT
@@ -272,6 +303,23 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      factors the study manipulates (group, condition, timepoint, region) **hides the structure** and
      invites "…in which condition?". Demand the breakdown (e.g. one panel per condition, bars by
      group) — a single pooled headline number is a defect for a results claim.
+   - **"The breakdown is unavailable" is a claim, and it is checked like any other.** When a
+     deliverable pools across a design factor and explains that the factor is not available in
+     the data, do not accept it and file a caveat — that is how a pooled result ships with a
+     flag nobody can act on. Establish whether a source of record exists *before* the caveat
+     is written. Unverified unavailability is the most comfortable finding in a review and the
+     least often true. (Boundary with Prove It: that role locates the record and reconciles
+     against it; this one refuses to let its absence be assumed.)
+   - **A check that cannot fail is not a check — and the danger is that it PASSES.** Distinct
+     from the alarm-ring rule below, which is about a null *result*: this is about a
+     *verification step* the deliverable performed. When a document says a quantity was
+     validated against a reference, establish that the reference is independent of the thing
+     being validated. A check comparing a value against the same value obtained by a second
+     route reports agreement forever and cannot detect the error it was written to catch.
+     (Incident: an analysis verified its time windows against a lab workbook and reported
+     agreement on every recording. Both sides were the raw recording period; the defect was
+     that the analysis should have used a *different* column — the producer's analysis window
+     — and the check had no visibility of it at all.)
    - **"Can the alarm ring?" — a null result needs a test with the power to fail.** The most
      dangerous sentence in an analysis deliverable is *"we checked for X and it did not happen"*: it
      reads as evidence while resting on nothing if the check could never have registered X. For
