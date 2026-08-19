@@ -411,6 +411,38 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      there), a validation / example-grid panel must name **the archetype or category it shows**
      ("sustained", "non-oscillator control", "rejected: noise") so the reader knows why it is there
      without hunting in the body text.
+   - **Name the chart type the image RESEMBLES before reading its axis labels.** Every
+     field has a few dominant visual idioms — a raster, a heatmap, a spectrogram, a
+     Manhattan plot, a volcano plot, a phylogeny, a piano roll — and each carries fixed
+     axis conventions its readers apply automatically. A plot that borrows an idiom's
+     visual grammar while assigning **different meaning to its axes** is a false friend:
+     it is misread by exactly the expert audience it was drawn for, and the more fluent
+     the reader, the more confidently they misread it. Labels do not save it, because the
+     idiom is recognised before a label is read.
+     Ask three questions, in this order, with the render open and the caption covered:
+     *what does this resemble · in that idiom what do the axes mean · do they mean the
+     same thing here?* If the answer to the third is no, the finding is **not** "clarify
+     the label". Redraw it so it cannot be confused — gridded tiles rather than scattered
+     marks, explicit cell borders, a different mark shape, transposed axes — or show the
+     familiar chart beside it so the reader can see the correspondence instead of
+     assuming it.
+     **This defect is invisible to everyone who already knows what the figure is**, which
+     is every reviewer by the time they have read the caption and the generator. It is
+     the one figure check that must be made from ignorance, and it is why this role holds
+     it. (Boundary with Ship It: that role asks whether the panel is present, labeled and
+     legible — a false friend passes every one of those rows. Boundary with the
+     phantom-structure rule below: that one is about spurious structure *inside* a
+     correctly-read chart; this one is about the chart being read as the wrong kind of
+     chart entirely.)
+     *Incident:* a report on which cells participate in which events drew its membership
+     matrix as square marks scattered on continuous axes — horizontal axis a cell,
+     vertical axis an event ordinal. That is the visual grammar of a spike raster, where
+     the horizontal axis is **time** and each row is a **cell**. Eleven roles reviewed the
+     figure, wrote per-panel "what a cold reader sees" sentences, and passed it. The PI's
+     first reaction: *"the first figure is very confusing. showing something that looks
+     like a raster when it is not a raster is really mind blowing"* — followed by the fix
+     this rule prescribes: *"i think you should show a proper raster (or two if you need).
+     something simple to illustrate your point."*
    - **Every panel must be READABLE, not merely present.** With the render open, write one sentence
      per panel saying **what a cold reader sees** ("a bright blob with a red outline inside it").
      If you cannot write that sentence, the panel is a defect — say so. The panel you could not
