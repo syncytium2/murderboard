@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vendored from interface2 @ eb2536a6 — do NOT edit here; edit the canonical original (interface2 tools/no-heredoc-source.hook.sh) and re-copy.
+# vendored from interface2 @ a33c8ea9 — do NOT edit here; edit the canonical original (interface2 tools/no-heredoc-source.hook.sh) and re-copy.
 # no-heredoc-source.hook.sh — PreToolUse(Bash) gate: BLOCK writing source files
 # through a shell heredoc.
 #
@@ -46,7 +46,28 @@
 
 payload="$(cat)"
 
-cmd="$(printf '%s' "$payload" | python -c '
+# ---- interpreter resolution -------------------------------------------------
+# ⚠ FIXED 2026-08-18, reported by colonel_kernel: this hardcoded `python`, which
+# does not exist on a system that ships only `python3` (most Linux, Homebrew
+# macOS). The failure was not "the hook errors" — it was far worse:
+#
+#     cmd="$(... | python -c '...' 2>/dev/null)"   -> python not found
+#     [ -z "$cmd" ] && exit 0                      -> EXIT 0, ALLOW EVERYTHING
+#
+# A GATE THAT FAILS OPEN IS WORSE THAN NO GATE, because it is installed, it is
+# in the settings file, and it reports nothing — so it manufactures exactly the
+# confidence it was built to earn. It was live in seven repos.
+PYBIN=""
+for c in python3 python py; do
+  if command -v "$c" >/dev/null 2>&1; then
+    if [ "$c" = "py" ]; then PYBIN="py -3"; else PYBIN="$c"; fi
+    break
+  fi
+done
+
+cmd=""
+if [ -n "$PYBIN" ]; then
+  cmd="$(printf '%s' "$payload" | $PYBIN -c '
 import json,sys
 try:
     d = json.load(sys.stdin)
@@ -54,8 +75,18 @@ except Exception:
     sys.exit(0)
 print((d.get("tool_input") or {}).get("command", ""))
 ' 2>/dev/null)"
+fi
 
-[ -z "$cmd" ] && exit 0
+# NO INTERPRETER, OR PARSE FAILED -> DEGRADE, DO NOT SURRENDER. Scan the raw
+# payload instead. It is JSON, so the command text is in there with its quoting
+# escaped; the heredoc and source-file patterns still show through. Cruder, and
+# that is the point: a gate may lose precision when its tools are missing, but
+# it may not silently stop gating.
+DEGRADED=0
+if [ -z "$cmd" ]; then
+  DEGRADED=1
+  cmd="$payload"
+fi
 
 # A heredoc at all?  ( << or <<- , quoted or not )
 printf '%s' "$cmd" | grep -qE '<<-?[[:space:]]*'"'"'?[A-Za-z_]' || exit 0
@@ -84,6 +115,12 @@ If you genuinely need a heredoc here (a throwaway shell script with no escapes,
 data rather than source), say so explicitly and re-run with the intent stated --
 but for .m / .py / .R source, the answer is the file tools.
 MSG
+  if [ "$DEGRADED" = "1" ]; then
+    printf '%s\n' "" \
+      "(NOTE: no python3/python/py found, so this matched the RAW payload rather" \
+      " than the parsed command. Precision is reduced — if this is a false" \
+      " positive, install python3 or report it.)" >&2
+  fi
   exit 2
 fi
 
@@ -109,4 +146,14 @@ exit 0
 #     | bash .claude/hooks/no-heredoc-source.sh ; echo "exit=$? (want 2)"
 #   printf '%s' '{"tool_input":{"command":"git commit -F - <<EOF\nmsg\nEOF"}}' \
 #     | bash .claude/hooks/no-heredoc-source.sh ; echo "exit=$? (want 0)"
+#
+# AND RUN THEM AGAIN WITH NO PYTHON ON PATH. This is not paranoia — it is the
+# bug colonel_kernel found on 2026-08-18: the hook was verified passing in a
+# shell where `python` happened to resolve, then shipped to seven repos where a
+# hook's plain login PATH had only `python3`, and it exited 0 for every call.
+# The original two checks CANNOT detect that; only this third one can.
+#
+#   NOPY=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vi "python" | paste -sd: -)
+#   printf '%s' '{"tool_input":{"command":"cat > x.m <<EOF\ndisp(1)\nEOF"}}' \
+#     | PATH="$NOPY" bash .claude/hooks/no-heredoc-source.sh ; echo "exit=$? (want 2)"
 # ----------------------------------------------------------------------------
