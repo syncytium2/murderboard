@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
-# vendored from interface2 @ a33c8ea9 — do NOT edit here; edit the canonical original (interface2 tools/no-heredoc-source.hook.sh) and re-copy.
+# CANONICAL SOURCE: syncytium2/murderboard .claude/hooks/no-heredoc-source.sh — edit HERE.
 # no-heredoc-source.hook.sh — PreToolUse(Bash) gate: BLOCK writing source files
 # through a shell heredoc.
 #
-# CANONICAL SOURCE: interface2 tools/no-heredoc-source.hook.sh — VENDOR IT ELSEWHERE.
-# Project-neutral by design: no dataset, no domain, no MATLAB specifics beyond the
-# extension list. Copy it UNCHANGED into a consumer repo's .claude/hooks/ and wire
-# the PreToolUse block shown at the foot of this file. Same distribution rule as
-# tools/session-start.hook.sh (decisions/0014-session-protocol-vendorable-artifact.md):
-# interface2 is the source, consumers stamp `vendored from interface2 @ <short-sha>`
-# on line 1, and nobody edits a vendored copy in place.
+# VENDOR IT ELSEWHERE. Project-neutral by design: no dataset, no domain, no MATLAB
+# specifics beyond the extension list. Copy it UNCHANGED into a consumer repo's
+# .claude/hooks/ and wire the PreToolUse block shown at the foot of this file.
+# Consumers stamp `vendored from syncytium2/murderboard @ <short-sha>` on line 2,
+# and nobody edits a vendored copy in place.
 #
-# Staleness is checkable — the freshness gate is generic, not murderboard-specific:
-#   bash tools/murderboard_freshness.sh --label no-heredoc --slug <owner>/interface2 \
+# ORIGIN: written in a private repo (interface2) and vendored here at a33c8ea9.
+# Murderboard adopted it as canonical on 2026-08-21, when this repo went public.
+#
+# Staleness is checkable IN YOUR COPY — the freshness gate is generic, not
+# murderboard-specific. Run this in the CONSUMER repo, not here: this file is the
+# original, so it carries no vendored stamp and the gate correctly says so.
+#   bash murderboard_freshness.sh --label no-heredoc --slug syncytium2/murderboard \
 #        --file .claude/hooks/no-heredoc-source.sh --verbose
 #
 # WHY THIS EXISTS. Writing MATLAB (or Python, or R) through a shell heredoc

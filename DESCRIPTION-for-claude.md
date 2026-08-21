@@ -53,8 +53,10 @@ unattended; `--hook` serves a cached answer and refreshes in a detached process 
 SessionStart hook never blocks on the network; `--selftest` proves every branch can still
 fire. It is generalized beyond the murderboard itself: `--label`/`--slug`/`--clone`/`--file`
 point the same gate at *any* vendoring relationship, so one tool polices every upstream a
-repo vendors from. This repo eats its own cooking — it vendors interface2's
-session-protocol pair and gates that copy with the same script.
+repo vendors from. The session-protocol pair (`docs/session_protocol.md` and
+`.claude/hooks/session-start.sh`) is **canonical here** as of 2026-08-21 — it originated in a
+private repo and was adopted when murderboard went public, because a provenance stamp aimed
+at a repo the reader cannot open is a dead end rather than a chain of custody.
 
 **`murderboard_roster.sh`** is the coverage gate. It **derives** the role roster by parsing
 `doc_review_process.md` (never recalls it from memory, so adding a role upstream propagates
@@ -178,20 +180,26 @@ this repo never bumps anything for consumers; it just commits and pushes.
 ## Working conventions in this repo
 
 Sessions are assumed concurrent and stateless — coordination happens only through git and
-the session board (`docs/session_protocol.md`, vendored from interface2). Work happens in
-per-task worktrees, never as commits on `main` in the primary checkout; feature branches are
-pushed promptly and merged by PR. Shared external outputs are claimed on the session board
-before writing.
+the session board (`docs/session_protocol.md`). Work happens in per-task worktrees, never as
+commits on `main` in the primary checkout; feature branches are pushed promptly and merged by
+PR. Shared external outputs are claimed on the session board before writing.
 
-## Current state (2026-08-10 — volatile, re-verify)
+## Current state — derive it, do not read it here
 
-- All 11 PRs merged; **no open PRs, no in-flight branches**; every remote branch is an
-  ancestor of `origin/main` (HEAD `249a488`).
-- The primary checkout's local `main` (`635c5a8`) is 3 commits behind `origin/main` —
-  the PR #11 merge — and fast-forwardable; working tree clean.
-- Consumers have not yet re-vendored PR #11 (by design; their freshness gates will say so).
-- Cross-repo context from persistent memory: the interface2 GitLab→GitHub migration is
-  planned but blocked on a "DO-NOT-PRUNE ALL CLEAR" and gates the foundations GLOSSARY
-  stamp — verify in interface2 before acting on anything it touches.
-- A sibling repo, `syncytium2/foundations`, holds the project's concepts/vocabulary pair
-  and ADR log; by its ADR-0001, foundations content stays out of this repo.
+This section used to carry a dated snapshot of branches, PR numbers and SHAs. It was wrong
+within a fortnight, which is the predictable fate of volatile state written into a document
+that nothing updates — and a briefing doc that is confidently stale is worse than one that
+sends you to the source, because a reader has no way to tell which bullets have rotted.
+
+Derive it instead, in this order, and trust nothing above it:
+
+```bash
+git fetch --all --prune
+git log --oneline -5 origin/main
+git status --short
+gh pr list --state open
+git worktree list
+```
+
+Everything else in this document describes the repo **as designed**, and is stable until the
+files themselves change.

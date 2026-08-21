@@ -1,10 +1,16 @@
-<!-- vendored from interface2 @ 6e8aff6 — canonical source; do NOT edit here, update upstream (interface2 docs/session_protocol.md) and re-copy -->
+<!-- canonical source: syncytium2/murderboard docs/session_protocol.md — edit HERE, then re-copy into consumers -->
 # Session protocol — multi-session coordination
 
-> **Canonical source.** This file lives canonically in **interface2** (`docs/session_protocol.md`)
-> and is **vendored** into consumer repos (colonel_kernel, fireflies, foundations, murderboard, …)
-> with a line-1 provenance stamp. Do NOT edit a vendored copy in place — edit this original and
-> re-copy. The companion hook is [`tools/session-start.hook.sh`](../tools/session-start.hook.sh).
+> **Canonical source.** This file lives canonically in **`syncytium2/murderboard`**
+> (`docs/session_protocol.md`) and is **vendored** into consumer repos with a line-1 provenance
+> stamp. Do NOT edit a vendored copy in place — edit this original and re-copy. The companion
+> hook is [`.claude/hooks/session-start.sh`](../.claude/hooks/session-start.sh).
+>
+> **Where it came from.** This protocol was written in a *private* repo (`interface2`) and
+> vendored here at `6e8aff6`. Murderboard adopted it as canonical on 2026-08-21, when this repo
+> went public: a stamp pointing at a repo the reader cannot open is not provenance, it is a dead
+> end, and `murderboard_freshness.sh` could never return anything but `2` (unknown) for it. The
+> older stamps remain in this file's git history, unaltered.
 
 ---
 
@@ -130,22 +136,22 @@ Two failure modes this exists to stop, both observed here:
   had. Which rules applied depended on which worktree you were in. Prefer docs — additive and
   merge-friendly — over growing per-branch copies of one giant file.
 
-**Mechanized:** `python tools/check_doc_links.py` reports every pointer in `CLAUDE.md` and
-`docs/**` that names a file this branch does not have (exit 1 on findings; `--selftest` proves
-it can still fire). It deliberately ignores vendored docs — `FOUNDATIONS.md` links to its home
-repo's `docs/adr/*`, which is upstream's business, and including them buried the real findings
-35-deep — and files that are gitignored by design. It is **not** wired into a hook yet, because
-12 pre-existing orphans would block every commit; scope it to newly-added lines (the way
-`sapper.sh` reads only what a commit ADDS) before gating on it.
+**Worth mechanizing** — a link checker that reports every pointer in `CLAUDE.md` and `docs/**`
+naming a file the current branch does not have (exit 1 on findings, plus a `--selftest` so it
+can be shown to still fire). Two things that only became obvious once one existed:
 
-Standing orphan list as of 2026-08-04 (run the tool for the current one): `pilot_no_sham.md`,
-`TASK_sapper_rule_gaps.md`, `mlspike_param_review.md`, `murderboard_proposal_2026-07-29.md`,
-`build_bakeoff_deck.py`, and four `foundations_md_audit.md` targets. Each lives on some feature
-branch; each needs landing on `main` or its pointer corrected.
+- **Exempt vendored docs.** A vendored file links into *its home repo's* tree, which is
+  upstream's business, not this branch's. Including them buried the real findings 35-deep.
+- **Scope it to newly-added lines before gating on it.** Any repo with a backlog of orphaned
+  pointers will have every commit blocked on day one, and the gate gets disabled instead of
+  obeyed.
+
+> Not shipped with murderboard — this describes a tool worth writing for your own repo, not
+> one you can copy from here.
 
 ## Automate the scan — the SessionStart hook
 
-[`tools/session-start.hook.sh`](../tools/session-start.hook.sh) runs the startup briefing
+[`.claude/hooks/session-start.sh`](../.claude/hooks/session-start.sh) runs the startup briefing
 automatically at every session start/resume: current branch, an **unpushed / uncommitted alarm**
 across all worktrees, the worktree list, recent commits, and the session board. It is
 **self-configuring** (derives the repo name and the worktrees dir) and **deadline-bounded** (see
@@ -175,8 +181,9 @@ the warning below). Wire it in `.claude/settings.json`:
 >
 > Cost scales with worktree and branch count, so a hook that is comfortable at 5 worktrees can be
 > fatal at 32. Watch the `briefing took Ns` line the hook prints, and act when it climbs — do not
-> wait for it to fail. Full incident writeup, including why the obvious fix (prune worktrees) did
-> **not** work: interface2 `docs/postmortems/session-start-hook-timeout.md`.
+> wait for it to fail. The obvious fix — prune worktrees — did **not** resolve it; the rule that
+> came out of the incident is the one stated in the hook's own header: bound the WHOLE script
+> with a deadline, because per-call caps multiply.
 
 ## What this canNOT do (set expectations)
 
@@ -186,12 +193,22 @@ Design around **checkpoints, not live sync.**
 
 ## Adopting this in a consumer repo (vendoring)
 
-1. Copy `docs/session_protocol.md` and `tools/session-start.hook.sh` into the consumer (the doc
-   under `docs/`; the hook into `.claude/hooks/session-start.sh`).
-2. Add a **line-1 provenance stamp** to each copy: `vendored from interface2 @ <short-sha>`.
+1. Copy `docs/session_protocol.md` and `.claude/hooks/session-start.sh` into the consumer (the
+   doc under `docs/`; the hook into `.claude/hooks/session-start.sh`).
+2. Add a **line-1 provenance stamp** to each copy:
+   `vendored from syncytium2/murderboard @ <short-sha>`.
 3. Add the `SessionStart` hook block above to the consumer's `.claude/settings.json`.
 4. **To update:** re-copy both files and bump the stamp; `git diff` shows exactly what changed.
+5. **Check staleness mechanically** rather than remembering to:
 
-Repos may keep their OWN extensions on top of the vendored hook (interface2 does — its
-`.claude/hooks/session-start.sh` adds repo-specific landmine scans). Keep the vendored core intact
-and layer local additions around it, so the shared part stays re-copyable.
+   ```bash
+   bash murderboard_freshness.sh --hook --label session-protocol \
+        --file docs/session_protocol.md --file .claude/hooks/session-start.sh
+   ```
+
+   Wire that into the consumer's own `SessionStart` block, so a stale copy announces itself
+   instead of silently omitting rules you have already paid for.
+
+Repos may keep their OWN extensions on top of the vendored hook — a consumer's
+`.claude/hooks/session-start.sh` can add repo-specific scans around the shared core. Keep the
+vendored core intact and layer local additions around it, so the shared part stays re-copyable.

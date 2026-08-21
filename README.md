@@ -104,7 +104,21 @@ python3 fetch_paper.py --list               # what the cache holds
 
 ## Provenance
 
-Extracted and generalized from the `interface2` calcium-imaging project, where it grew out
-of real slop incidents (see the process-doc appendix). `interface2` is the origin and first
-consumer; `colonel_kernel` and `fireflies` (the `R` analysis app) are being wired up as
-consumers.
+Extracted and generalized from a calcium-imaging analysis project (`interface2`), where it
+grew out of real slop incidents — the appendix of the process doc records them, and the rules
+in the core exist because of them rather than in anticipation of them.
+
+**The sibling repos named in comments here are private**, so their names are attribution, not
+links: `interface2` (origin and first consumer), `colonel_kernel` (which reported the
+fail-open bug fixed in the no-heredoc hook), and `fireflies` (an `R` analysis app). You do not
+need any of them. Everything murderboard needs to run is in this repo, and the session
+protocol and both hooks are **canonical here** as of 2026-08-21 — adopted when this repo went
+public, because a provenance stamp pointing into a private repo is a dead end for the reader
+and makes `murderboard_freshness.sh` permanently answer `2` (unknown).
+
+## License
+
+[Apache-2.0](LICENSE). Vendor it, modify it, ship it in commercial work — keep the notices and
+state your changes. If you carry a file into your own repo, stamp it
+`vendored from syncytium2/murderboard @ <short-sha>` on line 1 or 2, which is what
+`murderboard_freshness.sh` reads to tell you when your copy has gone stale.
