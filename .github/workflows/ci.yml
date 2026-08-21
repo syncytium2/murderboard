@@ -1,0 +1,122 @@
+name: gates
+
+# WHAT THIS IS FOR. This repo ships gates that other projects vendor and then
+# trust. A gate that has silently stopped working is worse than no gate: it is
+# installed, it is in a settings file, it reports nothing, and it manufactures
+# exactly the confidence it was built to earn. That is not hypothetical here --
+# the no-heredoc hook was live in several repos while failing OPEN on every
+# call, because `python` did not exist on those machines and the hook took the
+# missing interpreter as "nothing to check".
+#
+# So CI runs each gate's own --selftest, on BOTH platforms the gates actually
+# run on. macOS is not redundant: the gates lean on grep/awk/sed, and BSD and
+# GNU disagree often enough that "passes on Linux" is not the claim we need.
+#
+# Triggers are scoped to PRs and main so a private repo's macOS minutes (billed
+# at 10x) are not spent on every push to every working branch.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: gates (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Which is it? The no-heredoc bug turned on this exact difference, so
+      # print it before anything runs rather than guessing from a failure later.
+      - name: Report the interpreter situation
+        run: |
+          for c in python3 python py; do
+            printf '%-8s %s\n' "$c" "$(command -v "$c" || echo '(absent)')"
+          done
+          printf 'grep     %s\n' "$(grep --version 2>&1 | head -1)"
+
+      - name: roster gate --selftest
+        run: bash murderboard_roster.sh --selftest
+
+      - name: freshness gate --selftest
+        run: bash murderboard_freshness.sh --selftest
+
+      - name: commit-before-message gate --selftest
+        run: bash require_commit_before_message.sh --selftest
+
+      # The roster is DERIVED from doc_review_process.md by matching headings.
+      # Reformat those headings and the roster quietly parses zero roles, at
+      # which point every consumer's `check` passes vacuously. Catch it here.
+      - name: roster parses the real process file
+        run: |
+          n=$(bash murderboard_roster.sh count)
+          echo "roster parsed $n roles from doc_review_process.md"
+          case "$n" in
+            ''|*[!0-9]*) echo "::error::roster count is not a number: '$n'"; exit 1 ;;
+          esac
+          if [ "$n" -lt 1 ]; then
+            echo "::error::roster parsed 0 roles — the process file's headings no longer match the parser"
+            exit 1
+          fi
+
+      - name: no-heredoc hook, both modes
+        run: bash tests/no_heredoc_hook_test.sh
+
+  python:
+    name: fetch_paper.py
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'   # the oldest a consumer is likely to drop it on
+
+      - name: compiles
+        run: python -m compileall -q fetch_paper.py
+
+      # No network, no arguments that fetch anything.
+      - name: --help runs on a bare interpreter
+        run: python fetch_paper.py --help > /dev/null
+
+      - name: stays stdlib-only
+        run: python tests/fetch_paper_stdlib_test.py
+
+  lint:
+    name: shell lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: syntax check every shell script
+        run: |
+          rc=0
+          while IFS= read -r f; do
+            if bash -n "$f"; then printf 'ok   %s\n' "$f"
+            else printf 'FAIL %s\n' "$f"; rc=1; fi
+          done < <(git ls-files '*.sh')
+          exit $rc
+
+      # ADVISORY ON PURPOSE. shellcheck has never been run against these files,
+      # so making it blocking today would mean landing a red gate and learning
+      # to ignore it -- the precise habit this repo exists to prevent. Read the
+      # output, fix what is real, then delete this comment and the
+      # continue-on-error line together.
+      - name: shellcheck (advisory)
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          git ls-files '*.sh' | xargs shellcheck --severity=warning || true
+          git ls-files '*.sh' | xargs shellcheck --severity=error
