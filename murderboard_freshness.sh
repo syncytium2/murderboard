@@ -105,7 +105,7 @@ VERBOSE=0; FORCE_UPSTREAM=; ONE_FILE=; REFRESH=0; HOOK=0; DEFER=
 
 # What this run is checking. The tool started life murderboard-only, but the SAME staleness
 # failure runs in the other direction too — a consumer's vendored copy of some OTHER
-# upstream (interface2's session-protocol pair, say) drifts with nothing to announce it.
+# upstream (a shared lint config or CI template, say) drifts with nothing to announce it.
 # --label/--slug/--clone make one gate serve any vendor family; --file scopes it.
 LABEL="${MURDERBOARD_LABEL:-murderboard}"
 EXPLICIT_FILES=

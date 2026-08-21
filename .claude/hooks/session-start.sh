@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# vendored from interface2 @ 6e8aff6 — do NOT edit here; update interface2 tools/session-start.hook.sh and re-copy
+# CANONICAL SOURCE: syncytium2/murderboard .claude/hooks/session-start.sh — edit HERE.
 # Generic SessionStart briefing — runs at every session start / resume.
 # Its stdout is injected into the session's context.
 #
-# CANONICAL SOURCE: interface2 tools/session-start.hook.sh (vendored elsewhere).
 # It is self-configuring (derives the repo name and the sibling worktrees dir), so
 # a consumer repo copies it to .claude/hooks/session-start.sh unchanged and wires it
 # in .claude/settings.json (see docs/session_protocol.md). A repo may layer its own
 # repo-specific checks around this core; keep the core intact so it stays re-copyable.
+# Stamp your copy `vendored from syncytium2/murderboard @ <short-sha>` on line 2.
+#
+# ORIGIN: written in a private repo (interface2) and vendored here at 6e8aff6.
+# Murderboard adopted it as canonical on 2026-08-21, when this repo went public --
+# a provenance stamp aimed at a repo the reader cannot open is a dead end, and
+# murderboard_freshness.sh could only ever answer 2 (unknown) for it.
 #
 # ---------------------------------------------------------------------------------
 # HARD CONSTRAINT — this hook BLOCKS session initialization until it exits, and the
@@ -16,8 +21,8 @@
 # is therefore NOT sufficient: "never fails" is not "never blocks". A hook that always
 # succeeds but returns too late takes the session down anyway.
 #
-# This cost us ~half a day in interface2 on 2026-07-30 at 32 worktrees. Full writeup:
-# interface2 docs/postmortems/session-start-hook-timeout.md. Two rules came out of it:
+# This cost ~half a day on 2026-07-30, at 32 worktrees. (The full postmortem lives in the
+# private repo this hook came from; the two rules it produced are stated here in full.)
 #   * Bound the WHOLE script with a deadline, not each call. Per-call caps MULTIPLY
 #     (32 worktrees x 3s = 96s, which is the bug again).
 #   * Degrade LOUDLY. A section dropped for budget must say so, or a silent all-clear

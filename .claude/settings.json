@@ -8,11 +8,6 @@
             "type": "command",
             "command": "bash .claude/hooks/session-start.sh",
             "timeout": 45
-          },
-          {
-            "type": "command",
-            "command": "bash murderboard_freshness.sh --hook --label session-protocol --slug defazio/interface2 --clone \"$HOME/Documents/MATLAB/interface2\" --clone \"$HOME/Developer/interface2\" --file docs/session_protocol.md --file .claude/hooks/session-start.sh",
-            "timeout": 10
           }
         ]
       },
@@ -23,11 +18,6 @@
             "type": "command",
             "command": "bash .claude/hooks/session-start.sh",
             "timeout": 45
-          },
-          {
-            "type": "command",
-            "command": "bash murderboard_freshness.sh --hook --label session-protocol --slug defazio/interface2 --clone \"$HOME/Documents/MATLAB/interface2\" --clone \"$HOME/Developer/interface2\" --file docs/session_protocol.md --file .claude/hooks/session-start.sh",
-            "timeout": 10
           }
         ]
       }

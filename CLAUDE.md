@@ -23,6 +23,17 @@ they ended up as prose in the first place.
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
 - After any change, bump nothing automatically — consumers re-vendor deliberately and stamp
   the commit they took (see README "Vendoring"). Just commit and push here.
+- **This repo is PUBLIC (Apache-2.0).** Two rules follow, and neither is optional:
+  - **Never write a pointer the reader cannot follow.** No paths into private sibling repos,
+    no "see the postmortem in X" where X is unreachable, no instructions to vendor from a repo
+    that 404s. Naming a private repo as *attribution* is fine — `colonel_kernel` reported the
+    fail-open bug, and saying so costs the reader nothing. Sending them there does.
+  - **The session protocol and both `.claude/hooks/` scripts are CANONICAL HERE** as of
+    2026-08-21. They used to be vendored from a private repo and carried "do NOT edit here"
+    stamps; those stamps are gone and the files are edited in this repo now. Consumers stamp
+    `vendored from syncytium2/murderboard @ <short-sha>`.
+- Anything a stranger runs on a fresh clone must actually work. `.claude/settings.json` ships
+  to them too — it must not reference a machine layout or a repo only you can reach.
 
 ## The drop-in paragraph for a CONSUMER's CLAUDE.md
 
