@@ -1,0 +1,29 @@
+{
+  "title": "murderboard: an anti-slop adversarial review harness for document deliverables",
+  "description": "<p>A project-neutral adversarial review process for document deliverables &mdash; explainers, methods text, figures and their captions, reports, handoffs &mdash; together with the gates that keep it honest.</p><p>Eleven reviewer roles check every claim against a real source, verify every citation, and run the mechanical checks against a rendered artifact rather than its generator. What distinguishes it from a review prompt is that the review is itself gated: a derived roster verifies <em>from the finished report</em> that every role actually ran; a freshness gate reports when a vendored copy has fallen behind upstream, returning 0 current / 1 stale / 2 unknown and never a false &quot;current&quot;; and a severity floor with a round cap makes the verify loop terminate.</p><p>Distributed by vendoring rather than dependency &mdash; each copy carries a provenance stamp that the freshness gate reads. Usable without any particular assistant: the process file is prose, the gates are POSIX shell, and a paste-ready prompt can be generated for any chat model.</p>",
+  "upload_type": "software",
+  "license": "Apache-2.0",
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "DeFazio, Tony"
+    }
+  ],
+  "keywords": [
+    "peer review",
+    "document review",
+    "large language models",
+    "AI agents",
+    "research software",
+    "reproducibility",
+    "scientific writing",
+    "claude code"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/syncytium2/murderboard",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}
