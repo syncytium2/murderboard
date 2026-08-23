@@ -86,6 +86,11 @@ ALLOWED_HOSTS = {
     "www.jneurosci.org",
     "direct.mit.edu",           # Network Neuroscience (OA)
     "www.frontiersin.org",
+    "zenodo.org",               # CERN open-access repository — ReScience C, JOSS,
+                                # and most archived research software live here.
+                                # Serves PDFs as application/octet-stream, so the
+                                # content-type check below must not assume a PDF
+                                # mimetype.
 }
 
 UA = "Mozilla/5.0 (compatible; murderboard-litreview/1.0; +academic use)"
