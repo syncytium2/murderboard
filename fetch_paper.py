@@ -71,6 +71,14 @@ from urllib.parse import urlparse
 
 # Open-access scholarly hosts ONLY. A host matches if it equals an entry or is a
 # subdomain of it — substring matching would let "evil-arxiv.org.attacker.com" through.
+#
+# WHAT MEMBERSHIP MEANS, AND WHAT IT DOES NOT. This list gates *where bytes may be
+# fetched from*, so the tool cannot be pointed at a paywall and cannot be talked into
+# scraping one. It is not a quality signal and never was a claim that the venue is
+# peer-reviewed — most entries happen to be publishers, but zenodo.org is a
+# self-deposit repository where anyone can upload anything and mint a DOI. Read an
+# entry as "this host serves open files", not as "documents from this host are
+# vouched for". Judging the document is the reader's job, and the murderboard's.
 ALLOWED_HOSTS = {
     "arxiv.org",
     "www.arxiv.org",
@@ -88,9 +96,8 @@ ALLOWED_HOSTS = {
     "www.frontiersin.org",
     "zenodo.org",               # CERN open-access repository — ReScience C, JOSS,
                                 # and most archived research software live here.
-                                # Serves PDFs as application/octet-stream, so the
-                                # content-type check below must not assume a PDF
-                                # mimetype.
+                                # Serves PDFs as application/octet-stream; see
+                                # looks_like_pdf(), which is why that still works.
 }
 
 UA = "Mozilla/5.0 (compatible; murderboard-litreview/1.0; +academic use)"
@@ -332,6 +339,24 @@ def fetch(url, timeout=60):
         return r.read(), r.headers.get("Content-Type", "")
 
 
+def looks_like_pdf(ctype, raw, url):
+    """Is this response a PDF? Three independent signals, any of which suffices.
+
+    The declared content-type is the WEAKEST of the three, and it is the one a
+    reader is tempted to trust: Zenodo — where ReScience C and JOSS live — serves
+    PDFs as `application/octet-stream`, so trusting the header alone would file
+    every one of those as `.txt` and hand the raw bytes to the HTML text
+    extractor. The magic-bytes sniff is what actually saves that case.
+
+    Named and tested rather than inlined, because the failure is silent: the
+    fetch still "succeeds", the cache still fills, and what is wrong is only the
+    extracted text. See tests/fetch_paper_pdf_detect_test.py.
+    """
+    return ("pdf" in (ctype or "").lower()
+            or raw[:5] == b"%PDF-"
+            or (url or "").lower().endswith(".pdf"))
+
+
 def pdf_to_text(path):
     try:
         from pypdf import PdfReader
@@ -449,7 +474,7 @@ def main():
             continue
 
         name = hashlib.sha1(url.encode()).hexdigest()[:12]
-        is_pdf = "pdf" in ctype.lower() or raw[:5] == b"%PDF-" or url.lower().endswith(".pdf")
+        is_pdf = looks_like_pdf(ctype, raw, url)
         path = os.path.join(cache_dir(), name + (".pdf" if is_pdf else ".txt"))
         with open(path, "wb") as f:
             f.write(raw)
