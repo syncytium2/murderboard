@@ -75,6 +75,21 @@ jobs:
       - name: no-heredoc hook, both modes
         run: bash tests/no_heredoc_hook_test.sh
 
+      - name: portable prompt generator --selftest
+        run: bash murderboard_prompt.sh --selftest
+
+      # PROMPT.md is what a beginner copies out of the GitHub web UI without cloning
+      # anything, so it must not drift from the generator. If this fails, someone
+      # hand-edited it: regenerate, do not patch.
+      - name: PROMPT.md matches its generator
+        run: |
+          extracted=$(sed -n '/^```$/,/^```$/p' PROMPT.md | sed '1d;$d')
+          if ! diff <(printf '%s\n' "$extracted") <(bash murderboard_prompt.sh); then
+            echo "::error::PROMPT.md is out of sync — regenerate with: bash murderboard_prompt.sh"
+            exit 1
+          fi
+          echo "ok — PROMPT.md matches murderboard_prompt.sh"
+
   python:
     name: fetch_paper.py
     runs-on: ubuntu-latest

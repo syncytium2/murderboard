@@ -1,5 +1,16 @@
 # murderboard
 
+## ▶ [**START HERE**](START-HERE.md) — new to this? Two minutes, no install, no Claude needed.
+
+**In a hurry:** open **[PROMPT.md](PROMPT.md)**, copy the block, paste it into any AI chat,
+then paste your document. That is a working murderboard. Everything below is how to stop
+having to remember to do it.
+
+The rest of this README is written for someone wiring this into a project. If that is not you
+yet, [START-HERE.md](START-HERE.md) is the page you want.
+
+---
+
 > **Authorship.** The ideas, decisions, and review here are mine; the code is Claude's
 > (Anthropic's Claude Code). I set the problems, made the calls — including overriding rules
 > the model had adopted — and merged nothing I hadn't reviewed. I did not write the
