@@ -12,6 +12,12 @@ authors:
     family-names: DeFazio
     # ORCID intentionally omitted — add `orcid: "https://orcid.org/0000-0000-0000-0000"`
     # here and in .zenodo.json if/when you want the two to agree.
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.22063835
+    description: >-
+      Concept DOI — always resolves to the latest release. Cite
+      this unless you vendored a specific version.
 repository-code: 'https://github.com/syncytium2/murderboard'
 url: 'https://github.com/syncytium2/murderboard'
 abstract: >-

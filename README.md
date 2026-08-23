@@ -1,5 +1,8 @@
 # murderboard
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22063835.svg)](https://doi.org/10.5281/zenodo.22063835)
+[![gates](https://github.com/syncytium2/murderboard/actions/workflows/ci.yml/badge.svg)](https://github.com/syncytium2/murderboard/actions/workflows/ci.yml)
+
 ## ▶ [**START HERE**](START-HERE.md) — new to this? Two minutes, no install, no Claude needed.
 
 **In a hurry:** open **[PROMPT.md](PROMPT.md)**, copy the block, paste it into any AI chat,
@@ -147,8 +150,10 @@ the sources rather than the draft.
 ## Citing it
 
 `CITATION.cff` in the repository root carries the metadata; GitHub's **Cite this repository**
-button reads it. A Zenodo DOI is minted per release — cite the *concept* DOI for the project
-and a *version* DOI if you vendored a specific commit.
+button reads it. A Zenodo DOI is minted per release. Cite the **concept DOI**
+[`10.5281/zenodo.22063835`](https://doi.org/10.5281/zenodo.22063835) for the project as a whole; it always resolves to the
+latest release. If you vendored a specific commit, cite that release's own version DOI instead
+(v0.1.0 is [`10.5281/zenodo.22063836`](https://doi.org/10.5281/zenodo.22063836)).
 
 ## Provenance
 
