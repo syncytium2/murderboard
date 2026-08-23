@@ -102,6 +102,43 @@ python3 fetch_paper.py --list               # what the cache holds
   `IF2_LIT` / `IF2_PAPERS` are honored too, for the project this tool originated in.
 - **Needs** Python 3; `pypdf` (or `pdftotext`) for PDF text extraction.
 
+## Who uses it, and what that shows
+
+Three public repositories vendor the murderboard. They are the evidence base for what this
+process does, and they are worth reading before adopting it — particularly the run record,
+which is what the output actually looks like.
+
+| repo | what it is | what it shows |
+|---|---|---|
+| [`syncytium2/colonel_kernel`](https://github.com/syncytium2/colonel_kernel) | research tool relating action-potential firing to calcium signals | [`ADR-0037`](https://github.com/syncytium2/colonel_kernel/blob/master/docs/adr/0037-adopt-murderboard-review-process.md) records the adoption decision and its reasoning; `dep-freshness.yml` runs the freshness gate on a weekly cron |
+| [`syncytium2/bugarach`](https://github.com/syncytium2/bugarach) | coordination-detection port with an interactive viewer | a **[public run record](https://github.com/syncytium2/bugarach/blob/main/docs/reviews/pensub_export_validation_murderboard_2026-08-20.md)** — 11/11 roles, per-round severity table, stated deviation, six residual `⚠` |
+| [`syncytium2/no_peak`](https://github.com/syncytium2/no_peak) | validated port of a pulse-detection algorithm | the full vendored set — process, skill, both gates, both hooks |
+
+**What the evidence supports, and what it does not.** These are case reports, not a benchmark.
+They show the process running end-to-end on real deliverables and catching defects that had
+survived ordinary review. They do **not** establish a rate, and nothing here has been measured
+against a baseline. Two claims are separable:
+
+- **Mechanical, and checkable by inspection today** — you can verify from a finished report
+  which roles ran (`murderboard_roster.sh check`), verify whether your vendored copy is stale
+  (`murderboard_freshness.sh`), and the verify loop terminates by construction. The tests in
+  CI demonstrate these.
+- **Empirical, and not yet established** — that this finds more, or better, than some other
+  approach. No such claim is made here.
+
+The defect class it is built for is worth naming, because it is the one a text-only reviewer
+cannot reach. From the bugarach run: the report claimed a retention figure *"restricted to
+shared ROIs inside the declared regions."* The numbers were real; the restriction was not —
+they had been computed over all events. Nothing inside the document contradicted itself. Only
+opening the source that produced the number exposes that, and it is why the process insists on
+the sources rather than the draft.
+
+## Citing it
+
+`CITATION.cff` in the repository root carries the metadata; GitHub's **Cite this repository**
+button reads it. A Zenodo DOI is minted per release — cite the *concept* DOI for the project
+and a *version* DOI if you vendored a specific commit.
+
 ## Provenance
 
 Extracted and generalized from a calcium-imaging analysis project (`interface2`), where it
