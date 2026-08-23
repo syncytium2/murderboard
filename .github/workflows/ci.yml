@@ -116,6 +116,22 @@ jobs:
       - name: PDF detection survives a lying content-type
         run: python tests/fetch_paper_pdf_detect_test.py
 
+      - name: revendor compiles
+        run: python -m compileall -q murderboard_revendor.py
+
+      # The stamp rewrite must stay surgical. Its --selftest includes NEGATIVE
+      # CONTROLS: the whole-file substitution that corrupted a real vendored doc,
+      # and the line-1-only version that silently skips every shebang file, must
+      # both FAIL its fixtures. A fixture that cannot fail is what this tool was
+      # written because of. Offline: pure functions, literal inputs.
+      - name: revendor --selftest (the rewrite cannot spread)
+        run: python murderboard_revendor.py --selftest
+
+      # It ships in the vendored set, so it must run on the oldest interpreter a
+      # consumer is likely to have, with no config present.
+      - name: revendor --example-config is valid JSON
+        run: python murderboard_revendor.py --example-config | python -c "import json,sys; json.load(sys.stdin)"
+
   lint:
     name: shell lint
     runs-on: ubuntu-latest

@@ -1,6 +1,6 @@
 ---
 # canonical: syncytium2/murderboard skills/murderboard/SKILL.md
-# When vendoring, REPLACE this line with: vendored from https://github.com/syncytium2/murderboard @ <short-sha> — do NOT edit here; update by re-copying.
+# When vendoring, INSERT a line just below the --- above: vendored from https://github.com/syncytium2/murderboard @ <short-sha> — do NOT edit here; update by re-copying. (murderboard_revendor.py does this, and keeps it in the right place.)
 name: murderboard
 description: Run the murderboard — the adversarial critical-review process — on a document deliverable before it ships. Use whenever the deliverable is an explainer, methods section, manuscript/abstract/cover-letter text, a figure or its caption/labels, a report, a slide deck, or a human-facing handoff. Also use when asked to "murderboard", "critically review", or "check this before I send it". Not for source code (that is the code-review path), quick conversational answers, or throwaway diagnostics.
 ---
