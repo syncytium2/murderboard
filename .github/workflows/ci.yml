@@ -109,6 +109,13 @@ jobs:
       - name: stays stdlib-only
         run: python tests/fetch_paper_stdlib_test.py
 
+      # Zenodo serves PDFs as application/octet-stream. If detection regresses to
+      # trusting the declared mimetype, nothing raises — the paper is silently
+      # saved as .txt and run through the HTML extractor, and the agent reads
+      # something that is not the paper. Offline: pure function, literal inputs.
+      - name: PDF detection survives a lying content-type
+        run: python tests/fetch_paper_pdf_detect_test.py
+
   lint:
     name: shell lint
     runs-on: ubuntu-latest
