@@ -9,8 +9,16 @@
 > **Where it came from.** This protocol was written in a *private* repo (`interface2`) and
 > vendored here at `6e8aff6`. Murderboard adopted it as canonical on 2026-08-21, when this repo
 > went public: a stamp pointing at a repo the reader cannot open is not provenance, it is a dead
-> end, and `murderboard_freshness.sh` could never return anything but `2` (unknown) for it. The
-> older stamps remain in this file's git history, unaltered.
+> end. The older stamps remain in this file's git history, unaltered.
+>
+> Be precise about what a private upstream breaks, because the imprecise version of this
+> sentence shipped here first and had to be corrected. `murderboard_freshness.sh --clone` will
+> resolve a private upstream from a local checkout, so on the author's own machine the gate
+> answers `0`/`1` normally — and that is the trap. Everywhere else there is no checkout and no
+> route to a private host, so the answer is `2` (unknown), which in `--hook` mode is **silent**.
+> A private upstream does not disable the gate; it makes the gate answer for one person and say
+> nothing to everyone else, which is harder to notice. And what `--clone` compares against is a
+> working copy's `HEAD` — whatever is checked out at that moment — not a published ref.
 
 ---
 

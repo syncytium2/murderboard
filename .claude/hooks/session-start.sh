@@ -11,8 +11,12 @@
 #
 # ORIGIN: written in a private repo (interface2) and vendored here at 6e8aff6.
 # Murderboard adopted it as canonical on 2026-08-21, when this repo went public --
-# a provenance stamp aimed at a repo the reader cannot open is a dead end, and
-# murderboard_freshness.sh could only ever answer 2 (unknown) for it.
+# a provenance stamp aimed at a repo the reader cannot open is a dead end. Precisely:
+# murderboard_freshness.sh --clone resolves a private upstream from a local checkout,
+# so on the author's machine the gate answers 0/1 normally. Everywhere else there is
+# no checkout and no route, so it answers 2 (unknown), which in --hook mode is SILENT.
+# A private upstream does not disable the gate -- it makes the gate answer for one
+# person and say nothing to everyone else.
 #
 # ---------------------------------------------------------------------------------
 # HARD CONSTRAINT — this hook BLOCKS session initialization until it exits, and the
