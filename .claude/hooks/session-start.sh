@@ -1,22 +1,13 @@
 #!/usr/bin/env bash
-# CANONICAL SOURCE: syncytium2/murderboard .claude/hooks/session-start.sh — edit HERE.
+# vendored from interface2 @ f0bdaab1 — do NOT edit here; update interface2 tools/session-start.hook.sh and re-copy
 # Generic SessionStart briefing — runs at every session start / resume.
 # Its stdout is injected into the session's context.
 #
+# CANONICAL SOURCE: interface2 tools/session-start.hook.sh (vendored elsewhere).
 # It is self-configuring (derives the repo name and the sibling worktrees dir), so
 # a consumer repo copies it to .claude/hooks/session-start.sh unchanged and wires it
 # in .claude/settings.json (see docs/session_protocol.md). A repo may layer its own
 # repo-specific checks around this core; keep the core intact so it stays re-copyable.
-# Stamp your copy `vendored from syncytium2/murderboard @ <short-sha>` on line 2.
-#
-# ORIGIN: written in a private repo (interface2) and vendored here at 6e8aff6.
-# Murderboard adopted it as canonical on 2026-08-21, when this repo went public --
-# a provenance stamp aimed at a repo the reader cannot open is a dead end. Precisely:
-# murderboard_freshness.sh --clone resolves a private upstream from a local checkout,
-# so on the author's machine the gate answers 0/1 normally. Everywhere else there is
-# no checkout and no route, so it answers 2 (unknown), which in --hook mode is SILENT.
-# A private upstream does not disable the gate -- it makes the gate answer for one
-# person and say nothing to everyone else.
 #
 # ---------------------------------------------------------------------------------
 # HARD CONSTRAINT — this hook BLOCKS session initialization until it exits, and the
@@ -25,8 +16,8 @@
 # is therefore NOT sufficient: "never fails" is not "never blocks". A hook that always
 # succeeds but returns too late takes the session down anyway.
 #
-# This cost ~half a day on 2026-07-30, at 32 worktrees. (The full postmortem lives in the
-# private repo this hook came from; the two rules it produced are stated here in full.)
+# This cost us ~half a day in interface2 on 2026-07-30 at 32 worktrees. Full writeup:
+# interface2 docs/postmortems/session-start-hook-timeout.md. Two rules came out of it:
 #   * Bound the WHOLE script with a deadline, not each call. Per-call caps MULTIPLY
 #     (32 worktrees x 3s = 96s, which is the bug again).
 #   * Degrade LOUDLY. A section dropped for budget must say so, or a silent all-clear
@@ -34,7 +25,23 @@
 # Wire a `"timeout"` into the settings.json hook entry as a second line of defence,
 # set ABOVE this budget and below the SDK's 60s.
 #
-# Tune with env vars if a consumer repo needs to: IF2_HOOK_BUDGET (seconds).
+# Tune with env vars if a consumer repo needs to: IF2_HOOK_BUDGET (seconds),
+# IF2_HOOK_DEADLINE (seconds; must match the settings.json "timeout" for this hook).
+#
+# SURVIVING A RUN THAT BLOWS THE DEADLINE. Bounding the work is the first defence; the
+# second is making the failure legible, because a hook that is killed prints NOTHING and
+# therefore cannot report its own death. Three per-repo files in $HOME carry that:
+#   ~/.<repo>-hook-off       escape hatch: touch it and this briefing is skipped entirely.
+#                            Needed because a hook slow enough to kill a session also
+#                            blocks the session you would use to fix the hook.
+#   ~/.<repo>-hook-running   latch, written on entry and removed on clean exit. Present at
+#                            startup => the previous run died => SAFE MODE: print the
+#                            diagnosis and exit, rather than repeating what just killed a
+#                            session.
+#   ~/.<repo>-hook-journal   per-section timings, truncated per run and NEVER deleted, so
+#                            the profile survives whatever happened to the run.
+# They are named per-repo deliberately: several repos vendor this hook and share $HOME, so
+# one shared latch would let a sick hook in one repo put every other repo into SAFE MODE.
 # ---------------------------------------------------------------------------------
 
 set +e
@@ -72,6 +79,80 @@ board="${wt_dir}/SESSIONS.md"
 gd=$(git rev-parse --git-dir 2>/dev/null)
 gda=$( [ -n "$gd" ] && (CDPATH= cd -- "$gd" 2>/dev/null && pwd -P) )
 
+DEADLINE="${IF2_HOOK_DEADLINE:-45}"   # MUST match the settings.json "timeout" for this hook
+_hs="${IF2_HOOK_STATE:-$HOME/.${repo}-hook}"
+_hj="${_hs}-journal"
+
+# ESCAPE HATCH first: it must work even when everything below is broken.
+if [ -n "$IF2_HOOK_OFF" ] || [ -f "${_hs}-off" ]; then
+  echo "[${repo}] SessionStart briefing is OFF. NO GUARDS RAN — do not read this as a clean start."
+  echo "[${repo}] Re-enable with:  rm ${_hs}-off   (or unset IF2_HOOK_OFF)"
+  exit 0
+fi
+
+# SAFE MODE: the previous run never reached its cleanup.
+if [ -f "${_hs}-running" ] && [ -z "$IF2_HOOK_FORCE" ]; then
+  echo "=========== ${repo} — SESSION START (SAFE MODE) ==========="
+  echo "!! The PREVIOUS run of this briefing did not finish. Skipping it entirely so it"
+  echo "!! cannot take this session down too."
+  echo "!!"
+  echo "!! NO GUARDS RAN: unpushed/uncommitted work, branch-moved, live MATLAB and the"
+  echo "!! session board were all skipped. A quiet startup is NOT a clean one."
+  echo "!!"
+  if [ -s "$_hj" ]; then
+    echo "!! WHERE THAT RUN SPENT ITS TIME (elapsed as each section BEGAN):"
+    sed 's/^/!!     /' "$_hj" 2>/dev/null
+    echo "!!"
+    case "$(tail -n 1 "$_hj" 2>/dev/null)" in
+      DONE*)
+        echo "!! READ THIS CAREFULLY: that run REACHED THE END. It was NOT killed -- it"
+        echo "!! OVERRAN, and the session that spawned it gave up first. Clearing the latch"
+        echo "!! alone changes nothing; the next start will be just as slow. The lever is"
+        echo "!! the biggest jump between two lines above -- that gap IS the slow section." ;;
+      "")
+        echo "!! The journal is unreadable, so that run died before its first section." ;;
+      *)
+        echo "!! It was killed INSIDE the last section listed -- the timings stop there."
+        echo "!! That section, and the gap leading into it, are what to cut." ;;
+    esac
+    echo "!!"
+  else
+    echo "!! No journal from that run: it died before its first section, or this is the"
+    echo "!! first start since journalling was vendored in."
+    echo "!!"
+  fi
+  echo "!! Clear the latch and try the full briefing again:   rm ${_hs}-running"
+  echo "!! Run it now without clearing:  IF2_HOOK_FORCE=1 bash .claude/hooks/session-start.sh"
+  echo "!! Silence it until properly fixed:                   touch ${_hs}-off"
+  echo "!!"
+  echo "!! Do NOT 'fix' this by raising the settings.json timeout -- the SDK aborts the"
+  echo "!! whole startup handshake at a HARDCODED 60s that this hook shares with auth and"
+  echo "!! network. Cut work out instead. See the HARD CONSTRAINT note at the top."
+  echo "==========================================================="
+  exit 0
+fi
+
+: > "${_hs}-running" 2>/dev/null || true
+echo "run pid=$$ start=$(date '+%F %T') deadline=${DEADLINE}s budget=${BUDGET}s" > "$_hj" 2>/dev/null || true
+
+# MARK <label> -- append one line to the journal as a section BEGINS.
+# FORK-FREE BY CONSTRUCTION: $SECONDS and echo are builtins and the append is a redirect,
+# so a mark costs no process. A profiler that costs what it measures reports a briefing
+# that is slow because it is being profiled.
+MARK() { echo "$(( SECONDS - started ))s  $*" >> "$_hj" 2>/dev/null || true; }
+
+# A previous run finished but overran: that session was abandoned and ran with NO GUARDS.
+# Say so even though THIS run may be fast -- that asymmetry (a slow run degrades a session,
+# the next warm run looks clean) is exactly how the problem stays invisible.
+if [ -f "${_hs}-overrun" ]; then
+  echo "!! A PREVIOUS START OVERRAN THE DEADLINE — that session ran with NO GUARDS."
+  echo "!! Its per-section profile (the largest gap between lines is the section to cut):"
+  sed 's/^/!!     /' "${_hs}-overrun" 2>/dev/null
+  echo "!! Fix the slow section, then clear this notice:  rm ${_hs}-overrun"
+  echo
+fi
+
+MARK "settings skip-worktree"
 # --- Keep the TRACKED .claude/settings.json from accreting interactive approvals. ---
 # Claude Code appends "always allow" rules to this tracked file (they should land in the
 # gitignored settings.local.json but don't), dirtying it and diverging it across machines.
@@ -93,6 +174,7 @@ if [ -n "$gda" ] && [ "$gda" = "$cma" ]; then
   echo "     git worktree add -b <task-slug> ${wt_dir}/<task-slug> main"
 fi
 
+MARK "unpushed-work alarm"
 # --- unpushed / uncommitted alarm: surface single-copy work so it is never lost.
 # A branch is flagged only if it has commits on NO remote at all (safe if those same
 # commits live on any other remote branch). Uncommitted = tracked changes only.
@@ -129,6 +211,7 @@ if [ -n "$alarm" ] || [ -n "$trunc" ]; then
   printf "%b" "$alarm$trunc"
 fi
 
+MARK "branch-moved check"
 # --- did THIS branch move under you? ---------------------------------------
 # Git enforces one CHECKOUT per branch, not one SESSION per worktree: two agents on
 # one machine can land in the same worktree, so a feature-branch push is NOT isolated
@@ -152,6 +235,7 @@ if [ -n "$foreign" ]; then
   echo "   before building on them; do not assume this worktree is yours alone."
 fi
 
+MARK "live MATLAB check"
 # --- live MATLAB: the resource two sessions on one box actually contend for ---
 # Reported ALWAYS, never thresholded on RAM: a long batch can run for hours while
 # free RAM never looks tight, so a RAM threshold goes silent exactly when it matters.
@@ -190,9 +274,11 @@ else
 fi
 
 echo
+MARK "tail: worktrees / recent commits"
 echo "--- worktrees ---";      TO 5 git worktree list 2>/dev/null || echo "(timed out)"
 echo "--- recent commits ---"; TO 5 git log --oneline -6 --all 2>/dev/null || echo "(timed out)"
 
+MARK "tail: session board"
 echo "--- session board: ${board} ---"
 if [ -f "$board" ]; then cat "$board"; else
   echo "(no board yet — create it and claim your work when you touch shared EXTERNAL outputs)"
@@ -204,6 +290,28 @@ echo "claim shared external outputs on the board before writing. Full policy: do
 # Standing canary. BUDGET bounds the scan sections above, NOT this tail, so true wall
 # time runs ~10s beyond it. If this number creeps toward the settings.json hook timeout,
 # fix it BEFORE it crosses the SDK's 60s and takes the session down.
-echo "briefing took $(( SECONDS - started ))s"
+elapsed=$(( SECONDS - started ))
+echo "briefing took ${elapsed}s"
+
+# NEAR-MISS ALARM. A killed hook prints nothing, so the only moment this script can warn
+# you is while it is still alive and merely close to the edge.
+if [ "$elapsed" -ge $(( DEADLINE * 7 / 10 )) ]; then
+  echo "!! THIS BRIEFING NEARLY TIMED OUT: ${elapsed}s against a ${DEADLINE}s hook timeout."
+  [ "$elapsed" -ge "$DEADLINE" ] && \
+    echo "!! IT IS OVER THE LIMIT — you are seeing this only because the shell outran the killer."
+  echo "!! Per-section profile: ${_hj}  (largest gap between lines = the section to cut)"
+  echo "!! Do NOT raise the settings.json timeout; the SDK's 60s abort is the real ceiling."
+fi
+
+# Close the journal FIRST and keep it: the latch below disappears either way, so a DONE
+# total sitting past DEADLINE is the only surviving evidence that a session was degraded.
+echo "DONE  briefing completed in ${elapsed}s (deadline ${DEADLINE}s)" >> "$_hj" 2>/dev/null || true
+if [ "$elapsed" -ge "$DEADLINE" ]; then
+  cp "$_hj" "${_hs}-overrun" 2>/dev/null || true
+fi
+
+# Deliberately NOT a trap: a trap would also fire when the killer SIGTERMs us, erasing the
+# very evidence SAFE MODE depends on. Only reaching this line counts as finishing.
+rm -f "${_hs}-running" 2>/dev/null || true
 echo "==================================================================="
 exit 0
