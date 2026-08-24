@@ -74,6 +74,12 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      walks every role's checklist in turn**, and still produces agent 10's table. Do not burn a
      ten-agent fan-out on one sentence — but do not silently drop a role either: a dropped role
      and a clean role are indistinguishable in the report.
+   - **Scale by size, EXCEPT for attribution: any deliverable that attributes a method, or claims
+     something is novel, unattributed, or "ours", runs role 2 as a SEPARATE agent — whatever its
+     length.** The defect role 2 is catching there is *a search that stopped too early*, and a
+     single-pass self-review inherits the drafter's search history, so it stops in the same place
+     for the same reason. Blindness is the mechanism; one pass cannot supply it. This is the only
+     role the size rule may not collapse.
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
    See **"The team is not optional"** below.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
@@ -187,6 +193,24 @@ This is not a style preference. A record organised by process is read once by it
 and never again, so the findings it contains stop being available to the next person —
 which is the same failure the murderboard exists to prevent, one level up.
 
+### What a clean run does NOT warrant — state it in the record
+
+**A clean run is evidence the roles ran. It is not evidence the artifact is correct.** Say so, in
+the delivered summary, in these terms or equivalent:
+
+> This review found and fixed N defects. It is not a correctness proof. The convergence table
+> measures how quickly reviewers stopped finding things, not whether anything remains.
+
+The report must not be presentable as a warrant, because that is exactly how it will be used —
+the run record is the most quotable thing the process emits, and "11/11 roles, severity floor
+reached" reads to any human as a clean bill of health.
+
+This is the **"can the alarm ring?"** rule turned on this process a second time. The role ledger
+fixed *"7 of 11" and "11 of 11" look alike*. It did not fix the next one up: **"11 of 11 and
+clean" and "11 of 11 and correct" look alike**, and the second is what a reader takes away. A
+convergence table cannot distinguish a document with nothing left to find from one whose
+reviewers were all looking in the same wrong place.
+
 ## The review team
 
 Spawn these as parallel subagents, each given the draft **and** pointers to the real
@@ -254,6 +278,20 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
    need the paper itself, follow the **lit-cache protocol** below — check the library
    first, fetch the OA copy, flag what you can't get. Do **not** verify a claim against a
    paper you only half-remember: get the text or flag the paper.
+   - **A verified citation can still be the WRONG citation — check the ORIGIN, not the earliest
+     source you happened to reach.** When the deliverable attributes a method, term, or result to
+     a source, establishing that the source *exists* and *says what is quoted* is only half the
+     check. Ask whether it is the **origin**: open the cited work's own references for that claim
+     and follow them backwards until they stop. Then **report where you stopped and why** — "the
+     root is paywalled, verified to one step short" is a finding; silence is not. Prefer the root
+     and cite later work as the modern restatement. Verifying everything *present* while never
+     asking what is *absent* is how a reference list can be entirely correct and still credit the
+     wrong paper.
+   - **Name the literatures you searched.** A construction general enough to have been invented in
+     another field will not be cleared by searching one. When a deliverable claims something is
+     novel, unattributed, or "ours", the reportable finding is never "looks fine" — it is
+     *"searched X and Y; did not search Z"*. **An unsearched field is a residual `⚠`, not an
+     absence of prior art.**
 3. **Consistency auditor — "Cross-Examiner."** Cross-check **within** the document and **against companion
    docs**: counts, totals, terminology, cross-references, and figure↔text agreement. Flag
    every contradiction. **Watch for one population counted on different bases** (per-detector flags vs
@@ -810,6 +848,10 @@ ledger: one row per role in the roster, all of them**, each carrying either its 
 its "no findings, and here is what I checked" line. If nothing survived review, say so
 plainly — do not manufacture findings to look thorough.
 
+The summary **must carry the calibration line** from *"What a clean run does NOT warrant"* above:
+the review is evidence the roles ran, not a correctness proof. A report that omits it is a report
+that will be quoted as a warrant.
+
 **The ledger is not bureaucracy; it is the only evidence the team ran.** This contract used to
 ask for "a 3–6 line review report", which cannot physically carry a trace from eleven roles —
 so the document demanded that every role run, then specified an output too small to show
@@ -973,3 +1015,20 @@ seriously than a rule stated in the abstract.
   figure of the intermediate steps that recomputes its annotated numbers from the same logic it
   illustrates. Lesson: a results figure cannot answer a process question, and a plausible wrong model
   is invisible until someone says it out loud.
+- **A verified citation that was the wrong citation** (an attribution report, 2026-08) — a run
+  reported 11/11 roles, a blind verify round, blocking findings 5 → 0, stopping reason "severity
+  floor reached", and a clean `murderboard_roster.sh check`. Every signal green. The document
+  credited a 2022 paper for a synchronous-event detection rule introduced nineteen years earlier
+  in Cossart, Aronov & Yuste 2003 (*Nature* 423:283–288, doi:10.1038/nature01614), which in turn
+  credits Mao et al. 2001 (*Neuron* 32:883–898). The PI caught it from the delivered summary in one
+  sentence. Every citation in the document resolved — nine PMIDs and a DataCite DOI — and an
+  author-list error in the same reference had been caught and fixed by role 2 on an earlier pass.
+  The reviewer verified everything present and never asked what was absent; one backward step,
+  named in a single line of the 2003 paper's own Methods, would have found it. In the same run a
+  suite of detectors was cleared against the spike-train literature and reported as "ours as far as
+  we know" — all of it is CFAR, a radar literature dating to Finn & Johnson 1968 (*RCA Review* 29).
+  Lesson: **existence and correct attribution are not origin**, and a single-field search cannot
+  clear a construction general enough to have been invented in another field. Confound recorded
+  honestly: that run was executed single-pass on a substantial report where the process prescribes
+  parallel subagents, so conformance was also short — which is why the size rule may no longer
+  collapse role 2 on an attribution deliverable.

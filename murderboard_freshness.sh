@@ -40,6 +40,14 @@
 #   4. a local clone's origin/main          offline fallback; may itself be behind, so
 #                                           the verdict is labelled with its source
 #
+# A BEHIND CLONE MUST NOT ACCUSE THE CONSUMER. Resolution 4 only knows what that clone last
+# fetched, so a disagreement can mean "the consumer is stale" OR "this clone is". Before
+# deciding, the verdict asks which way it runs: if the clone holds the stamped commit and
+# its own origin/main is an ANCESTOR of it, the consumer is at-or-ahead and the run is
+# silent; if the clone has never fetched the stamp it cannot rank it, and the answer is 2
+# (undetermined), not 1. "Never a false current" does not license a false STALE — that
+# costs a pointless re-vendor and teaches people the gate cries wolf.
+#
 # CACHE. Upstream HEAD is cached for $TTL seconds in the git common dir (machine-local,
 # shared by every worktree, never committed), because this runs in a SessionStart hook
 # that blocks session startup and cannot afford a network call every time.
@@ -109,6 +117,12 @@ VERBOSE=0; FORCE_UPSTREAM=; ONE_FILE=; REFRESH=0; HOOK=0; DEFER=
 # --label/--slug/--clone make one gate serve any vendor family; --file scopes it.
 LABEL="${MURDERBOARD_LABEL:-murderboard}"
 EXPLICIT_FILES=
+
+# Which local clone answered the offline fallback, and what the verdict block learned from
+# it. Set by upstream_from_clone / clone_says_stamp_is_newer; empty when upstream came from
+# the remote, an explicit sha, or the environment.
+ANSWERING_CLONE=
+VERDICT_NOTE=
 
 # --- portable helpers --------------------------------------------------------
 # SPAWN BUDGET. This runs inside a SessionStart hook that blocks session startup, on a
@@ -184,7 +198,7 @@ upstream_from_gh() {
 }
 
 upstream_from_clone() {
-  local d candidates="$CLONE_CANDIDATES"
+  local d sha candidates="$CLONE_CANDIDATES"
   # The built-in guesses are murderboard paths and are only admissible when the
   # slug in play is murderboard. See the note at DEFAULT_CLONE_CANDIDATES: for any
   # other family they would answer from the wrong repository.
@@ -192,10 +206,57 @@ upstream_from_clone() {
 $DEFAULT_CLONE_CANDIDATES"
   for d in $candidates; do
     [ -n "$d" ] && [ -d "$d/.git" ] || continue
-    CAP "$NET_CAP" git -C "$d" rev-parse origin/main 2>/dev/null \
-      | grep -o '^[0-9a-f]\{40\}$' && return 0
+    if sha=$(CAP "$NET_CAP" git -C "$d" rev-parse origin/main 2>/dev/null \
+             | grep -o '^[0-9a-f]\{40\}$') && [ -n "$sha" ]; then
+      # Print WHICH clone answered alongside the sha. The verdict needs this clone's object
+      # database to tell "the consumer is behind" from "this clone is behind" — see
+      # clone_says_stamp_is_newer(). A global will not do: this runs in a subshell.
+      printf '%s %s\n' "$sha" "$d"
+      return 0
+    fi
   done
   return 1
+}
+
+# Did the clone that answered simply not know about the stamped commit yet, or does it
+# know it and place it AHEAD of the origin/main it reported? Either way the consumer is
+# not stale and must not be accused.
+#
+# WHY THIS EXISTS. The offline fallback reads a local clone's origin/main, and that clone
+# can itself be behind — it only knows what it last fetched. A consumer vendored at the
+# TRUE upstream HEAD then disagrees with a stale number, and the verdict block, which only
+# asked "are these equal?", called the CONSUMER stale. Backwards, and the expensive
+# direction: it costs a pointless re-vendor and teaches people the gate cries wolf.
+# Reproduced 2026-08-24: consumer stamped at true HEAD, clone two commits behind -> exit 1
+# "IS STALE" where the honest answers are 0 (provably at-or-ahead) or 2 (cannot tell).
+#
+# Returns 0 = the consumer is at-or-ahead (do not accuse), with VERDICT_NOTE set
+#         1 = the clone genuinely places the stamp behind its origin/main -> really stale
+#         2 = the clone cannot speak to it at all -> undetermined
+clone_says_stamp_is_newer() {
+  local d="$ANSWERING_CLONE" stamp="$1" up="$2"
+  [ -n "$d" ] && [ -d "$d/.git" ] || return 2
+  # A clone that has never heard of the stamped commit cannot rank it. That is the
+  # ordinary case when the consumer is NEWER than the clone's last fetch.
+  git -C "$d" cat-file -e "${stamp}^{commit}" 2>/dev/null || {
+    VERDICT_NOTE="the local clone has never fetched ${stamp%${stamp#???????}}, so it cannot rank it"
+    return 2
+  }
+  if git -C "$d" merge-base --is-ancestor "$up" "$stamp" 2>/dev/null; then
+    VERDICT_NOTE="the local clone is behind: ${up%${up#???????}} is an ANCESTOR of the vendored ${stamp%${stamp#???????}}"
+    return 0
+  fi
+  return 1
+}
+
+# Split what resolve_upstream printed ("SHA SOURCE [CLONEDIR]") into globals. Must run in
+# the CALLER's shell, not a subshell, or ANSWERING_CLONE is lost again.
+parse_resolved() {
+  local rest
+  head_sha=${1%% *}
+  rest=${1#* }
+  source=${rest%% *}
+  if [ "$rest" != "$source" ]; then ANSWERING_CLONE=${rest#* }; else ANSWERING_CLONE=; fi
 }
 
 resolve_upstream() {
@@ -203,7 +264,18 @@ resolve_upstream() {
   if [ -n "$FORCE_UPSTREAM" ]; then echo "$FORCE_UPSTREAM explicit"; return 0; fi
   if [ -n "${MURDERBOARD_HEAD:-}" ]; then echo "$MURDERBOARD_HEAD env"; return 0; fi
   if sha=$(upstream_from_gh) && [ -n "$sha" ]; then echo "$sha remote"; return 0; fi
-  if sha=$(upstream_from_clone) && [ -n "$sha" ]; then echo "$sha local-clone"; return 0; fi
+  # The clone's PATH rides along on stdout as a third field. It cannot travel in a global:
+  # every caller invokes resolve_upstream in a command substitution, so anything assigned
+  # inside dies with the subshell. The verdict block needs that path to tell "the consumer
+  # is behind" from "this clone is behind".
+  # upstream_from_clone prints "SHA DIR". The clone's PATH must ride along on stdout as a
+  # third field: it cannot travel in a global, because every caller invokes resolve_upstream
+  # in a command substitution and anything assigned inside dies with the subshell. The
+  # verdict block needs that path to tell "the consumer is behind" from "this clone is behind".
+  if sha=$(upstream_from_clone) && [ -n "$sha" ]; then
+    echo "${sha%% *} local-clone ${sha#* }"
+    return 0
+  fi
   return 1
 }
 
@@ -386,17 +458,25 @@ selftest() {
   # they answer from the wrong repository — a confident verdict about a repo never
   # looked at. Both directions must hold: admissible for our own slug, inadmissible
   # for anyone else's. HOME is redirected so the guess list is real but hermetic.
+  #
+  # The stamp used here must be a REAL commit the guessed clone actually has, and an
+  # OLDER one — i.e. genuinely stale. A fabricated sha ("1111111") would also produce a
+  # non-UNKNOWN verdict for the wrong reason, and since the fallback now refuses to rank
+  # a stamp its clone has never fetched, a fabricated stamp reports UNKNOWN and this
+  # case would silently stop testing slug-scoping at all.
   ( git init -q --bare "$tmp/mb.git" 2>/dev/null
     git init -q "$tmp/mbseed" 2>/dev/null
     cd "$tmp/mbseed" || exit 1
     git -c user.email=t@t -c user.name=t commit -q --allow-empty -m mb 2>/dev/null
+    git -c user.email=t@t -c user.name=t commit -q --allow-empty -m mb2 2>/dev/null
     git branch -M main 2>/dev/null
     git remote add origin "$tmp/mb.git" 2>/dev/null
     git push -q origin main 2>/dev/null
     mkdir -p "$tmp/fakehome/Developer" 2>/dev/null
     git clone -q "$tmp/mb.git" "$tmp/fakehome/Developer/murderboard" 2>/dev/null ) >/dev/null 2>&1
   mkdir -p "$tmp/consumer" 2>/dev/null
-  printf 'x @ 1111111 x\n' > "$tmp/consumer/v.md"
+  mb_old=$(git -C "$tmp/mbseed" rev-parse HEAD~1 2>/dev/null)
+  printf 'x @ %s x\n' "${mb_old:-1111111}" > "$tmp/consumer/v.md"
   own=$( cd "$tmp/consumer" && HOME="$tmp/fakehome" MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= \
          bash "$SELF" --slug "$DEFAULT_SLUG" --file v.md 2>&1 | grep -ci 'UNKNOWN\|cannot reach' )
   other=$( cd "$tmp/consumer" && HOME="$tmp/fakehome" MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= \
@@ -407,6 +487,47 @@ selftest() {
   else
     printf '  %sFAIL%s  %-34s (own=%s other=%s; a foreign slug resolved against murderboard)\n' \
            "$RED" "$RST" "clone guesses are slug-scoped" "${own:-?}" "${other:-?}"; fails=$((fails+1))
+  fi
+
+  # A BEHIND CLONE MUST NOT ACCUSE THE CONSUMER. The offline fallback reads a local
+  # clone's origin/main, and that clone only knows what it last fetched. Before this case
+  # existed, a consumer vendored at the TRUE upstream HEAD was told it was STALE because
+  # the clone answering for upstream was two commits behind — the accusation ran backwards,
+  # and it is the expensive direction: a pointless re-vendor, and a gate people learn to
+  # distrust. Both halves are checked: at-or-ahead must be SILENT (0), and a stamp the
+  # clone cannot rank at all must be UNDETERMINED (2), never STALE (1).
+  ( git init -q --bare "$tmp/bh.git" 2>/dev/null
+    git init -q "$tmp/bhseed" 2>/dev/null
+    cd "$tmp/bhseed" || exit 1
+    git -c user.email=t@t -c user.name=t commit -q --allow-empty -m one 2>/dev/null
+    git branch -M main 2>/dev/null
+    git remote add origin "$tmp/bh.git" 2>/dev/null
+    git push -q origin main 2>/dev/null
+    git clone -q "$tmp/bh.git" "$tmp/bhclone" 2>/dev/null
+    cd "$tmp/bhseed" || exit 1
+    git -c user.email=t@t -c user.name=t commit -q --allow-empty -m two 2>/dev/null
+    git push -q origin main 2>/dev/null ) >/dev/null 2>&1
+  bh_new=$(git -C "$tmp/bhseed" rev-parse HEAD 2>/dev/null)
+  bh_old=$(git -C "$tmp/bhseed" rev-parse HEAD~1 2>/dev/null)
+  mkdir -p "$tmp/bhconsumer" 2>/dev/null
+  # (a) the clone HAS the stamp and it is a descendant -> at-or-ahead -> silent 0
+  git -C "$tmp/bhclone" fetch -q origin 2>/dev/null
+  git -C "$tmp/bhclone" update-ref refs/remotes/origin/main "$bh_old" 2>/dev/null
+  printf 'x @ %s x\n' "$bh_new" > "$tmp/bhconsumer/v.md"
+  ( cd "$tmp/bhconsumer" && MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= \
+    bash "$SELF" --slug bh/fam --clone "$tmp/bhclone" --file v.md >/dev/null 2>&1 ); ahead_rc=$?
+  # (b) the clone has NEVER fetched the stamp -> cannot rank -> undetermined 2
+  git clone -q "$tmp/bh.git" "$tmp/bhclone2" 2>/dev/null
+  git -C "$tmp/bhclone2" update-ref refs/remotes/origin/main "$bh_old" 2>/dev/null
+  printf 'x @ %s x\n' "0123456789abcdef0123456789abcdef01234567" > "$tmp/bhconsumer/v.md"
+  ( cd "$tmp/bhconsumer" && MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= \
+    bash "$SELF" --slug bh/fam --clone "$tmp/bhclone2" --file v.md >/dev/null 2>&1 ); unrank_rc=$?
+  if [ "$ahead_rc" -eq 0 ] && [ "$unrank_rc" -eq 2 ]; then
+    printf '  %sPASS%s  %-34s (at-or-ahead=0, unrankable=2)\n' \
+           "$GRN" "$RST" "a BEHIND clone does not cry STALE"
+  else
+    printf '  %sFAIL%s  %-34s (at-or-ahead=%s want 0; unrankable=%s want 2)\n' \
+           "$RED" "$RST" "a BEHIND clone does not cry STALE" "$ahead_rc" "$unrank_rc"; fails=$((fails+1))
   fi
 
   echo
@@ -545,7 +666,7 @@ fi
 
 if [ -z "$head_sha" ]; then
   if ans=$(resolve_upstream); then
-    head_sha=${ans%% *}; source=${ans##* }; trusted=1
+    parse_resolved "$ans"; trusted=1
     [ "$source" != "explicit" ] && [ "$source" != "env" ] \
       && printf '%s %s %s %s\n' "$head_sha" "$source" "$((NOW + TTL))" "$NOW" \
          > "$cache" 2>/dev/null
@@ -578,7 +699,7 @@ if [ "$trusted" -eq 0 ]; then
     spawn_bg bash "$SELF" --refresh
     exit 0
   elif ans=$(resolve_upstream); then
-    head_sha=${ans%% *}; source=${ans##* }
+    parse_resolved "$ans"
     [ "$source" != "explicit" ] && [ "$source" != "env" ] \
       && printf '%s %s %s %s\n' "$head_sha" "$source" "$((NOW + TTL))" "$NOW" \
          > "$cache" 2>/dev/null
@@ -589,6 +710,28 @@ if [ "$trusted" -eq 0 ]; then
     fi
   fi
 fi
+
+# A DISAGREEMENT IS NOT YET AN ACCUSATION — check which way it runs. When the number came
+# from a local clone, that clone may simply be behind, in which case the consumer is fine and
+# saying otherwise costs a pointless re-vendor. "Never a false current" does not license a
+# false STALE: the honest answer when the fallback cannot rank the stamp is 2, not 1.
+case "$source" in *local-clone*)
+  # The cache records the SOURCE but not which clone answered, so a verdict served from
+  # cache arrives with ANSWERING_CLONE empty. Re-derive it; the lookup is local and cheap.
+  [ -z "$ANSWERING_CLONE" ] && { reans=$(upstream_from_clone) && ANSWERING_CLONE=${reans#* }; }
+  clone_says_stamp_is_newer "$stamp" "$head_sha"; direction=$?
+  if [ "$direction" -eq 0 ]; then
+    [ "$VERBOSE" -eq 1 ] && \
+      echo "${GRN}$LABEL: current${RST} (@ $stamp — $VERDICT_NOTE)"
+    exit 0
+  elif [ "$direction" -eq 2 ]; then
+    echo "${YEL}$LABEL: freshness UNKNOWN${RST} — $VERDICT_NOTE."
+    echo "   vendored: $stamp   local-clone origin/main: ${head_sha%${head_sha#???????}}"
+    echo "   Fetch that clone, or re-run with network access, before trusting either answer."
+    exit 2
+  fi
+  ;;
+esac
 
 echo "${RED}--- !! $(printf '%s' "$LABEL" | tr '[:lower:]' '[:upper:]') IS STALE — re-vendor before relying on it ---${RST}"
 echo "   vendored: $stamp   upstream: ${head_sha%${head_sha#???????}}   (via $source)"
