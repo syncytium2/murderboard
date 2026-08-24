@@ -110,6 +110,7 @@ if [ -t 1 ]; then RED=$'\033[31m'; YEL=$'\033[33m'; GRN=$'\033[32m'; RST=$'\033[
 else RED=; YEL=; GRN=; RST=; fi
 
 VERBOSE=0; FORCE_UPSTREAM=; ONE_FILE=; REFRESH=0; HOOK=0; DEFER=
+STAMP_CONFLICTED=0
 
 # What this run is checking. The tool started life murderboard-only, but the SAME staleness
 # failure runs in the other direction too — a consumer's vendored copy of some OTHER
@@ -146,9 +147,19 @@ STAMP=
 stamp_of() {
   local line n=0
   STAMP=
+  STAMP_CONFLICTED=0
   [ -r "$1" ] || return 1
   while [ $n -lt 5 ] && IFS= read -r line; do
     n=$((n+1))
+    # An UNRESOLVED MERGE sitting in the header means this file is not vendored at any
+    # commit — it holds two stamps and a pile of markers. Taking the first sha found would
+    # pick a side of somebody's conflict at random and then report a confident verdict
+    # about it. Seen in the wild: a consumer branch carried committed conflict markers in
+    # the top six lines of three vendored files, one stamp per side (729fb06 vs 4e417da),
+    # and the vendored fetch_paper.py did not even compile.
+    case $line in
+      '<<<<<<< '*|'>>>>>>> '*|'=======') STAMP_CONFLICTED=1; STAMP=; return 1 ;;
+    esac
     if [[ $line =~ @\ ([0-9a-f]{7,40}) ]]; then STAMP=${BASH_REMATCH[1]}; break; fi
   done < "$1"
   [ -n "$STAMP" ]
@@ -530,6 +541,30 @@ selftest() {
            "$RED" "$RST" "a BEHIND clone does not cry STALE" "$ahead_rc" "$unrank_rc"; fails=$((fails+1))
   fi
 
+  # A COMMITTED MERGE CONFLICT IN THE HEADER IS NOT A STAMP. Two stamps and a pile of
+  # markers means the file is vendored at NO commit, and picking the first sha found sides
+  # with one half of somebody's unfinished merge and then reports a confident verdict about
+  # it. Seen in the wild on a consumer branch: markers in the top six lines of three
+  # vendored files, one stamp per side, and the vendored fetch_paper.py did not compile.
+  mkdir -p "$tmp/conf" 2>/dev/null
+  { printf '<<<<<<< HEAD\n'
+    printf '# vendored from o/r @ 1111111 x\n'
+    printf '=======\n'
+    printf '# vendored from o/r @ 2222222 x\n'
+    printf '>>>>>>> origin/main\n'
+    printf 'body\n'; } > "$tmp/conf/v.md"
+  ( cd "$tmp/conf" && MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= \
+    bash "$SELF" --slug o/r --upstream 2222222 --file v.md >/dev/null 2>&1 ); conf_rc=$?
+  conf_says=$( cd "$tmp/conf" && MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= \
+    bash "$SELF" --slug o/r --upstream 2222222 --file v.md 2>&1 | grep -ci 'CONFLICT MARKERS' )
+  if [ "$conf_rc" -eq 2 ] && [ "${conf_says:-0}" -ge 1 ]; then
+    printf '  %sPASS%s  %-34s (rc=2, names the conflict)\n' \
+           "$GRN" "$RST" "conflicted header is not a stamp"
+  else
+    printf '  %sFAIL%s  %-34s (rc=%s want 2; named=%s want >=1)\n' \
+           "$RED" "$RST" "conflicted header is not a stamp" "$conf_rc" "${conf_says:-0}"; fails=$((fails+1))
+  fi
+
   echo
   if [ "$fails" -eq 0 ]; then echo "${GRN}all checks pass${RST}"; else echo "${RED}$fails FAILED${RST}"; fi
   return $fails
@@ -605,6 +640,14 @@ fi
 
 if [ -z "$target" ] || [ ! -r "$target" ]; then
   [ "$VERBOSE" -eq 1 ] && echo "${YEL}murderboard: no vendored copy found${RST}"
+  exit 2
+fi
+if [ "${STAMP_CONFLICTED:-0}" -eq 1 ]; then
+  echo "${RED}$LABEL: ${target#$root/} has UNRESOLVED CONFLICT MARKERS in its header.${RST}"
+  echo "   This file is not vendored at any commit — it holds two stamps and a merge that was"
+  echo "   committed unfinished. Freshness is UNDETERMINABLE and the file is probably broken"
+  echo "   (a conflicted .py or .sh does not parse). Do NOT resolve toward either side: re-copy"
+  echo "   the file fresh from $REPO_SLUG and re-stamp it."
   exit 2
 fi
 if [ -z "$stamp" ]; then

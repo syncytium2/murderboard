@@ -1058,3 +1058,13 @@ seriously than a rule stated in the abstract.
   the thing it measures, and a proxy can quietly detach from that thing while the name and the
   green stay exactly the same.** When a change makes a test go red, ask first whether the test had
   stopped testing — re-baselining is how a suite becomes a row of green lights that assert nothing.
+- **A committed merge conflict wearing a stamp** (a consumer branch, 2026-08) — a consumer's branch
+  tip carried unresolved `<<<<<<<` / `=======` / `>>>>>>>` markers in the **top six lines** of three
+  vendored files, one vendor stamp on each side of the conflict (`729fb06` vs `4e417da`). The
+  vendored `fetch_paper.py` did not compile. The freshness gate, asked about it, read the first sha
+  it found, sided with one half of somebody's unfinished merge, and returned a confident verdict.
+  A file in that state is vendored at **no** commit. The gate now refuses it: unresolved markers in
+  the header mean freshness is *undeterminable* (exit 2), and the repair is to re-copy the file
+  fresh from upstream rather than resolve toward either side, because both sides are stamps and
+  neither is the content. Lesson: **the thing that makes a check trustworthy is that it can say
+  "I cannot tell"**, and a stamp is metadata about a file, not evidence the file is intact.
