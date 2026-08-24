@@ -74,6 +74,12 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      walks every role's checklist in turn**, and still produces agent 10's table. Do not burn a
      ten-agent fan-out on one sentence — but do not silently drop a role either: a dropped role
      and a clean role are indistinguishable in the report.
+   - **Scale by size, EXCEPT for attribution: any deliverable that attributes a method, or claims
+     something is novel, unattributed, or "ours", runs role 2 as a SEPARATE agent — whatever its
+     length.** The defect role 2 is catching there is *a search that stopped too early*, and a
+     single-pass self-review inherits the drafter's search history, so it stops in the same place
+     for the same reason. Blindness is the mechanism; one pass cannot supply it. This is the only
+     role the size rule may not collapse.
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
    See **"The team is not optional"** below.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
@@ -187,6 +193,24 @@ This is not a style preference. A record organised by process is read once by it
 and never again, so the findings it contains stop being available to the next person —
 which is the same failure the murderboard exists to prevent, one level up.
 
+### What a clean run does NOT warrant — state it in the record
+
+**A clean run is evidence the roles ran. It is not evidence the artifact is correct.** Say so, in
+the delivered summary, in these terms or equivalent:
+
+> This review found and fixed N defects. It is not a correctness proof. The convergence table
+> measures how quickly reviewers stopped finding things, not whether anything remains.
+
+The report must not be presentable as a warrant, because that is exactly how it will be used —
+the run record is the most quotable thing the process emits, and "11/11 roles, severity floor
+reached" reads to any human as a clean bill of health.
+
+This is the **"can the alarm ring?"** rule turned on this process a second time. The role ledger
+fixed *"7 of 11" and "11 of 11" look alike*. It did not fix the next one up: **"11 of 11 and
+clean" and "11 of 11 and correct" look alike**, and the second is what a reader takes away. A
+convergence table cannot distinguish a document with nothing left to find from one whose
+reviewers were all looking in the same wrong place.
+
 ## The review team
 
 Spawn these as parallel subagents, each given the draft **and** pointers to the real
@@ -254,6 +278,26 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
    need the paper itself, follow the **lit-cache protocol** below — check the library
    first, fetch the OA copy, flag what you can't get. Do **not** verify a claim against a
    paper you only half-remember: get the text or flag the paper.
+   - **A verified citation can still be the WRONG citation — check the ORIGIN, not the earliest
+     source you happened to reach.** When the deliverable attributes a method, term, or result to
+     a source, establishing that the source *exists* and *says what is quoted* is only half the
+     check. Ask whether it is the **origin**: open the cited work's own references for that claim
+     and follow them backwards until they stop. Then **report where you stopped and why** — "the
+     root is paywalled, verified to one step short" is a finding; silence is not. Prefer the root
+     and cite later work as the modern restatement. Verifying everything *present* while never
+     asking what is *absent* is how a reference list can be entirely correct and still credit the
+     wrong paper.
+     - **A shared author is not a shared laboratory.** "Which lab" is the **last author plus the
+       affiliation**, not name overlap — a first author is often a trainee in someone else's
+       group, and the same person appearing on both papers is exactly what a method being
+       *carried* from one lab to another looks like. Look the affiliation up; do not infer it.
+       Crediting the wrong laboratory is a research-integrity problem, not a citation-style
+       nitpick, and it survives every check that only asks whether the reference resolves.
+   - **Name the literatures you searched.** A construction general enough to have been invented in
+     another field will not be cleared by searching one. When a deliverable claims something is
+     novel, unattributed, or "ours", the reportable finding is never "looks fine" — it is
+     *"searched X and Y; did not search Z"*. **An unsearched field is a residual `⚠`, not an
+     absence of prior art.**
 3. **Consistency auditor — "Cross-Examiner."** Cross-check **within** the document and **against companion
    docs**: counts, totals, terminology, cross-references, and figure↔text agreement. Flag
    every contradiction. **Watch for one population counted on different bases** (per-detector flags vs
@@ -810,6 +854,10 @@ ledger: one row per role in the roster, all of them**, each carrying either its 
 its "no findings, and here is what I checked" line. If nothing survived review, say so
 plainly — do not manufacture findings to look thorough.
 
+The summary **must carry the calibration line** from *"What a clean run does NOT warrant"* above:
+the review is evidence the roles ran, not a correctness proof. A report that omits it is a report
+that will be quoted as a warrant.
+
 **The ledger is not bureaucracy; it is the only evidence the team ran.** This contract used to
 ask for "a 3–6 line review report", which cannot physically carry a trace from eleven roles —
 so the document demanded that every role run, then specified an output too small to show
@@ -973,3 +1021,50 @@ seriously than a rule stated in the abstract.
   figure of the intermediate steps that recomputes its annotated numbers from the same logic it
   illustrates. Lesson: a results figure cannot answer a process question, and a plausible wrong model
   is invisible until someone says it out loud.
+- **A verified citation that was the wrong citation** (an attribution report, 2026-08) — a run
+  reported 11/11 roles, a blind verify round, blocking findings 5 → 0, stopping reason "severity
+  floor reached", and a clean `murderboard_roster.sh check`. Every signal green. The document
+  credited a 2022 paper for a synchronous-event detection rule introduced nineteen years earlier
+  in Cossart, Aronov & Yuste 2003 (*Nature* 423:283–288, doi:10.1038/nature01614), which in turn
+  credits Mao et al. 2001 (*Neuron* 32:883–898). **The misattribution was both nineteen years late
+  and one laboratory upstream**, and the second half is the more serious one: the rule was
+  published from **Yuste's lab at Columbia** (PMID 12748641 — Cossart first author, Yuste last,
+  "Department of Biological Sciences, Columbia University, New York"), and was credited to the
+  **Cossart lab** through a 2022 INMED paper (PMID 35856497 — Dard first author, Picardo last,
+  Cossart second-to-last, "Aix-Marseille University, INSERM, INMED U1249, Marseille"). Rosa
+  Cossart is first author on the 2003 work and carried the method to her own lab in Marseille, so
+  the lineage runs Yuste → Cossart. A nineteen-year gap is a curiosity; crediting the wrong
+  laboratory is a research-integrity problem. The PI caught it from the delivered summary in one
+  sentence. Every citation in the document resolved — nine PMIDs and a DataCite DOI — and an
+  author-list error in the same reference had been caught and fixed by role 2 on an earlier pass.
+  The reviewer verified everything present and never asked what was absent; one backward step,
+  named in a single line of the 2003 paper's own Methods, would have found it. In the same run a
+  suite of detectors was cleared against the spike-train literature and reported as "ours as far as
+  we know" — all of it is CFAR, a radar literature dating to Finn & Johnson 1968 (*RCA Review* 29).
+  Lesson: **existence and correct attribution are not origin**, and a single-field search cannot
+  clear a construction general enough to have been invented in another field. Confound recorded
+  honestly: that run was executed single-pass on a substantial report where the process prescribes
+  parallel subagents, so conformance was also short — which is why the size rule may no longer
+  collapse role 2 on an attribution deliverable.
+- **A green check that had stopped measuring what its name claimed** (the freshness gate's own
+  selftest, 2026-08) — the case named `clone guesses are slug-scoped` existed to prove the gate's
+  built-in clone guesses are admissible for its own upstream and refused for anyone else's. It
+  stamped its fixture with a *fabricated* sha and used "the run did not say UNKNOWN" as its proxy
+  for "the guess was used". When the gate later learned to refuse to rank a stamp its clone has
+  never fetched, a fabricated stamp became correctly unrankable — so the case would have gone on
+  reporting PASS or FAIL for a reason having nothing to do with slug scoping, and the tempting fix
+  was to re-baseline it to agree with the new code. It was repaired instead, to stamp a real older
+  commit, which is what it always meant to test. Lesson: **a passing check earns its authority from
+  the thing it measures, and a proxy can quietly detach from that thing while the name and the
+  green stay exactly the same.** When a change makes a test go red, ask first whether the test had
+  stopped testing — re-baselining is how a suite becomes a row of green lights that assert nothing.
+- **A committed merge conflict wearing a stamp** (a consumer branch, 2026-08) — a consumer's branch
+  tip carried unresolved `<<<<<<<` / `=======` / `>>>>>>>` markers in the **top six lines** of three
+  vendored files, one vendor stamp on each side of the conflict (`729fb06` vs `4e417da`). The
+  vendored `fetch_paper.py` did not compile. The freshness gate, asked about it, read the first sha
+  it found, sided with one half of somebody's unfinished merge, and returned a confident verdict.
+  A file in that state is vendored at **no** commit. The gate now refuses it: unresolved markers in
+  the header mean freshness is *undeterminable* (exit 2), and the repair is to re-copy the file
+  fresh from upstream rather than resolve toward either side, because both sides are stamps and
+  neither is the content. Lesson: **the thing that makes a check trustworthy is that it can say
+  "I cannot tell"**, and a stamp is metadata about a file, not evidence the file is intact.
