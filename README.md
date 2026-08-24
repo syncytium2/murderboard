@@ -36,6 +36,7 @@ it honest, and the skill that calls it up:
 | [`fetch_paper.py`](fetch_paper.py) | The lit tool. Fetches open-access papers, **caches** them, checks a curated library **before** downloading (`--have`), **promotes** keepers into it (`--promote`), and **flags** anything it can't reach to a want-list (`--need`, and auto on any failed/paywalled fetch). |
 | [`murderboard_freshness.sh`](murderboard_freshness.sh) | The freshness gate. Answers "is this consumer's vendored copy current?" by comparing the stamp against upstream HEAD — **0 current · 1 stale · 2 unknown**, never a false "current". Silent when current, so it runs unattended; `--hook` serves a cached answer and refreshes detached, so a SessionStart hook never blocks on the network. `--selftest` proves every branch can still fire. This is step 0 of the process, mechanized. **Not murderboard-only:** `--label`/`--slug`/`--clone`/`--file` point the same gate at *any* vendoring relationship, so a repo can police every upstream it vendors from with one tool. |
 | [`murderboard_roster.sh`](murderboard_roster.sh) | The coverage gate. **Derives** the role roster from `doc_review_process.md` (never recalled, so a new role propagates to every consumer for free) and checks that a finished review report accounts for **every** role — **0 all present · 1 one missing · 2 unknown**. It exists because "every role runs" was prose: a run that fired 7 of 11 roles and one that fired all 11 cleanly produced reports no reader could tell apart. |
+| [`murderboard_revendor.py`](murderboard_revendor.py) | The re-vendor tool. Does the update the freshness gate tells you to do, without the corruption the obvious `sed` causes: it rewrites the stamp on **exactly one line** — line 1, or line 2 behind a shebang, or JSON's `"_vendored"` key — and never touches a stamp-shaped string in a body. `murderboard_freshness.sh` has **ten** of those, because it documents the format. It also refuses two silent failures: a stamp on some *other* early line (the gate reads it, so the copy drifts behind a green check) and a file set that disagrees with your SessionStart hook's `--file` list. `--check` reports without writing; `--selftest` proves the rewrite is surgical **and** that the two broken implementations fail its fixtures. Configured by `.murderboard-vendor.json` in your repo, not by editing this file — so it can re-vendor itself. |
 | [`require_commit_before_message.sh`](require_commit_before_message.sh) | The durability gate. Refuses a cross-session message while the working tree is dirty — **0 allow · 2 block** — so a session may tell another session something only once that something exists in git. Messages between sessions are socket traffic: nothing persists them, and when a session exits its half of every conversation is gone. One estate lost a finding four sessions had established, and noticed only because someone asked whether the messages were committed. Wire it as a `PreToolUse` hook on the message-sending tool; vendor it to `.claude/hooks/`. `--selftest` proves every branch fires. |
 | [`skills/murderboard/SKILL.md`](skills/murderboard/SKILL.md) | The call-up, for consumers using Claude Code. `/murderboard <artifact>` runs the process **as a sequence that cannot be half-executed**: freshness gated at the moment of review (not at session start), roster derived, artifact resolved to the built file rather than its generator and fingerprinted before/after, and a run record emitted and then checked by `murderboard_roster.sh`. Vendor it to `.claude/skills/murderboard/`. |
 
@@ -95,9 +96,41 @@ checkout self-contained on any machine. The cost is manual updates. To keep that
 
 - When you copy the files in, add a one-line stamp in the consuming repo (e.g. top of the
   vendored `doc_review_process.md`, or a `docs/adr`/`decisions` note):
-  `vendored from syncytium2/murderboard @ <short-sha>`.
-- To update a consumer, re-copy both files and bump the stamp. `git diff` on the vendored
+  `vendored from syncytium2/murderboard @ <short-sha>`. Line 1 — or line 2 when line 1 is
+  a `#!` shebang, which must stay first. JSON has no comments, so it uses a `"_vendored"`
+  key.
+- To update a consumer, re-copy the files and bump the stamp. `git diff` on the vendored
   copy then shows exactly what changed since the last pull.
+
+**Do not bump the stamp with a whole-file substitution.** That instruction used to end at
+the line above, and the obvious reading of it — `sed -i 's/@ old/@ new/' <file>` — has
+already corrupted a vendored document in a consumer repo (2026-08-14). The substitution
+ran over the whole file and rewrote a second, unrelated *stamp-shaped* string in the body,
+leaving the doc asserting it was vendored from a different repo entirely. Nothing failed
+and nothing warned; it surfaced only because the next re-vendor re-copied that body and
+repaired it — the same bug with its evidence deleted.
+
+This is not a corner case in this particular set. **`murderboard_freshness.sh` carries ten
+stamp-shaped strings in its body**, because it documents and echoes the stamp format; the
+skill file describes the format too. A careless bump rewrites all of them, inside the gate
+whose whole job is to notice drift. Worse if your body string is a *prefix* of the real
+full-length stamp — then one substitution aimed at the short form eats every long one in
+the same pass.
+
+Use the tool, which rewrites exactly one line and refuses to guess:
+
+```
+python3 tools/murderboard_revendor.py --example-config > .murderboard-vendor.json  # once
+python3 tools/murderboard_revendor.py --check      # what would change, touches nothing
+python3 tools/murderboard_revendor.py              # do it
+python3 tools/murderboard_revendor.py --selftest   # prove the rewrite cannot spread
+```
+
+It also refuses two silent failures a hand-rolled version has no way to notice: a stamp
+sitting on some *other* early line — which the freshness gate happily reads, so the copy
+would drift forever behind a green check — and a `files` list that disagrees with the
+`--file` list in your SessionStart hook, which is how a file quietly stops being gated at
+all.
 
 ## The lit tool in one screen
 
