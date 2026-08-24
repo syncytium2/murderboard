@@ -19,24 +19,17 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-TARGET = ROOT / "fetch_paper.py"
+# Every Python file that ships in the vendored set. A consumer drops these into a repo
+# and runs them on whatever interpreter is there, so each must import only stdlib at
+# module level. murderboard_revendor.py joined the set and inherits the same bar.
+TARGETS = [ROOT / "fetch_paper.py", ROOT / "murderboard_revendor.py"]
 
 # Documented, deliberate exceptions: optional accelerators, imported lazily.
 ALLOWED_NON_STDLIB = {"pypdf"}
 
 
-def main() -> int:
-    if not TARGET.is_file():
-        print(f"FAIL cannot find {TARGET}", file=sys.stderr)
-        return 2
-
-    try:
-        stdlib = sys.stdlib_module_names
-    except AttributeError:  # Python < 3.10
-        print("SKIP sys.stdlib_module_names needs Python 3.10+", file=sys.stderr)
-        return 0
-
-    tree = ast.parse(TARGET.read_text(encoding="utf-8"), filename=str(TARGET))
+def check(target, stdlib) -> int:
+    tree = ast.parse(target.read_text(encoding="utf-8"), filename=str(target))
 
     # Module level only: direct children of Module, not nested in a def/class.
     offenders = []
@@ -55,9 +48,9 @@ def main() -> int:
             offenders.append((node.lineno, name))
 
     if offenders:
-        print("FAIL fetch_paper.py imports non-stdlib modules at module level:", file=sys.stderr)
+        print(f"FAIL {target.name} imports non-stdlib modules at module level:", file=sys.stderr)
         for lineno, name in offenders:
-            print(f"  fetch_paper.py:{lineno}  {name}", file=sys.stderr)
+            print(f"  {target.name}:{lineno}  {name}", file=sys.stderr)
         print(
             "\nA vendored copy must run on a bare interpreter. Move it inside the\n"
             "function that needs it, or add it to ALLOWED_NON_STDLIB with a reason.",
@@ -65,9 +58,27 @@ def main() -> int:
         )
         return 1
 
-    print(f"ok  fetch_paper.py: all module-level imports are stdlib "
+    print(f"ok  {target.name}: all module-level imports are stdlib "
           f"(checked against Python {sys.version_info.major}.{sys.version_info.minor})")
     return 0
+
+
+def main() -> int:
+    # A vendored file that has VANISHED is exactly what this guards, so a missing
+    # target fails rather than skipping.
+    missing = [t for t in TARGETS if not t.is_file()]
+    if missing:
+        for t in missing:
+            print(f"FAIL cannot find {t}", file=sys.stderr)
+        return 2
+
+    try:
+        stdlib = sys.stdlib_module_names
+    except AttributeError:  # Python < 3.10
+        print("SKIP sys.stdlib_module_names needs Python 3.10+", file=sys.stderr)
+        return 0
+
+    return max(check(t, stdlib) for t in TARGETS)
 
 
 if __name__ == "__main__":
