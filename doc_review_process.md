@@ -287,6 +287,12 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      and cite later work as the modern restatement. Verifying everything *present* while never
      asking what is *absent* is how a reference list can be entirely correct and still credit the
      wrong paper.
+     - **A shared author is not a shared laboratory.** "Which lab" is the **last author plus the
+       affiliation**, not name overlap — a first author is often a trainee in someone else's
+       group, and the same person appearing on both papers is exactly what a method being
+       *carried* from one lab to another looks like. Look the affiliation up; do not infer it.
+       Crediting the wrong laboratory is a research-integrity problem, not a citation-style
+       nitpick, and it survives every check that only asks whether the reference resolves.
    - **Name the literatures you searched.** A construction general enough to have been invented in
      another field will not be cleared by searching one. When a deliverable claims something is
      novel, unattributed, or "ours", the reportable finding is never "looks fine" — it is
@@ -1020,7 +1026,15 @@ seriously than a rule stated in the abstract.
   floor reached", and a clean `murderboard_roster.sh check`. Every signal green. The document
   credited a 2022 paper for a synchronous-event detection rule introduced nineteen years earlier
   in Cossart, Aronov & Yuste 2003 (*Nature* 423:283–288, doi:10.1038/nature01614), which in turn
-  credits Mao et al. 2001 (*Neuron* 32:883–898). The PI caught it from the delivered summary in one
+  credits Mao et al. 2001 (*Neuron* 32:883–898). **The misattribution was both nineteen years late
+  and one laboratory upstream**, and the second half is the more serious one: the rule was
+  published from **Yuste's lab at Columbia** (PMID 12748641 — Cossart first author, Yuste last,
+  "Department of Biological Sciences, Columbia University, New York"), and was credited to the
+  **Cossart lab** through a 2022 INMED paper (PMID 35856497 — Dard first author, Picardo last,
+  Cossart second-to-last, "Aix-Marseille University, INSERM, INMED U1249, Marseille"). Rosa
+  Cossart is first author on the 2003 work and carried the method to her own lab in Marseille, so
+  the lineage runs Yuste → Cossart. A nineteen-year gap is a curiosity; crediting the wrong
+  laboratory is a research-integrity problem. The PI caught it from the delivered summary in one
   sentence. Every citation in the document resolved — nine PMIDs and a DataCite DOI — and an
   author-list error in the same reference had been caught and fixed by role 2 on an earlier pass.
   The reviewer verified everything present and never asked what was absent; one backward step,
@@ -1032,3 +1046,15 @@ seriously than a rule stated in the abstract.
   honestly: that run was executed single-pass on a substantial report where the process prescribes
   parallel subagents, so conformance was also short — which is why the size rule may no longer
   collapse role 2 on an attribution deliverable.
+- **A green check that had stopped measuring what its name claimed** (the freshness gate's own
+  selftest, 2026-08) — the case named `clone guesses are slug-scoped` existed to prove the gate's
+  built-in clone guesses are admissible for its own upstream and refused for anyone else's. It
+  stamped its fixture with a *fabricated* sha and used "the run did not say UNKNOWN" as its proxy
+  for "the guess was used". When the gate later learned to refuse to rank a stamp its clone has
+  never fetched, a fabricated stamp became correctly unrankable — so the case would have gone on
+  reporting PASS or FAIL for a reason having nothing to do with slug scoping, and the tempting fix
+  was to re-baseline it to agree with the new code. It was repaired instead, to stamp a real older
+  commit, which is what it always meant to test. Lesson: **a passing check earns its authority from
+  the thing it measures, and a proxy can quietly detach from that thing while the name and the
+  green stay exactly the same.** When a change makes a test go red, ask first whether the test had
+  stopped testing — re-baselining is how a suite becomes a row of green lights that assert nothing.
