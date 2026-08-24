@@ -1,0 +1,736 @@
+<title>The Murderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #F3F2EF;
+  --surface:   #FFFFFF;
+  --surface-2: #EBE9E5;
+  --ink:       #1B1719;
+  --ink-soft:  #5C5459;
+  --ink-faint: #8A8286;
+  --rule:      #D8D4CE;
+  --rule-soft: #E6E3DD;
+  --blood:     #8A1C2B;
+  --blood-wash:#F2E4E4;
+  --slate:     #2E4650;
+  --ok:        #2C6B4F;
+  --warn:      #97600F;
+  --unk:       #6B6560;
+  --shadow:    0 1px 2px rgba(27,23,25,.05), 0 8px 24px -16px rgba(27,23,25,.22);
+
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body:    "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --measure: 68ch;
+  --pad: clamp(1.15rem, 4vw, 2.5rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #141215;
+    --surface:   #1C191D;
+    --surface-2: #232025;
+    --ink:       #EDE9E6;
+    --ink-soft:  #A79EA1;
+    --ink-faint: #7C7478;
+    --rule:      #342F35;
+    --rule-soft: #262227;
+    --blood:     #E0808C;
+    --blood-wash:#2C1B20;
+    --slate:     #9BBECA;
+    --ok:        #74C296;
+    --warn:      #DFA75E;
+    --unk:       #948B90;
+    --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #141215;
+  --surface:   #1C191D;
+  --surface-2: #232025;
+  --ink:       #EDE9E6;
+  --ink-soft:  #A79EA1;
+  --ink-faint: #7C7478;
+  --rule:      #342F35;
+  --rule-soft: #262227;
+  --blood:     #E0808C;
+  --blood-wash:#2C1B20;
+  --slate:     #9BBECA;
+  --ok:        #74C296;
+  --warn:      #DFA75E;
+  --unk:       #948B90;
+  --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.8);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-weight: 400;
+  font-size: 17.5px;
+  line-height: 1.58;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 var(--pad); }
+.col  { max-width: var(--measure); }
+
+p { margin: 0 0 1.05em; }
+p:last-child { margin-bottom: 0; }
+a { color: var(--blood); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--slate); outline-offset: 3px; border-radius: 2px;
+}
+strong { font-weight: 600; }
+code {
+  font-family: var(--f-mono); font-size: .87em;
+  background: var(--surface-2); padding: .1em .34em; border-radius: 3px;
+  border: 1px solid var(--rule-soft);
+}
+
+/* ---------- masthead ---------- */
+.masthead { padding: clamp(3rem, 9vw, 6.5rem) 0 clamp(2rem, 5vw, 3.5rem); }
+.kicker {
+  font-family: var(--f-mono); font-size: .7rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-faint); margin: 0 0 clamp(1.5rem,4vw,2.5rem);
+  display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: baseline;
+}
+.wordmark {
+  font-family: var(--f-display); font-weight: 800;
+  font-size: clamp(2.9rem, 11vw, 6.9rem);
+  line-height: .94; letter-spacing: -.038em; margin: 0;
+  text-wrap: balance;
+}
+.wordmark em { font-style: normal; color: var(--blood); }
+
+.entry {
+  margin: clamp(1.75rem, 4vw, 2.5rem) 0 0;
+  padding-left: 1.15rem; border-left: 2px solid var(--blood);
+  max-width: 60ch;
+}
+.entry .pron {
+  font-family: var(--f-mono); font-size: .78rem; color: var(--ink-faint);
+  letter-spacing: .04em; display: block; margin-bottom: .35rem;
+}
+.entry .pos { font-style: italic; color: var(--ink-soft); }
+.entry p { font-size: 1.02rem; }
+
+.thesis {
+  font-family: var(--f-body); font-size: clamp(1.38rem, 3.3vw, 2rem);
+  line-height: 1.34; font-weight: 400; letter-spacing: -.005em;
+  margin: clamp(2rem, 5vw, 3rem) 0 0; max-width: 27ch; text-wrap: balance;
+}
+.standfirst { margin-top: 1.5rem; max-width: var(--measure); color: var(--ink-soft); font-size: 1.02rem; }
+
+.jump {
+  display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 2.25rem;
+  font-family: var(--f-mono); font-size: .78rem;
+}
+.jump a {
+  text-decoration: none; color: var(--ink-soft);
+  border: 1px solid var(--rule); border-radius: 999px;
+  padding: .38rem .85rem; background: var(--surface);
+  transition: border-color .15s, color .15s;
+}
+.jump a:hover { color: var(--blood); border-color: var(--blood); }
+
+/* ---------- sections ---------- */
+section { padding: clamp(2.75rem, 7vw, 5rem) 0; border-top: 1px solid var(--rule); }
+.eyebrow {
+  font-family: var(--f-mono); font-size: .7rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--blood); margin: 0 0 .9rem;
+}
+h2 {
+  font-family: var(--f-display); font-weight: 700;
+  font-size: clamp(1.62rem, 4vw, 2.4rem); line-height: 1.12; letter-spacing: -.028em;
+  margin: 0 0 1.15rem; text-wrap: balance; max-width: 24ch;
+}
+h3 {
+  font-family: var(--f-display); font-weight: 600; font-size: 1rem;
+  letter-spacing: -.012em; margin: 0 0 .5rem;
+}
+
+.lede { font-size: 1.09rem; }
+
+/* ---------- pull quote / the one rule ---------- */
+.rule-card {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-left: 4px solid var(--blood); border-radius: 3px;
+  padding: clamp(1.35rem, 4vw, 2.1rem); box-shadow: var(--shadow);
+  margin: 1.75rem 0 0;
+}
+.rule-card p { font-size: clamp(1.12rem, 2.5vw, 1.44rem); line-height: 1.44; }
+.rule-card p:last-child { font-size: .95rem; color: var(--ink-soft); margin-top: 1rem; }
+.flag { color: var(--warn); font-family: var(--f-mono); font-weight: 600; }
+
+/* ---------- the loop ---------- */
+.steps { margin: 2rem 0 0; padding: 0; list-style: none; display: grid; gap: 0; }
+.steps li {
+  display: grid; grid-template-columns: 3.4rem 1fr; gap: 0 1.1rem;
+  padding: 1.15rem 0; border-top: 1px solid var(--rule-soft);
+}
+.steps li:first-child { border-top: none; }
+.steps .n {
+  font-family: var(--f-mono); font-size: .78rem; font-weight: 600;
+  color: var(--blood); padding-top: .28rem; letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+}
+.steps .body { max-width: var(--measure); }
+.steps .body p { font-size: .97rem; color: var(--ink-soft); margin: .3rem 0 0; }
+.steps .body p strong { color: var(--ink); font-weight: 500; }
+
+/* ---------- panel roster ---------- */
+.roster {
+  display: grid; gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 3px; overflow: hidden;
+  margin-top: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+}
+.seat { background: var(--surface); padding: 1.15rem 1.2rem 1.25rem; }
+.seat .num {
+  font-family: var(--f-mono); font-size: .7rem; color: var(--ink-faint);
+  letter-spacing: .1em; font-variant-numeric: tabular-nums;
+}
+.seat .alias {
+  font-family: var(--f-display); font-weight: 700; font-size: 1.14rem;
+  line-height: 1.2; margin: .32rem 0 .14rem; letter-spacing: -.022em;
+}
+.seat .formal {
+  font-family: var(--f-mono); font-size: .68rem; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--blood); margin-bottom: .6rem;
+}
+.seat p { font-size: .9rem; line-height: 1.55; color: var(--ink-soft); }
+
+.note {
+  margin-top: 1.5rem; font-size: .93rem; color: var(--ink-soft);
+  max-width: var(--measure); padding-left: 1rem; border-left: 2px solid var(--rule);
+}
+
+/* ---------- gates table ---------- */
+.scroller { overflow-x: auto; margin-top: 2rem; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .93rem; }
+caption { text-align: left; font-size: .85rem; color: var(--ink-faint); padding-bottom: .7rem; }
+th, td { text-align: left; padding: .78rem .85rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+thead th {
+  font-family: var(--f-mono); font-size: .68rem; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--ink-faint); font-weight: 500;
+  border-bottom: 1px solid var(--rule);
+}
+tbody th { font-family: var(--f-mono); font-weight: 500; font-size: .82rem; color: var(--ink); white-space: nowrap; }
+td.exits { font-family: var(--f-mono); font-size: .8rem; line-height: 2; white-space: nowrap; }
+.pill {
+  display: inline-block; font-family: var(--f-mono); font-size: .72rem; font-weight: 600;
+  padding: .1rem .45rem; border-radius: 3px; border: 1px solid currentColor;
+  margin-right: .45rem; font-variant-numeric: tabular-nums;
+}
+.pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); } .pill.unk { color: var(--unk); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--f-mono); font-size: .82rem; line-height: 1.75;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 3px;
+  padding: 1rem 1.1rem; overflow-x: auto; margin: 1rem 0 0;
+}
+pre .c { color: var(--ink-faint); }
+pre .k { color: var(--blood); }
+
+/* ---------- adoption ---------- */
+.adopt { counter-reset: step; margin-top: 2rem; display: grid; gap: 1.6rem; }
+.adopt > li { list-style: none; }
+.adopt li h3 { display: flex; gap: .7rem; align-items: baseline; }
+.adopt li h3::before {
+  counter-increment: step; content: counter(step);
+  font-family: var(--f-mono); font-size: .72rem; color: var(--blood);
+  border: 1px solid var(--blood); border-radius: 999px;
+  width: 1.55rem; height: 1.55rem; display: inline-grid; place-items: center; flex: 0 0 auto;
+}
+.adopt li > p, .adopt li > pre { margin-left: 2.25rem; max-width: var(--measure); }
+.adopt li > p { font-size: .95rem; color: var(--ink-soft); }
+
+/* ---------- caution ---------- */
+.caution {
+  background: var(--blood-wash); border: 1px solid var(--blood);
+  border-radius: 3px; padding: clamp(1.35rem, 4vw, 2rem); margin-top: 1.75rem;
+}
+.caution .eyebrow { color: var(--blood); }
+.caution p { max-width: var(--measure); }
+.caution blockquote {
+  margin: 1.1rem 0 0; padding-left: 1rem; border-left: 2px solid var(--blood);
+  font-style: italic; font-size: 1.06rem; line-height: 1.52;
+}
+
+/* ---------- two-up ---------- */
+.two-up { display: grid; gap: 1.75rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 2rem; }
+.card {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+  padding: 1.3rem 1.35rem 1.4rem; box-shadow: var(--shadow);
+}
+.card p { font-size: .93rem; color: var(--ink-soft); }
+.card ul { margin: .6rem 0 0; padding-left: 1.1rem; font-size: .93rem; color: var(--ink-soft); }
+.card li { margin-bottom: .35rem; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 clamp(3rem,7vw,5rem); }
+.links { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-family: var(--f-mono); font-size: .82rem; }
+.colophon { margin-top: 2rem; font-size: .84rem; color: var(--ink-faint); max-width: var(--measure); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker"><span>An anti-slop review process for documents</span><span>Open source · Apache-2.0</span></p>
+
+    <h1 class="wordmark">The <em>Murder</em>board</h1>
+
+    <div class="entry">
+      <span class="pron">/ˈmɜːdə bɔːd/</span>
+      <p><span class="pos">noun, older sense.</span> A panel convened to tear a thing apart before it goes
+      public — a rehearsal hostile enough that the real hearing holds no surprises. What survives is
+      what you ship.</p>
+    </div>
+
+    <p class="thesis">Slop ships when nobody checks the draft against its real sources.</p>
+
+    <p class="standfirst">This is a small, project-neutral kit for stopping that: a written process, a
+    panel of eleven adversarial reviewer roles, and three scripts that make the process fire whether or
+    not anyone remembers it. You can run it by hand, or hand the roles to AI agents. This page explains
+    what it is, why each piece exists, and how to put it in your own repo.</p>
+
+    <nav class="jump">
+      <a href="#problem">The problem</a>
+      <a href="#rule">The one rule</a>
+      <a href="#loop">The loop</a>
+      <a href="#panel">The eleven roles</a>
+      <a href="#gates">The gates</a>
+      <a href="#deliver">What you hand over</a>
+      <a href="#limits">What it doesn't prove</a>
+      <a href="#adopt">Implement it</a>
+    </nav>
+  </header>
+
+  <section id="problem">
+    <p class="eyebrow">Why it exists</p>
+    <h2>Everything here traces to a real defect</h2>
+    <div class="col">
+      <p class="lede">Slop is not bad writing. It is confident writing that nobody checked. It looks
+      finished, which is exactly the problem — a reader has no way to tell a verified sentence from a
+      plausible one.</p>
+      <p>The recurring shapes:</p>
+    </div>
+    <div class="two-up">
+      <div class="card">
+        <h3>The ordinary kind</h3>
+        <ul>
+          <li>A statistic that disagrees with the run it claims to summarize.</li>
+          <li>A reference list written from memory — real-looking, partly invented.</li>
+          <li>A count that contradicts itself between sections, because two sections counted on different bases.</li>
+          <li>An identifier copied wrong.</li>
+          <li>A caption that overclaims what its figure actually shows.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The subtler kind</h3>
+        <p>A plotted number can be perfectly consistent with its caption and still be wrong, because the
+        code that produced it misused a library or re-derived a method the project already implements
+        correctly.</p>
+        <p>A figure is only as sound as the method behind it. So the review reaches past the prose into
+        the analysis code that generated the number — two of the eleven roles exist for exactly that.</p>
+      </div>
+    </div>
+    <p class="note">The process file keeps an appendix of the concrete incidents that motivated each
+    rule. Nothing in it is a hypothetical: every rule is scar tissue.</p>
+  </section>
+
+  <section id="rule">
+    <p class="eyebrow">The core principle</p>
+    <h2>One rule underneath all of it</h2>
+    <div class="rule-card">
+      <p>Every sentence must be <strong>either</strong> verifiable against a real source — the data, the
+      code, a prior result, a checked citation — <strong>or</strong> explicitly flagged as unverified.</p>
+      <p>No unsourced factual or quantitative claim ships unflagged. No fabricated or approximate
+      citation. No internal contradiction. No filler. Anything that cannot be verified is not deleted
+      and not quietly kept — it ships carrying a visible <span class="flag">⚠</span> so the reader knows
+      which sentences are load-bearing and which are not.</p>
+    </div>
+  </section>
+
+  <section id="loop">
+    <p class="eyebrow">The process · a real sequence</p>
+    <h2>Draft, attack, repair, re-attack, deliver</h2>
+    <p class="col lede">Six steps, and they are numbered because the order carries information. Step 0
+    runs before the draft exists; step 4 is the one everybody skips.</p>
+
+    <ol class="steps">
+      <li>
+        <span class="n">00</span>
+        <div class="body">
+          <h3>Preflight — is the process itself current?</h3>
+          <p>The process file gets copied into your repo, where it quietly drifts behind the original.
+          A review run against a stale copy silently omits rules you already paid for. <strong>This is a
+          script, not a reminder</strong> — see the gates below.</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">01</span>
+        <div class="body">
+          <h3>Draft the document</h3>
+          <p>Normally. Nothing special happens here — the point is that this draft is not the
+          deliverable.</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">02</span>
+        <div class="body">
+          <h3>Review — run the whole panel</h3>
+          <p><strong>Every role runs on every deliverable.</strong> What scales to the stakes is <em>how</em>
+          you run them, never <em>which</em> ones. A big document gets eleven parallel reviewers; a
+          one-line caption gets a single pass that still walks all eleven checklists. A role with nothing
+          to check reports <strong>“no findings, and here is what I checked”</strong> — silence and
+          absence must not look alike.</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">03</span>
+        <div class="body">
+          <h3>Synthesize and apply</h3>
+          <p>Consolidate the findings, dedupe them, rank by severity, and decide each one: fix it, flag
+          it inline, or reject it with a reason. Then actually apply the fixes.</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">04</span>
+        <div class="body">
+          <h3>Verify the fixes — a fresh pass on the repaired artifact</h3>
+          <p>Re-check the <strong>corrected</strong> document, ideally with a reviewer who did not do the
+          original pass. Three questions: is every finding actually resolved in the artifact rather than
+          merely claimed; was anything quietly dropped; and <strong>did a fix introduce a new
+          defect?</strong> That last one is common — a fix that lengthens a caption pushes it onto the
+          figure. If a script builds the document, the deliverable is <strong>the built file, not the
+          generator</strong>: rebuild, then check the rebuild. The last action before delivery is the
+          build, not the fix.</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">05</span>
+        <div class="body">
+          <h3>Deliver with a receipt</h3>
+          <p>The corrected document, a plain-language summary, and a role ledger — one row per role, all
+          of them. See <a href="#deliver">what you hand over</a>.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section id="panel">
+    <p class="eyebrow">The review team</p>
+    <h2>Eleven seats on the panel</h2>
+    <div class="col">
+      <p class="lede">Each role gets the draft <em>and</em> pointers to the real sources — the data
+      paths, the code, the companion documents. Each returns findings in a fixed shape: location, issue,
+      severity, suggested fix, and could-I-verify-this-against-a-source, yes or no.</p>
+      <p>The split between roles is deliberate and worth understanding, because it is the part people get
+      wrong when they invent their own version.</p>
+    </div>
+
+    <div class="roster">
+      <div class="seat">
+        <span class="num">01</span>
+        <p class="alias">“Prove It”</p>
+        <p class="formal">Claim &amp; data verifier</p>
+        <p>Extracts every factual and quantitative claim and checks each against the actual data, code,
+        or prior result. Returns a claim ledger — quoted value, cited source, <em>recomputed</em> value,
+        match or mismatch. Recompute, never eyeball.</p>
+      </div>
+      <div class="seat">
+        <span class="num">02</span>
+        <p class="alias">“DOI or Die”</p>
+        <p class="formal">Citation &amp; reference validator</p>
+        <p>Confirms every reference exists and is correctly attributed. Zero tolerance for guessed
+        bibliographic metadata. This is the one role that never collapses into a self-review, however
+        short the document — a single pass inherits the drafter's search history and stops in the same
+        place.</p>
+      </div>
+      <div class="seat">
+        <span class="num">03</span>
+        <p class="alias">“Cross-Examiner”</p>
+        <p class="formal">Consistency auditor</p>
+        <p>Cross-checks counts, totals, terminology and figure↔text agreement, inside the document and
+        against its companions. Watches for one population counted on different bases, which is how the
+        same “N” silently changes between slides.</p>
+      </div>
+      <div class="seat">
+        <span class="num">04</span>
+        <p class="alias">“Reviewer 2”</p>
+        <p class="formal">Adversarial reviewer</p>
+        <p>Reads as a hostile peer reviewer. Attacks overreach, unsupported leaps, missing caveats, and
+        undefined quantities — and asks the question that kills soft results: <em>could this null result
+        ever have come out otherwise?</em></p>
+      </div>
+      <div class="seat">
+        <span class="num">05</span>
+        <p class="alias">“Kill Your Darlings”</p>
+        <p class="formal">Line editor</p>
+        <p>Clarity and precision. Undefined jargon, ambiguity, redundancy, flow. Every sentence must earn
+        its place and assert exactly one true thing.</p>
+      </div>
+      <div class="seat">
+        <span class="num">06</span>
+        <p class="alias">“RTFM”</p>
+        <p class="formal">Methods / domain expert</p>
+        <p>When the document rests on a specific method, model or library, this role reads the source
+        paper and the actual API docs <em>before</em> reviewing. No reasoning from memory about what a
+        function does.</p>
+      </div>
+      <div class="seat">
+        <span class="num">07</span>
+        <p class="alias">“Reinventing the Wheel”</p>
+        <p class="formal">Reuse auditor</p>
+        <p>Catches new analysis code re-implementing something the project already does in tested
+        production code — and, where it does re-implement, whether it matches the reference exactly:
+        same parameters, orientation, unit conversions, guard clauses.</p>
+      </div>
+      <div class="seat">
+        <span class="num">08</span>
+        <p class="alias">“You Lost Me”</p>
+        <p class="formal">Naive-reader accessibility</p>
+        <p>Reads with zero prior context and flags every place a cold reader is lost. It exists because a
+        document can be every-number-correct, honest and craft-clean, and still be unreadable to the
+        audience it was written for.</p>
+      </div>
+      <div class="seat">
+        <span class="num">09</span>
+        <p class="alias">“Show, Don't Tell”</p>
+        <p class="formal">Density &amp; figure-first</p>
+        <p>Asks the one question no other role is empowered to ask: <strong>what here should have been a
+        picture?</strong> Generated documents default to prose — correct, complete, sourced, and
+        unreadable at a glance.</p>
+      </div>
+      <div class="seat">
+        <span class="num">10</span>
+        <p class="alias">“Ship It”</p>
+        <p class="formal">Build &amp; craft gate</p>
+        <p>Owns every check whose answer is decided by <em>opening the rendered file</em> or running a
+        script — overlaps, unlabeled axes, clipped text. Its output is a table, not prose, so a skipped
+        check leaves a visible hole.</p>
+      </div>
+      <div class="seat">
+        <span class="num">11</span>
+        <p class="alias">“Start With the Problem”</p>
+        <p class="formal">Argument order</p>
+        <p>Reads only the <em>order</em>. A deck can be true, readable and clean on every single slide
+        and still fail because it presents the fix before the reader knows there is a problem.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <p><strong>Why the roles are cut this way.</strong> Two axes, both learned the hard way.</p>
+      <p><strong>Cost.</strong> A judgment call (“would a cold reader follow this?”) can be satisfied by
+      thinking about it. A mechanical check (“is this axis labeled?”) can only be satisfied by opening
+      the file. Bundle the two into one reviewer and its prose answer covers for the file it never
+      opened — so every mechanical check lives alone in seat 10.</p>
+      <p><strong>Unit of analysis.</strong> Most roles read one slide or panel at a time. A defect whose
+      unit is the <em>whole sequence</em> (argument order) or the <em>whole page</em> (how much canvas
+      the figure was given) is invisible to all of them, because each slide passes on its own. Seats 9
+      and 11 exist so those defects have somewhere to be found other than by the reader.</p>
+    </div>
+  </section>
+
+  <section id="gates">
+    <p class="eyebrow">The gates</p>
+    <h2>A rule that depends on being remembered is not a gate</h2>
+    <div class="col">
+      <p class="lede">This is the sharpest idea in the kit, and it is worth stealing even if you take
+      nothing else. Three of the process's rules used to be prose. Each one got skipped exactly when it
+      mattered. So each became a script with an exit code, wired into a hook, silent when everything is
+      fine.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption>Each script answers one question, and never returns a false “fine”.</caption>
+        <thead>
+          <tr><th scope="col">Script</th><th scope="col">The question it answers</th><th scope="col">Exit codes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">murderboard_<wbr>freshness.sh</th>
+            <td><strong>Is this repo's copy of the process current?</strong> Compares the vendored stamp
+            against the upstream commit. Runs silently at session start from a cache, and again — with a
+            forced refresh — at the moment of review. It is not murderboard-specific: point it at any
+            upstream you vendor from.</td>
+            <td class="exits">
+              <span class="pill ok">0</span>current<br>
+              <span class="pill warn">1</span>stale<br>
+              <span class="pill unk">2</span>could not determine
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">murderboard_<wbr>roster.sh</th>
+            <td><strong>Did every role actually run?</strong> Derives the roster from the process file —
+            never from memory — and checks the finished report accounts for all of them. Add a role
+            upstream and every consumer's check picks it up with no edit anywhere.</td>
+            <td class="exits">
+              <span class="pill ok">0</span>all present<br>
+              <span class="pill warn">1</span>a role is missing<br>
+              <span class="pill unk">2</span>could not determine
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">require_commit_<wbr>before_message.sh</th>
+            <td><strong>Does the thing you're about to tell someone actually exist yet?</strong> For
+            multi-agent setups: refuses a cross-session message while the working tree is dirty. Messages
+            between sessions are socket traffic — nothing persists them.</td>
+            <td class="exits">
+              <span class="pill ok">0</span>allow<br>
+              <span class="pill warn">2</span>block
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <p><strong>Where the roster gate came from.</strong> “Every role runs” was prose for its whole
+      life. Then a run that fired 7 of 11 roles and a run that fired all 11 cleanly produced reports no
+      reader could tell apart. <em>“No findings from role 9”</em> is worth nothing if role 9 was never
+      spawned — so the ledger became mandatory, and then machine-checked.</p>
+      <p>Every gate also ships <code>--selftest</code>, which proves each branch can still fire. A gate
+      that cannot ring is not a gate either.</p>
+    </div>
+  </section>
+
+  <section id="deliver">
+    <p class="eyebrow">The output contract</p>
+    <h2>Three things, or it isn't finished</h2>
+    <div class="two-up">
+      <div class="card">
+        <h3>1 · The corrected document</h3>
+        <p>Not the draft plus a list of what's wrong with it. The repaired artifact — and where it is
+        generated by a script, the rebuilt file, newer than the last fix and newer than every input it
+        embeds.</p>
+      </div>
+      <div class="card">
+        <h3>2 · A plain-language summary</h3>
+        <p>Which dimensions were checked, what was found and fixed, how many verify rounds it took, and
+        every remaining <span class="flag">⚠</span> flag. Plus the calibration line — see below.</p>
+      </div>
+      <div class="card">
+        <h3>3 · The role ledger</h3>
+        <p>One row per role, <em>all</em> of them, each carrying its findings or its “no findings, and
+        here is what I checked” line. This is the only evidence the panel ran. If nothing survived
+        review, say so plainly — never manufacture findings to look thorough.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="limits">
+    <p class="eyebrow">Read this before you quote a run</p>
+    <h2>What a clean run does not warrant</h2>
+    <div class="caution">
+      <p><strong>A clean run is evidence the roles ran. It is not evidence the artifact is correct.</strong>
+      The process requires you to say so, in the delivered summary, in these terms or equivalent:</p>
+      <blockquote>“This review found and fixed N defects. It is not a correctness proof. The convergence
+      table measures how quickly reviewers stopped finding things, not whether anything remains.”</blockquote>
+      <p style="margin-top:1.1rem">The reason is that the run record is the most quotable thing the
+      process emits, and <em>“11/11 roles, severity floor reached”</em> reads to any human as a clean bill
+      of health. The role ledger fixed <em>“7 of 11” and “11 of 11” look alike.</em> It did not fix the
+      next one up: <strong>“11 of 11 and clean” and “11 of 11 and correct” look alike</strong> — and the
+      second is what a reader takes away. No convergence table can tell a document with nothing left to
+      find from one whose reviewers were all looking in the same wrong place.</p>
+    </div>
+  </section>
+
+  <section id="adopt">
+    <p class="eyebrow">Implementation</p>
+    <h2>Putting it in your own project</h2>
+    <div class="col">
+      <p class="lede">There are no submodules. Each project holds its own copy of the files, which keeps
+      a fresh checkout self-contained on any machine; the freshness gate is what pays for that
+      convenience. It is a handful of files, copied in and stamped.</p>
+    </div>
+
+    <ol class="adopt">
+      <li>
+        <h3>Copy the files in, and stamp them</h3>
+        <p>The process document under <code>docs/</code>, the scripts under <code>tools/</code>, and — if
+        you use Claude Code — the skill to <code>.claude/skills/murderboard/</code>. Each copy carries a
+        one-line stamp saying which upstream commit it came from, so drift is visible. Use the repo's
+        <code>murderboard_revendor.py</code> rather than hand-editing the stamp.</p>
+      </li>
+      <li>
+        <h3>Wire the gates so they fire without being remembered</h3>
+        <p>Freshness at session start as an early warning, and the roster check against every finished
+        report. This is the step that makes it a process instead of a good intention.</p>
+<pre><span class="c"># session start — silent unless your copy is stale</span>
+bash tools/murderboard_freshness.sh <span class="k">--hook</span>
+
+<span class="c"># after a review run — exit 1 if a role left no trace</span>
+bash tools/murderboard_roster.sh check REPORT.md</pre>
+      </li>
+      <li>
+        <h3>Point the literature tool at your library</h3>
+        <p>Reviewers need real papers, not remembered ones. <code>fetch_paper.py</code> fetches only from
+        open-access hosts, caches what it gets, searches your curated library <em>before</em> downloading,
+        and adds anything paywalled to a want-list for a human instead of scraping it. It needs nothing
+        beyond Python 3, plus <code>pypdf</code> or <code>pdftotext</code> if you want text out of PDFs.</p>
+<pre>export MURDERBOARD_LIT=<span class="k">"/path/to/your/pdf/library"</span>
+
+python3 tools/fetch_paper.py <span class="k">--have</span> smith attention   <span class="c"># check the library first</span>
+python3 tools/fetch_paper.py &lt;url&gt;                       <span class="c"># fetch, cache, print text</span>
+python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;citation&gt;"</span>          <span class="c"># flag one you can't reach</span></pre>
+      </li>
+      <li>
+        <h3>Make it the default, in writing</h3>
+        <p>Add a rule to your project's instructions — <code>CLAUDE.md</code>, a contributing guide, a
+        team norm — saying that document deliverables go through the murderboard before delivery. The
+        repo ships a drop-in paragraph you can paste. Without this step, the kit sits in the repo and
+        nobody runs it.</p>
+      </li>
+    </ol>
+
+    <div class="two-up">
+      <div class="card">
+        <h3>If you use Claude Code</h3>
+        <p>Install the skill and run <code>/murderboard &lt;artifact&gt;</code>. It sequences the parts
+        that must not depend on memory: freshness gated at the moment of review rather than at startup,
+        the roster derived rather than recalled, the artifact resolved to the <em>built</em> file rather
+        than its generator and fingerprinted before and after, and a run record emitted and then checked
+        by the roster gate.</p>
+      </div>
+      <div class="card">
+        <h3>If you don't</h3>
+        <p>None of this requires AI. The eleven roles are a checklist and the gates are shell scripts.
+        Run the panel as a human review — yourself in eleven passes, or eleven colleagues in one — and
+        keep the same output contract. The value is in the structure and the receipts, not in who
+        occupies the seats.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p class="eyebrow">Get it</p>
+    <div class="links">
+      <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
+      <a href="https://github.com/syncytium2/murderboard/blob/main/doc_review_process.md">the process document</a>
+      <a href="https://github.com/syncytium2/murderboard/blob/main/README.md">README</a>
+      <a href="https://github.com/syncytium2/murderboard/blob/main/LICENSE">Apache-2.0</a>
+    </div>
+    <p class="colophon">The process document is the authority on what gets reviewed and by whom; it keeps
+    an appendix of the incidents behind each rule. The kit was extracted and generalized from a
+    calcium-imaging research project, where it grew out of real slop incidents — nothing in the core
+    carries that project's domain with it.</p>
+  </footer>
+
+</div>
