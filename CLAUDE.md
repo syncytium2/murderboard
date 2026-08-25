@@ -1,8 +1,9 @@
 # CLAUDE.md — murderboard
 
 This repo is the canonical source of the **murderboard**: an anti-slop review process
-(`doc_review_process.md`), a literature tool (`fetch_paper.py`), two gates that keep the
-process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`), and the call-up skill
+(`doc_review_process.md`), a literature tool (`fetch_paper.py`), three gates that keep the
+process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`,
+`require_commit_before_message.sh`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 

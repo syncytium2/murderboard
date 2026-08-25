@@ -31,7 +31,7 @@ the murderboard stops re-downloading what you already have, and flags what it ca
   2. PROMOTE WHAT'S USEFUL.  Fetched papers land in `<lit>/_autofetch/` under hash names —
      a scratch cache, not a library. When a fetched paper actually earns its place
      (verified a citation, grounded a method), copy it into the curated library:
-         python3 fetch_paper.py --promote <url> "Author Year short title.pdf"
+         python3 fetch_paper.py --promote <url> --name "Author Year short title.pdf"
      Now the next session finds it via `--have` instead of downloading it again.
 
   3. FLAG WHAT YOU CAN'T GET.  Any fetch that FAILS or is REFUSED (paywalled host) is
@@ -51,7 +51,7 @@ USAGE
     python3 fetch_paper.py --chars 40000 <url>     # more text (default 25k)
     python3 fetch_paper.py --quiet <url>           # save only, print the path
     python3 fetch_paper.py --have <keyword> ...    # search the curated library FIRST
-    python3 fetch_paper.py --promote <url|hash> ["name.pdf"]   # cache -> library
+    python3 fetch_paper.py --promote <url|hash> [--name "name.pdf"]  # cache -> library
     python3 fetch_paper.py --need "<citation>"     # flag a paper for a human to get
     python3 fetch_paper.py --list                  # what the _autofetch cache holds
 
@@ -408,6 +408,14 @@ def main():
         return have_search(a.have)
 
     if a.promote:
+        # A bare filename after --promote lands in `urls` and is silently dropped: the
+        # paper is then filed under the cached title, which is not what the operator
+        # typed and not what --have will be searched for later. Three places in this file
+        # taught that form. Refuse it loudly instead of guessing.
+        if a.urls:
+            ap.error("--promote takes one reference; give the filename with --name.\n"
+                     "  did you mean:  --promote %s --name %s"
+                     % (a.promote, json.dumps(a.urls[0])))
         return promote(a.promote, a.name, idx)
 
     if a.need:
@@ -491,7 +499,7 @@ def main():
 
         print("content-type: %s | %d bytes | saved: %s" % (ctype, len(raw), path))
         if is_pdf and not is_query:
-            print("(keeper? promote it: fetch_paper.py --promote %s \"Author Year title.pdf\")" % url)
+            print("(keeper? promote it: fetch_paper.py --promote %s --name \"Author Year title.pdf\")" % url)
         if not text.strip():
             print("NOTE: no text extracted (scanned PDF, or JS-rendered page). "
                   "Read the saved file directly with the Read tool.")

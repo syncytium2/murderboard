@@ -116,8 +116,24 @@ jobs:
       - name: PDF detection survives a lying content-type
         run: python tests/fetch_paper_pdf_detect_test.py
 
+      # `--promote <url> "name.pdf"` parsed the filename as a URL and dropped it: the
+      # paper was filed under the cached title instead, silently, and the `--have`
+      # search the promote/have protocol exists to serve then looked for a name that
+      # was never written. Three doc strings in fetch_paper.py taught that form,
+      # including the hint printed after a successful fetch. Offline: argparse only.
+      - name: --promote refuses the form that silently discarded its filename
+        run: python tests/fetch_paper_promote_args_test.py
+
       - name: revendor compiles
         run: python -m compileall -q murderboard_revendor.py
+
+      # murderboard_revendor.py --example-config tells consumers what to vendor;
+      # murderboard_freshness.sh's STAMPED_FILES is what the gate walks to notice drift.
+      # A file in the first and not the second is copied everywhere and then never
+      # checked -- silently, because the gate finds some other file and exits 0.
+      # tools/murderboard_revendor.py was in that state from #29 until this test.
+      - name: the two tools agree on the vendored set
+        run: python tests/vendored_set_agrees_test.py
 
       # The stamp rewrite must stay surgical. Its --selftest includes NEGATIVE
       # CONTROLS: the whole-file substitution that corrupted a real vendored doc,
