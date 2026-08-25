@@ -14,10 +14,10 @@ entirely. Nothing failed and nothing warned. It was caught only because the next
 re-vendor re-copied that body and repaired it — which is the same bug with its evidence
 deleted.
 
-That is not a hypothetical here. `murderboard_freshness.sh` carries **ten** stamp-shaped
+That is not a hypothetical here. `murderboard_freshness.sh` carries **11** stamp-shaped
 strings in its body, by design: it documents and echoes the stamp format. It is also one
 of the files this repo tells you to vendor. Bump its stamp with a whole-file substitution
-and you rewrite ten strings you did not mean to touch, in the gate whose entire job is to
+and you rewrite every one of them you did not mean to touch, in the gate whose entire job is to
 notice drift.
 
 WHAT "SURGICAL" MEANS. Exactly one line of a file may carry a stamp:
@@ -589,13 +589,31 @@ def selftest():
               hook_scope(j, "session-protocol"),
               ["docs/session_protocol.md", ".claude/hooks/session-start.sh"])
 
-    # 10. The real motivating file, if it is next to us: ten stamp-shaped strings in a
-    #     body that a whole-file substitution would rewrite.
+    # 10. The real motivating file, if it is next to us: a body full of stamp-shaped
+    #     strings that a whole-file substitution would rewrite.
     here = Path(__file__).resolve().parent / "murderboard_freshness.sh"
     if here.is_file():
         body = here.read_text(encoding="utf-8")
         n = len(STAMP_RE.findall(body))
         check("murderboard_freshness.sh still has body stamps worth protecting", n > 1, True)
+
+        # The COUNT is quoted in prose, here and in README.md, as the reason this tool
+        # exists. Prose does not recount itself: it said "ten" for as long as there were
+        # ten, and went on saying it after an eleventh arrived. Recompute and compare, so
+        # the number is derived rather than remembered -- the same rule this repo applies
+        # to the role roster.
+        PROSE_COUNT = r"\*\*(\d+)\*\*\s+stamp-shaped\s+strings"
+        stated = re.findall(PROSE_COUNT, __doc__ or "")
+        check("this file's docstring states the recomputed count (%s vs %d)"
+              % (",".join(stated) or "nothing", n),
+              bool(stated) and all(int(x) == n for x in stated), True)
+
+        readme = Path(__file__).resolve().parent / "README.md"
+        if readme.is_file():
+            rs = re.findall(PROSE_COUNT, readme.read_text(encoding="utf-8"))
+            check("README.md states the recomputed count (%s vs %d)"
+                  % (",".join(rs) or "nothing", n),
+                  bool(rs) and all(int(x) == n for x in rs), True)
         check("a whole-file substitution would rewrite all of them",
               len(STAMP_RE.findall(whole_file_sub(body, "ffffff1"))) == n and
               "ffffff1" in whole_file_sub(body, "ffffff1"), True)
