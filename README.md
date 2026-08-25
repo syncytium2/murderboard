@@ -28,8 +28,8 @@ yet, [START-HERE.md](START-HERE.md) is the page you want.
 > says otherwise.**
 
 A project-neutral **anti-slop review harness** for document deliverables, plus the
-literature tool that feeds it. The name is the old sense of *murderboard*: a panel that
-tries to tear a thing apart before it ships, so what survives is trustworthy.
+literature tool that feeds it. A *murderboard* is a panel that tries to tear a thing apart
+before it ships, so what survives is trustworthy.
 
 It is a small set of files you vendor into a project — the process, the three gates that keep
 it honest, and the skill that calls it up:

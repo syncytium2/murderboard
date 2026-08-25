@@ -300,11 +300,12 @@ pre .k { color: var(--blood); }
 footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 clamp(3rem,7vw,5rem); }
 .links { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-family: var(--f-mono); font-size: .88rem; }
 .colophon { margin-top: 2rem; font-size: .92rem; color: var(--ink-faint); max-width: var(--measure); }
-/* Version stamp. Monospace so the dates line up between releases, and a wrapping
-   flex row so it degrades to stacked lines at 320px instead of overflowing. */
-.stamp { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: .3rem .9rem;
-         font-family: var(--f-mono); font-size: .82rem; color: var(--ink-faint); }
+/* Version stamp. Lives in the masthead kicker, which already supplies the mono
+   face and the wrapping flex row, so this only has to keep the whole stamp
+   together as one wrap unit and lift the version out of the surrounding grey. */
+.stamp { white-space: nowrap; }
 .stamp b { font-weight: 600; color: var(--ink-soft); }
+@media (max-width: 26rem) { .stamp { white-space: normal; } }
 
 /* ---------- stat strip ---------- */
 .stats {
@@ -383,13 +384,13 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.2.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
-    <p class="deck"><b>Not the detective's corkboard.</b> The older sense of the word: a panel
-    convened to tear a thing apart before it is defended for real, hostile enough that the actual
-    review holds no surprises.</p>
+    <p class="deck">A panel convened to tear a thing apart before it is defended for real
+    &mdash; hostile enough that what the real review turns up is news, rather than something
+    you could have caught yourself.</p>
 
     <div class="stats">
       <div><b>11</b><span>reviewer roles, every one of them, every time</span></div>
@@ -1082,12 +1083,6 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
     this page and that document disagree, that document is right. The murderboard came out of a
     calcium-imaging research project, where it grew from real incidents; nothing in the process or the
     scripts carries that subject with it. Copyright 2026 Tony DeFazio, Apache-2.0.</p>
-
-    <p class="stamp">
-      <span>Born <time datetime="2026-08-25">2026-08-25</time></span>
-      <span>Version <b>0.1.0</b></span>
-      <span>Updated <time datetime="2026-08-25">2026-08-25</time></span>
-    </p>
   </footer>
 
 </div>
