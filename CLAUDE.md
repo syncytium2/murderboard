@@ -34,6 +34,12 @@ they ended up as prose in the first place.
   the same opened from disk, air-gapped, or behind a captive portal" true. Breaking it is
   invisible on the machine of whoever breaks it, so `tests/published_page_test.py` gates it.
   If analytics is ever wanted, that is a decision to raise, not a change to slip in.
+- **The page footer carries a stamp: `Born · Version · Updated`.** When you change
+  `docs/index.html`, bump **Version** and set **Updated** to the date you publish. **Born never
+  changes** — `tests/published_page_test.py` pins it to a literal and fails if it moves, because
+  a born-on date that can be quietly edited is just another mutable field. Versions are
+  `MAJOR.MINOR.PATCH`; the site started at `0.1.0` on 2026-08-25. (This stamp is the *page's*
+  version and is unrelated to the vendoring stamps below, which track upstream commits.)
 - After any change, bump nothing automatically — consumers re-vendor deliberately and stamp
   the commit they took (see README "Vendoring"). Just commit and push here.
 - **This repo is PUBLIC (Apache-2.0).** Two rules follow, and neither is optional:

@@ -300,6 +300,11 @@ pre .k { color: var(--blood); }
 footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 clamp(3rem,7vw,5rem); }
 .links { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-family: var(--f-mono); font-size: .88rem; }
 .colophon { margin-top: 2rem; font-size: .92rem; color: var(--ink-faint); max-width: var(--measure); }
+/* Version stamp. Monospace so the dates line up between releases, and a wrapping
+   flex row so it degrades to stacked lines at 320px instead of overflowing. */
+.stamp { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: .3rem .9rem;
+         font-family: var(--f-mono); font-size: .82rem; color: var(--ink-faint); }
+.stamp b { font-weight: 600; color: var(--ink-soft); }
 
 /* ---------- stat strip ---------- */
 .stats {
@@ -1077,6 +1082,12 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
     this page and that document disagree, that document is right. The murderboard came out of a
     calcium-imaging research project, where it grew from real incidents; nothing in the process or the
     scripts carries that subject with it. Copyright 2026 Tony DeFazio, Apache-2.0.</p>
+
+    <p class="stamp">
+      <span>Born <time datetime="2026-08-25">2026-08-25</time></span>
+      <span>Version <b>0.1.0</b></span>
+      <span>Updated <time datetime="2026-08-25">2026-08-25</time></span>
+    </p>
   </footer>
 
 </div>
