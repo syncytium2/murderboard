@@ -1,6 +1,10 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Murderboard</title>
+<meta name="description" content="A review process for catching unchecked claims. Eleven reviewer roles, three scripts, and a fixed format for what comes back. Open source, Apache-2.0.">
 <!-- No external requests. Every font stack ends in a generic family, so nothing here waits
      on a network: the page renders the same opened from disk, air-gapped, or behind a
      captive portal. A webfont link would make "opens from disk" false in the one case that
@@ -367,6 +371,8 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
   * { transition: none !important; animation: none !important; }
 }
 </style>
+</head>
+<body>
 
 <div class="wrap">
 
@@ -1075,3 +1081,6 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
   </footer>
 
 </div>
+
+</body>
+</html>
