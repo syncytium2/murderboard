@@ -1,6 +1,11 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Murderboard</title>
+<meta name="description" content="A review process for catching unchecked claims. Eleven reviewer roles, three scripts, and a fixed format for what comes back. Open source, Apache-2.0.">
+<link rel="canonical" href="https://murderboard.tonydefazio.com/">
 <!-- No external requests. Every font stack ends in a generic family, so nothing here waits
      on a network: the page renders the same opened from disk, air-gapped, or behind a
      captive portal. A webfont link would make "opens from disk" false in the one case that
@@ -367,6 +372,8 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
   * { transition: none !important; animation: none !important; }
 }
 </style>
+</head>
+<body>
 
 <div class="wrap">
 
@@ -391,28 +398,25 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 
       <p><b>The problem.</b> Documents go out with claims nobody checked. A number that disagrees
       with the analysis it came from. A reference that exists but credits the wrong paper. A total
-      that changes between two pages. This happens whenever nothing sits between writing a draft
-      and sending it &mdash; no step where someone tries to break it. People have done it for as
-      long as they have written things down; machines now do it faster, and in better prose.</p>
+      that changes between two pages. It happens whenever nothing sits between writing a draft and
+      sending it &mdash; no step where someone tries to break it.</p>
 
       <p><b>The response.</b> A written procedure, eleven reviewer roles that each look for a
-      different kind of fault, three scripts that enforce the parts people forget, and a fixed
-      format for what comes back. It is free, belongs to no field, and is designed to work the same
-      whether the reviewers are people or AI.</p>
+      different kind of fault, three scripts that enforce what gets forgotten, and a fixed format
+      for what comes back. Free, tied to no field, and designed to work the same whether the
+      reviewers are humans or AI.</p>
 
-      <p><b>The method.</b> Every sentence must either be checkable against something real &mdash;
-      the data, the code, a source someone actually opened &mdash; or carry a visible mark saying it
-      is not. All eleven roles run every time. The report names all eleven and says what each one
-      found, including the ones that found nothing, because otherwise a review that ran seven of
-      them looks exactly like a review that ran all eleven.</p>
+      <p><b>The method.</b> Every sentence must be checkable against something real &mdash; the
+      data, the code, a source someone actually opened &mdash; or carry a visible mark saying it is
+      not. All eleven roles run every time, and the report names all eleven, including those that
+      found nothing: otherwise a review that ran seven looks exactly like one that ran eleven.</p>
 
-      <p><b>The cost.</b> Eleven reviewers read the draft. One person decides which findings to act
-      on and makes the fixes. Then the corrected document is read again by someone who has not seen
-      the findings, because fixes break things &mdash; up to three such rounds, then it stops
-      whether or not it has converged. A caption or a one-line summary does not get eleven
-      reviewers; one person walks the same eleven checklists in a single pass &mdash; except that the
-      citation role stays a separate reviewer whenever the document attributes a method or claims
-      novelty.</p>
+      <p><b>The cost.</b> Eleven reviewers read the draft. One human decides what to act on and
+      makes the fixes. Then a reviewer who has not seen the findings reads the corrected document,
+      because fixes break things &mdash; up to three rounds, then it stops, converged or not. A
+      caption or a one-line summary gets one reviewer walking all eleven checklists in a single
+      pass, except that citations stay a separate reviewer whenever the document attributes a
+      method or claims novelty.</p>
 
       <p class="last"><b>The limits.</b> A clean report proves the reviewers did their jobs. It does
       not prove the document is right, and <strong>whether this process finds more than some other
@@ -1060,6 +1064,7 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
   <footer>
     <p class="eyebrow">Get it</p>
     <div class="links">
+      <a href="https://murderboard.tonydefazio.com/">murderboard.tonydefazio.com</a>
       <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
       <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
       <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>
@@ -1075,3 +1080,6 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
   </footer>
 
 </div>
+
+</body>
+</html>

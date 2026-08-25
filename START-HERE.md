@@ -7,6 +7,9 @@ AI check it role by role instead of asking "is this good?" and getting a complim
 
 Pick the level that matches you. Level 1 takes two minutes and needs nothing but a browser.
 
+> Want the longer version first — why this exists, the eleven roles, and what a finished review
+> looks like? **[murderboard.tonydefazio.com](https://murderboard.tonydefazio.com/)**
+
 ---
 
 ## Level 1 — Any AI chat. Two minutes. No install.
