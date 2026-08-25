@@ -33,6 +33,12 @@
   --pad: clamp(1.15rem, 4vw, 2.5rem);
 }
 
+/* Every size below is rem-based, so the root drives the whole scale. Phones get a
+   larger root: reading distance is shorter but the type was measurably too small. */
+html { font-size: 17px; }
+@media (max-width: 760px) { html { font-size: 18.5px; } }
+@media (max-width: 380px) { html { font-size: 18px; } }
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg:        #141215;
@@ -77,7 +83,7 @@ body {
   color: var(--ink);
   font-family: var(--f-body);
   font-weight: 400;
-  font-size: 17px;
+  font-size: 1rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -114,24 +120,34 @@ code {
 }
 .wordmark em { font-style: normal; color: var(--blood); }
 
-.entry {
-  margin: clamp(1.75rem, 4vw, 2.5rem) 0 0;
-  padding-left: 1.15rem; border-left: 2px solid var(--blood);
-  max-width: 60ch;
+.deck {
+  margin: clamp(1.5rem, 3.5vw, 2.1rem) 0 0; max-width: 56ch;
+  color: var(--ink-soft); line-height: 1.5;
 }
-.entry .pron {
-  font-family: var(--f-mono); font-size: .78rem; color: var(--ink-faint);
-  letter-spacing: .04em; display: block; margin-bottom: .35rem;
+.deck b { color: var(--ink); font-weight: 600; }
+
+.summary {
+  margin: clamp(2rem, 5vw, 3rem) 0 0;
+  background: var(--surface); border: 1px solid var(--rule);
+  border-top: 3px solid var(--blood); border-radius: 3px;
+  padding: clamp(1.35rem, 4vw, 2.15rem); box-shadow: var(--shadow);
+  max-width: 76ch;
 }
-.entry .pos { font-style: italic; color: var(--ink-soft); }
-.entry p { font-size: 1.02rem; }
+.summary .eyebrow { margin-bottom: 1.1rem; }
+.summary p { font-size: 1.02rem; line-height: 1.58; }
+.summary p b {
+  font-family: var(--f-display); font-weight: 700; color: var(--ink);
+  letter-spacing: -.01em;
+}
+.summary .last { margin-top: 1.3rem; padding-top: 1.1rem; border-top: 1px solid var(--rule-soft); }
+.deck { font-size: 1.06rem; }
 
 .thesis {
   font-family: var(--f-body); font-size: clamp(1.38rem, 3.3vw, 2rem);
   line-height: 1.34; font-weight: 400; letter-spacing: -.005em;
   margin: clamp(2rem, 5vw, 3rem) 0 0; max-width: 27ch; text-wrap: balance;
 }
-.standfirst { margin-top: 1.5rem; max-width: var(--measure); color: var(--ink-soft); font-size: 1.02rem; }
+.standfirst { margin-top: 1.5rem; max-width: var(--measure); color: var(--ink-soft); font-size: 1.04rem; }
 
 .jump {
   display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 2.25rem;
@@ -171,7 +187,7 @@ h3 {
   margin: 1.75rem 0 0;
 }
 .rule-card p { font-size: clamp(1.12rem, 2.5vw, 1.44rem); line-height: 1.44; }
-.rule-card p:last-child { font-size: .95rem; color: var(--ink-soft); margin-top: 1rem; }
+.rule-card p:last-child { font-size: .99rem; color: var(--ink-soft); margin-top: 1rem; }
 .flag { color: var(--warn); font-family: var(--f-mono); font-weight: 600; }
 
 /* ---------- the loop ---------- */
@@ -187,7 +203,7 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 .steps .body { max-width: var(--measure); }
-.steps .body p { font-size: .97rem; color: var(--ink-soft); margin: .3rem 0 0; }
+.steps .body p { font-size: 1rem; color: var(--ink-soft); margin: .3rem 0 0; }
 .steps .body p strong { color: var(--ink); font-weight: 500; }
 
 /* ---------- panel roster ---------- */
@@ -210,16 +226,16 @@ h3 {
   font-family: var(--f-mono); font-size: .68rem; text-transform: uppercase;
   letter-spacing: .09em; color: var(--blood); margin-bottom: .6rem;
 }
-.seat p { font-size: .9rem; line-height: 1.55; color: var(--ink-soft); }
+.seat p { font-size: .96rem; line-height: 1.55; color: var(--ink-soft); }
 
 .note {
-  margin-top: 1.5rem; font-size: .93rem; color: var(--ink-soft);
+  margin-top: 1.5rem; font-size: .98rem; color: var(--ink-soft);
   max-width: var(--measure); padding-left: 1rem; border-left: 2px solid var(--rule);
 }
 
 /* ---------- gates table ---------- */
 .scroller { overflow-x: auto; margin-top: 2rem; }
-table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .93rem; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .96rem; }
 caption { text-align: left; font-size: .85rem; color: var(--ink-faint); padding-bottom: .7rem; }
 th, td { text-align: left; padding: .78rem .85rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
 thead th {
@@ -238,7 +254,7 @@ td.exits { font-family: var(--f-mono); font-size: .8rem; line-height: 2; white-s
 
 /* ---------- code ---------- */
 pre {
-  font-family: var(--f-mono); font-size: .82rem; line-height: 1.75;
+  font-family: var(--f-mono); font-size: .86rem; line-height: 1.75;
   background: var(--surface); color: var(--ink);
   border: 1px solid var(--rule); border-radius: 3px;
   padding: 1rem 1.1rem; overflow-x: auto; margin: 1rem 0 0;
@@ -257,7 +273,7 @@ pre .k { color: var(--blood); }
   width: 1.55rem; height: 1.55rem; display: inline-grid; place-items: center; flex: 0 0 auto;
 }
 .adopt li > p, .adopt li > pre { margin-left: 2.25rem; max-width: var(--measure); }
-.adopt li > p { font-size: .95rem; color: var(--ink-soft); }
+.adopt li > p { font-size: .99rem; color: var(--ink-soft); }
 
 /* ---------- caution ---------- */
 .caution {
@@ -277,14 +293,14 @@ pre .k { color: var(--blood); }
   background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
   padding: 1.3rem 1.35rem 1.4rem; box-shadow: var(--shadow);
 }
-.card p { font-size: .93rem; color: var(--ink-soft); }
-.card ul { margin: .6rem 0 0; padding-left: 1.1rem; font-size: .93rem; color: var(--ink-soft); }
+.card p { font-size: .97rem; color: var(--ink-soft); }
+.card ul { margin: .6rem 0 0; padding-left: 1.1rem; font-size: .97rem; color: var(--ink-soft); }
 .card li { margin-bottom: .35rem; }
 
 /* ---------- footer ---------- */
 footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 clamp(3rem,7vw,5rem); }
-.links { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-family: var(--f-mono); font-size: .82rem; }
-.colophon { margin-top: 2rem; font-size: .84rem; color: var(--ink-faint); max-width: var(--measure); }
+.links { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-family: var(--f-mono); font-size: .88rem; }
+.colophon { margin-top: 2rem; font-size: .92rem; color: var(--ink-faint); max-width: var(--measure); }
 
 /* ---------- glossary ---------- */
 .glossary {
@@ -300,14 +316,14 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 .glossary dt {
   font-family: var(--f-mono); font-size: .82rem; font-weight: 600; color: var(--blood);
 }
-.glossary dd { margin: .12rem 0 0; font-size: .92rem; line-height: 1.5; color: var(--ink-soft); }
+.glossary dd { margin: .12rem 0 0; font-size: .97rem; line-height: 1.5; color: var(--ink-soft); }
 
 /* ---------- provenance block ---------- */
 .provenance {
   margin-top: 2.25rem; padding: 1.15rem 1.3rem 1.25rem;
   border: 1px dashed var(--rule); border-radius: 3px; max-width: var(--measure);
 }
-.provenance p { font-size: .88rem; color: var(--ink-soft); }
+.provenance p { font-size: .95rem; color: var(--ink-soft); }
 .provenance p:first-of-type { color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -322,23 +338,42 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
-    <div class="entry">
-      <span class="pron">/ˈmɜːdə bɔːd/</span>
-      <p><span class="pos">noun, older sense.</span> A panel convened to tear a thing apart before it goes
-      public — a rehearsal hostile enough that the real hearing holds no surprises. What survives is
-      what you ship.</p>
+    <p class="deck"><b>Older sense of the word:</b> a panel convened to tear a thing apart before it
+    goes public, hostile enough that the real hearing holds no surprises.</p>
+
+    <div class="summary">
+      <p class="eyebrow">Executive summary</p>
+
+      <p><b>The problem.</b> Documents ship claims that nobody checked against a source. A statistic
+      that disagrees with the run it summarizes; a citation that resolves and still credits the wrong
+      paper; a count that changes between sections; a caption that overclaims its figure. This is the
+      default outcome of any drafting process with no adversarial step between draft and delivery, and
+      it is not an artifact of machine writing — the failure modes below are documented in human
+      scholarship for as long as there has been scholarship. Faster drafting raises the cost of having
+      no review step. It did not create the problem.</p>
+
+      <p><b>The response.</b> A written review process, eleven adversarial reviewer roles with defined
+      and non-overlapping scope, three shell gates, and one output contract. Project-neutral, vendored
+      into a repository rather than installed, Apache-2.0. Reviewers can be people or agents; the
+      process does not care which, and neither do its checks.</p>
+
+      <p><b>The mechanism.</b> Every sentence is either verifiable against a real source or ships
+      carrying a visible unverified flag. Every role runs on every deliverable — what scales to the
+      stakes is how they run, never which ones. Every run emits a per-role ledger, because a run that
+      fired seven of eleven roles and one that fired all eleven produced reports no reader could tell
+      apart. Three rules that used to be prose are now scripts with exit codes, wired to fire without
+      being remembered.</p>
+
+      <p><b>The cost.</b> Real, and worth stating plainly. A substantial document takes eleven reviewer
+      passes, a synthesis pass, and a verification pass against the repaired artifact — after which the
+      last action before delivery is the rebuild, not the fix.</p>
+
+      <p class="last"><b>The limits.</b> A clean run is evidence the roles ran. It is not evidence the
+      document is correct. The process does not supply domain expertise it does not have, and a
+      competent expert reading their own field will catch things it misses entirely. The rule set is
+      incomplete by construction — every rule in it was added after a defect got through — and it is
+      meant to keep changing. <b>Caveat emptor.</b></p>
     </div>
-
-    <p class="thesis">Slop ships when nobody checks the draft against its real sources.</p>
-
-    <p class="standfirst">This is a small, project-neutral kit for stopping that: a written process, a
-    panel of eleven adversarial reviewer roles, and three scripts that make the process fire whether or
-    not anyone remembers it. You can run it by hand, or hand the roles to AI agents.</p>
-
-    <p class="standfirst">This page explains what it is, why each piece exists, and what adopting it
-    takes. Everything up to <em>“What you hand over”</em> assumes no technical background. The
-    implementation section at the end assumes you work with code — and defines its terms when it
-    gets there.</p>
 
     <nav class="jump">
       <a href="#problem">The problem</a>
@@ -347,7 +382,7 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       <a href="#panel">The eleven roles</a>
       <a href="#gates">The gates</a>
       <a href="#deliver">What you hand over</a>
-      <a href="#limits">What it doesn't prove</a>
+      <a href="#limits">Limits</a>
       <a href="#adopt">Implement it</a>
     </nav>
   </header>
@@ -356,9 +391,15 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <p class="eyebrow">Why it exists</p>
     <h2>Everything here traces to a real defect</h2>
     <div class="col">
-      <p class="lede">Slop is not bad writing. It is confident writing that nobody checked. It looks
-      finished, which is exactly the problem — a reader has no way to tell a verified sentence from a
+      <p class="lede">Slop is not bad writing. It is confident writing that nobody checked. It reads as
+      finished, which is the whole difficulty — nothing on the page separates a verified sentence from a
       plausible one.</p>
+      <p><strong>It is not a machine phenomenon.</strong> Every failure below has a long human
+      pedigree: citations copied from other citations until the original says something else, numbers
+      transcribed once and propagated forever, methods sections describing what was intended rather
+      than what was run. Language models reproduce these faults at higher throughput and with better
+      grammar, which changes the economics of skipping review, not the nature of the defect. The
+      process is indifferent to who drafted.</p>
       <p>The recurring shapes:</p>
     </div>
     <div class="two-up">
@@ -383,8 +424,8 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         the analysis code that generated the number — two of the eleven roles exist for exactly that.</p>
       </div>
     </div>
-    <p class="note">The process file keeps an appendix of the concrete incidents that motivated each
-    rule. Nothing in it is a hypothetical: every rule is scar tissue.</p>
+    <p class="note">The process document keeps an appendix recording the specific incident behind each
+    rule. None are hypothetical, and none were invented to round out a list.</p>
   </section>
 
   <section id="rule">
@@ -403,8 +444,9 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
   <section id="loop">
     <p class="eyebrow">The process · a real sequence</p>
     <h2>Draft, attack, repair, re-attack, deliver</h2>
-    <p class="col lede">Six steps, and they are numbered because the order carries information. Step 0
-    runs before the draft exists; step 4 is the one everybody skips.</p>
+    <p class="col lede">Six steps. They are numbered because the order is load-bearing: step 0 runs
+    before the draft exists, and step 4 — re-reviewing the repaired artifact — is the one that is
+    skipped in practice and the one that catches fixes which broke something else.</p>
 
     <ol class="steps">
       <li>
@@ -471,11 +513,11 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <p class="eyebrow">The review team</p>
     <h2>Eleven seats on the panel</h2>
     <div class="col">
-      <p class="lede">Each role gets the draft <em>and</em> pointers to the real sources — the data
-      paths, the code, the companion documents. Each returns findings in a fixed shape: location, issue,
-      severity, suggested fix, and could-I-verify-this-against-a-source, yes or no.</p>
-      <p>The split between roles is deliberate and worth understanding, because it is the part people get
-      wrong when they invent their own version.</p>
+      <p class="lede">Each role receives the draft <em>and</em> pointers to the real sources — data
+      paths, code, companion documents — and returns findings in a fixed shape: location, issue,
+      severity, suggested fix, and whether it could be verified against a source.</p>
+      <p>How the roles are divided is the part most often got wrong by anyone building their own
+      version, and it is worth stating explicitly.</p>
     </div>
 
     <div class="roster">
@@ -588,10 +630,10 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <p class="eyebrow">The gates</p>
     <h2>A rule that depends on being remembered is not a gate</h2>
     <div class="col">
-      <p class="lede">This is the sharpest idea in the kit, and it is worth stealing even if you take
-      nothing else. Three of the process's rules used to be prose. Each one got skipped exactly when it
-      mattered. So each became a script with an exit code, wired into a hook, silent when everything is
-      fine.</p>
+      <p class="lede">Three of this process's rules were prose for their whole lives, and each was
+      skipped precisely when it mattered. Each is now a script with an exit code, wired to run
+      automatically and silent when the answer is fine. This is the transferable part: the mechanism
+      works on any rule you cannot afford to have depend on recall.</p>
     </div>
 
     <div class="scroller">
@@ -674,7 +716,7 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 
   <section id="limits">
     <p class="eyebrow">Read this before you quote a run</p>
-    <h2>What a clean run does not warrant</h2>
+    <h2>What it does not do</h2>
     <div class="caution">
       <p><strong>A clean run is evidence the roles ran. It is not evidence the artifact is correct.</strong>
       The process requires you to say so, in the delivered summary, in these terms or equivalent:</p>
@@ -687,6 +729,31 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       second is what a reader takes away. No convergence table can tell a document with nothing left to
       find from one whose reviewers were all looking in the same wrong place.</p>
     </div>
+
+    <div class="two-up">
+      <div class="card">
+        <h3>It does not replace an expert</h3>
+        <p>The panel checks that claims are sourced, consistent, attributed to their origin, and
+        legible. It cannot supply judgment that is not in the room. Someone who knows the field will
+        catch, half asleep, things this process will not catch at full effort — that a result is
+        implausible for reasons no source states, that the method is sound but wrong for the question,
+        that the interesting finding is the one nobody wrote down.</p>
+        <p>Run it as a floor under expert review, never as a substitute for it.</p>
+      </div>
+      <div class="card">
+        <h3>It is not finished, and is not meant to be</h3>
+        <p>Every rule here was added <em>after</em> a defect got through. That is the only evidence
+        any of them is worth having, and it also means the rule set is incomplete by construction:
+        it covers the failures already suffered, and says nothing about the next one.</p>
+        <p>So it is built to keep changing — the roster is derived rather than recalled, and the
+        freshness gate exists because copies of an evolving process go stale silently. Expect to
+        amend it. A version of this that stopped changing would be a version that stopped learning.</p>
+      </div>
+    </div>
+
+    <p class="note"><strong>Caveat emptor.</strong> Adopt it as a discipline that raises the floor and
+    leaves a checkable trace, which is what it demonstrably does. Do not adopt it as a guarantee, and
+    do not let a clean report stand in for someone competent having actually read the thing.</p>
   </section>
 
   <section id="adopt">
@@ -762,9 +829,9 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
       <li>
         <h3>Make it the default, in writing</h3>
         <p>Add a rule to your project's instructions — <code>CLAUDE.md</code>, a contributing guide, a
-        team norm — saying that document deliverables go through the murderboard before delivery. The
-        repo ships a drop-in paragraph you can paste. Without this step, the kit sits in the repo and
-        nobody runs it.</p>
+        team norm — that document deliverables go through the murderboard before delivery. The repo
+        ships a paragraph to paste. Skip this step and the files sit in the repository unused; the
+        preceding three steps are what make the rule enforceable, this one is what makes it a rule.</p>
       </li>
     </ol>
 
@@ -779,10 +846,10 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
       </div>
       <div class="card">
         <h3>If you don't</h3>
-        <p>None of this requires AI. The eleven roles are a checklist and the gates are shell scripts.
-        Run the panel as a human review — yourself in eleven passes, or eleven colleagues in one — and
-        keep the same output contract. The value is in the structure and the receipts, not in who
-        occupies the seats.</p>
+        <p>None of this requires AI. The eleven roles are a checklist; the gates are shell scripts.
+        Run the panel as human review — one person in eleven passes, or eleven people in one — under
+        the same output contract. The structure and the resulting record are what do the work, not the
+        identity of the reviewer.</p>
       </div>
     </div>
   </section>
