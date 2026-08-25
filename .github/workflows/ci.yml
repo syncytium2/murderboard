@@ -148,6 +148,17 @@ jobs:
       - name: revendor --example-config is valid JSON
         run: python murderboard_revendor.py --example-config | python -c "import json,sys; json.load(sys.stdin)"
 
+      # docs/index.html is served to the public by GitHub Pages. Its three
+      # load-bearing properties all fail SILENTLY: drop the doctype and every
+      # browser renders it in quirks mode (the gates table changes typeface, and
+      # only in a browser); add a webfont and "renders the same air-gapped" --
+      # which the page claims at its own top -- quietly becomes false; lose
+      # docs/.nojekyll and Jekyll eats anything Liquid-shaped. None of that shows
+      # up in a diff, so it gets a gate rather than a habit. The test carries its
+      # own negative controls: eight mutations it must catch, checked every run.
+      - name: the published page is still publishable
+        run: python tests/published_page_test.py
+
   lint:
     name: shell lint
     runs-on: ubuntu-latest
