@@ -391,16 +391,13 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <p class="eyebrow">Why it exists</p>
     <h2>Everything here traces to a real defect</h2>
     <div class="col">
-      <p class="lede">Slop is not bad writing. It is confident writing that nobody checked. It reads as
-      finished, which is the whole difficulty — nothing on the page separates a verified sentence from a
-      plausible one.</p>
-      <p><strong>It is not a machine phenomenon.</strong> Every failure below has a long human
-      pedigree: citations copied from other citations until the original says something else, numbers
-      transcribed once and propagated forever, methods sections describing what was intended rather
-      than what was run. Language models reproduce these faults at higher throughput and with better
-      grammar, which changes the economics of skipping review, not the nature of the defect. The
-      process is indifferent to who drafted.</p>
-      <p>The recurring shapes:</p>
+      <p class="lede">Slop is not bad writing. It is confident writing that nobody checked. It reads
+      as finished. Nothing on the page separates a verified sentence from a plausible one.</p>
+      <p><strong>People have always done this.</strong> Citations copied from other citations until the
+      original says something else. A number transcribed wrong once and repeated for a decade. A methods
+      section describing what was meant to happen. Machines repeat these faults faster and in better
+      grammar; the faults are the same ones. The process does not care who wrote the draft.</p>
+      <p>The common forms:</p>
     </div>
     <div class="two-up">
       <div class="card">
@@ -408,94 +405,87 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         <ul>
           <li>A statistic that disagrees with the run it claims to summarize.</li>
           <li>A reference list written from memory — real-looking, partly invented.</li>
-          <li>A citation that resolves perfectly and still credits the wrong paper. Existence is
-          not origin, and only one of the two usually gets checked.</li>
-          <li>A count that contradicts itself between sections, because two sections counted on different bases.</li>
+          <li>A citation that checks out and still credits the wrong paper. That a source exists
+          does not make it the source.</li>
+          <li>A count that contradicts itself, because two sections counted different things.</li>
           <li>An identifier copied wrong.</li>
-          <li>A caption that overclaims what its figure actually shows.</li>
+          <li>A caption claiming more than its figure shows.</li>
         </ul>
       </div>
       <div class="card">
         <h3>The subtler kind</h3>
-        <p>A plotted number can be perfectly consistent with its caption and still be wrong, because the
-        code that produced it misused a library or re-derived a method the project already implements
-        correctly.</p>
-        <p>A figure is only as sound as the method behind it. So the review reaches past the prose into
-        the analysis code that generated the number — two of the eleven roles exist for exactly that.</p>
+        <p>A plotted number can match its caption exactly and still be wrong, because the code behind
+        it misused a library or rewrote a method the project already had.</p>
+        <p>A figure is only as sound as the method behind it, so the review reads the code that made the
+        number. Two of the eleven roles do nothing else.</p>
       </div>
     </div>
-    <p class="note">The process document keeps an appendix recording the specific incident behind each
-    rule. None are hypothetical, and none were invented to round out a list.</p>
+    <p class="note">An appendix to the process document records the incident behind each rule. None
+    were invented.</p>
   </section>
 
   <section id="rule">
     <p class="eyebrow">The core principle</p>
-    <h2>One rule underneath all of it</h2>
+    <h2>One rule underneath the rest</h2>
     <div class="rule-card">
       <p>Every sentence must be <strong>either</strong> verifiable against a real source — the data, the
       code, a prior result, a checked citation — <strong>or</strong> explicitly flagged as unverified.</p>
-      <p>No unsourced factual or quantitative claim ships unflagged. No fabricated or approximate
-      citation. No internal contradiction. No filler. Anything that cannot be verified is not deleted
-      and not quietly kept — it ships carrying a visible <span class="flag">⚠</span> so the reader knows
-      which sentences are load-bearing and which are not.</p>
+      <p>No unsourced claim. No invented citation. No contradiction. No filler. What cannot be
+      verified is neither deleted nor quietly kept: it ships marked <span class="flag">⚠</span>, so the
+      reader can see which sentences carry weight.</p>
     </div>
   </section>
 
   <section id="loop">
-    <p class="eyebrow">The process · a real sequence</p>
+    <p class="eyebrow">The process</p>
     <h2>Draft, attack, repair, re-attack, deliver</h2>
-    <p class="col lede">Six steps. They are numbered because the order is load-bearing: step 0 runs
-    before the draft exists, and step 4 — re-reviewing the repaired artifact — is the one that is
-    skipped in practice and the one that catches fixes which broke something else.</p>
+    <p class="col lede">Six steps, numbered because the order matters. Step 0 runs before the draft
+    exists. Step 4 rereads the repaired document; it is the step people skip, and it catches the fixes
+    that broke something else.</p>
 
     <ol class="steps">
       <li>
         <span class="n">00</span>
         <div class="body">
           <h3>Preflight — is the process itself current?</h3>
-          <p>The process file gets copied into your repo, where it quietly drifts behind the original.
-          A review run against a stale copy silently omits rules you already paid for. <strong>This is a
-          script, not a reminder</strong> — see the gates below.</p>
+          <p>Your copy of the process drifts behind the original. Review against a stale copy and you
+          skip rules you already paid for. <strong>A script checks this</strong> — see the gates.</p>
         </div>
       </li>
       <li>
         <span class="n">01</span>
         <div class="body">
           <h3>Draft the document</h3>
-          <p>Normally. Nothing special happens here — the point is that this draft is not the
-          deliverable.</p>
+          <p>Write it as you always would. The point is that this draft is not what you deliver.</p>
         </div>
       </li>
       <li>
         <span class="n">02</span>
         <div class="body">
           <h3>Review — run the whole panel</h3>
-          <p><strong>Every role runs on every deliverable.</strong> What scales to the stakes is <em>how</em>
-          you run them, never <em>which</em> ones. A big document gets eleven parallel reviewers; a
-          one-line caption gets a single pass that still walks all eleven checklists. A role with nothing
-          to check reports <strong>“no findings, and here is what I checked”</strong> — silence and
-          absence must not look alike.</p>
+          <p><strong>Every role runs, every time.</strong> What changes with the stakes is <em>how</em>
+          you run them, not <em>which</em>. A long document gets eleven reviewers. A one-line caption gets
+          one person walking all eleven checklists. A role that finds nothing says so, and says what it
+          checked: <strong>silence and absence must not look alike.</strong></p>
         </div>
       </li>
       <li>
         <span class="n">03</span>
         <div class="body">
           <h3>Synthesize and apply</h3>
-          <p>Consolidate the findings, dedupe them, rank by severity, and decide each one: fix it, flag
-          it inline, or reject it with a reason. Then actually apply the fixes.</p>
+          <p>Collect the findings, drop the duplicates, rank them, and decide each one: fix it, flag
+          it, or reject it with a reason. Then make the fixes.</p>
         </div>
       </li>
       <li>
         <span class="n">04</span>
         <div class="body">
           <h3>Verify the fixes — a fresh pass on the repaired artifact</h3>
-          <p>Re-check the <strong>corrected</strong> document, ideally with a reviewer who did not do the
-          original pass. Three questions: is every finding actually resolved in the artifact rather than
-          merely claimed; was anything quietly dropped; and <strong>did a fix introduce a new
-          defect?</strong> That last one is common — a fix that lengthens a caption pushes it onto the
-          figure. If a script builds the document, the deliverable is <strong>the built file, not the
-          generator</strong>: rebuild, then check the rebuild. The last action before delivery is the
-          build, not the fix.</p>
+          <p>Reread the <strong>corrected</strong> document, ideally with someone who did not review the
+          draft. Three questions. Is each finding truly fixed, not merely claimed fixed? Was anything
+          quietly dropped? <strong>Did a fix break something else?</strong> The third is common: a fix
+          that lengthens a caption pushes it onto the figure. If a script builds the document, rebuild it
+          and check the rebuilt file — the generator is not the deliverable. Build last, not fix last.</p>
         </div>
       </li>
       <li>
@@ -513,11 +503,11 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <p class="eyebrow">The review team</p>
     <h2>Eleven seats on the panel</h2>
     <div class="col">
-      <p class="lede">Each role receives the draft <em>and</em> pointers to the real sources — data
-      paths, code, companion documents — and returns findings in a fixed shape: location, issue,
-      severity, suggested fix, and whether it could be verified against a source.</p>
-      <p>How the roles are divided is the part most often got wrong by anyone building their own
-      version, and it is worth stating explicitly.</p>
+      <p class="lede">Each role gets the draft <em>and</em> the real sources — data paths, code,
+      companion documents — and returns findings in one shape: location, issue, severity, suggested fix,
+      and whether it could be checked against a source.</p>
+      <p>Anyone building their own version tends to divide the roles wrongly, so here is the
+      reasoning.</p>
     </div>
 
     <div class="roster">
@@ -525,37 +515,36 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         <span class="num">01</span>
         <p class="alias">“Prove It”</p>
         <p class="formal">Claim &amp; data verifier</p>
-        <p>Extracts every factual and quantitative claim and checks each against the actual data, code,
-        or prior result. Returns a claim ledger — quoted value, cited source, <em>recomputed</em> value,
-        match or mismatch. Recompute, never eyeball.</p>
+        <p>Pulls every factual and numerical claim and checks each against the data, the code, or the
+        earlier result. Returns a table: quoted value, cited source, <em>recomputed</em> value, match or
+        mismatch. Recompute. Never eyeball.</p>
       </div>
       <div class="seat">
         <span class="num">02</span>
         <p class="alias">“DOI or Die”</p>
         <p class="formal">Citation &amp; reference validator</p>
-        <p>Confirms every reference exists and says what is quoted — then does the half that gets
-        skipped: is it the <strong>origin</strong>, or just the earliest source the reviewer happened
-        to reach? Open the cited work's own references and follow them back until they stop, then
-        report where you stopped. A shared author is not a shared laboratory.</p>
-        <p>Zero tolerance for guessed bibliographic metadata. This is also the one role that never
-        collapses into a self-review, however short the document — a single pass inherits the
-        drafter's search history and stops in the same place.</p>
+        <p>Confirms each reference exists and says what is quoted. Then the half that gets skipped: is
+        it the <strong>origin</strong>, or merely the earliest source the reviewer reached? Follow the
+        cited work's own references back until they stop, and report where you stopped. A shared author
+        is not a shared laboratory.</p>
+        <p>No guessed bibliographic detail, ever. This role also never folds into a self-review, however
+        short the document: one pass inherits the writer's search history and stops where it stopped.</p>
       </div>
       <div class="seat">
         <span class="num">03</span>
         <p class="alias">“Cross-Examiner”</p>
         <p class="formal">Consistency auditor</p>
-        <p>Cross-checks counts, totals, terminology and figure↔text agreement, inside the document and
-        against its companions. Watches for one population counted on different bases, which is how the
-        same “N” silently changes between slides.</p>
+        <p>Checks counts, totals, terms, and whether the figures and the text agree — within the
+        document and against its companions. Watches for one group counted two ways, which is how the
+        same “N” changes between slides without anyone noticing.</p>
       </div>
       <div class="seat">
         <span class="num">04</span>
         <p class="alias">“Reviewer 2”</p>
         <p class="formal">Adversarial reviewer</p>
-        <p>Reads as a hostile peer reviewer. Attacks overreach, unsupported leaps, missing caveats, and
-        undefined quantities — and asks the question that kills soft results: <em>could this null result
-        ever have come out otherwise?</em></p>
+        <p>Reads as a hostile peer reviewer: overreach, unsupported leaps, missing caveats, undefined
+        quantities. Asks the question that kills a soft result — <em>could it ever have come out
+        otherwise?</em></p>
       </div>
       <div class="seat">
         <span class="num">05</span>
@@ -568,61 +557,60 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         <span class="num">06</span>
         <p class="alias">“RTFM”</p>
         <p class="formal">Methods / domain expert</p>
-        <p>When the document rests on a specific method, model or library, this role reads the source
-        paper and the actual API docs <em>before</em> reviewing. No reasoning from memory about what a
-        function does.</p>
+        <p>When the document rests on a method, model, or library, this role reads the source paper and
+        the documentation <em>before</em> reviewing. Never reason from memory about what a function
+        does.</p>
       </div>
       <div class="seat">
         <span class="num">07</span>
         <p class="alias">“Reinventing the Wheel”</p>
         <p class="formal">Reuse auditor</p>
-        <p>Catches new analysis code re-implementing something the project already does in tested
-        production code — and, where it does re-implement, whether it matches the reference exactly:
-        same parameters, orientation, unit conversions, guard clauses.</p>
+        <p>Catches new code redoing what the project already does in tested production code — and,
+        where it does redo it, whether it matches: same parameters, orientation, unit conversions, guard
+        clauses.</p>
       </div>
       <div class="seat">
         <span class="num">08</span>
         <p class="alias">“You Lost Me”</p>
         <p class="formal">Naive-reader accessibility</p>
-        <p>Reads with zero prior context and flags every place a cold reader is lost. It exists because a
-        document can be every-number-correct, honest and craft-clean, and still be unreadable to the
-        audience it was written for.</p>
+        <p>Reads with no prior knowledge and marks every place a cold reader is lost. A document can be
+        right in every number, honest, and cleanly made, and still be unreadable to the people it was
+        written for.</p>
       </div>
       <div class="seat">
         <span class="num">09</span>
         <p class="alias">“Show, Don't Tell”</p>
         <p class="formal">Density &amp; figure-first</p>
-        <p>Asks the one question no other role is empowered to ask: <strong>what here should have been a
-        picture?</strong> Generated documents default to prose — correct, complete, sourced, and
-        unreadable at a glance.</p>
+        <p>Asks what no other role asks: <strong>what here should have been a picture?</strong> Drafts
+        default to prose — correct, complete, sourced, and unreadable at a glance.</p>
       </div>
       <div class="seat">
         <span class="num">10</span>
         <p class="alias">“Ship It”</p>
         <p class="formal">Build &amp; craft gate</p>
-        <p>Owns every check whose answer is decided by <em>opening the rendered file</em> or running a
-        script — overlaps, unlabeled axes, clipped text. Its output is a table, not prose, so a skipped
-        check leaves a visible hole.</p>
+        <p>Owns every check settled by <em>opening the rendered file</em> or running a script: overlaps,
+        unlabeled axes, clipped text. It answers in a table, not prose, so a skipped check leaves a
+        visible hole.</p>
       </div>
       <div class="seat">
         <span class="num">11</span>
         <p class="alias">“Start With the Problem”</p>
         <p class="formal">Argument order</p>
-        <p>Reads only the <em>order</em>. A deck can be true, readable and clean on every single slide
-        and still fail because it presents the fix before the reader knows there is a problem.</p>
+        <p>Reads only the <em>order</em>. A deck can be true, readable, and clean on every slide and
+        still fail, because it gives the fix before the reader knows there is a problem.</p>
       </div>
     </div>
 
     <div class="note">
-      <p><strong>Why the roles are cut this way.</strong> Two axes, both learned the hard way.</p>
-      <p><strong>Cost.</strong> A judgment call (“would a cold reader follow this?”) can be satisfied by
-      thinking about it. A mechanical check (“is this axis labeled?”) can only be satisfied by opening
-      the file. Bundle the two into one reviewer and its prose answer covers for the file it never
-      opened — so every mechanical check lives alone in seat 10.</p>
-      <p><strong>Unit of analysis.</strong> Most roles read one slide or panel at a time. A defect whose
-      unit is the <em>whole sequence</em> (argument order) or the <em>whole page</em> (how much canvas
-      the figure was given) is invisible to all of them, because each slide passes on its own. Seats 9
-      and 11 exist so those defects have somewhere to be found other than by the reader.</p>
+      <p><strong>Why the roles divide this way.</strong> Two reasons, both learned the hard way.</p>
+      <p><strong>What it costs to answer.</strong> You can satisfy a judgment call (“would a cold reader
+      follow this?”) by thinking. You can satisfy a mechanical check (“is this axis labeled?”) only by
+      opening the file. Give one reviewer both, and its prose answer covers for the file it never opened.
+      So every mechanical check sits alone, in seat 10.</p>
+      <p><strong>What gets read at once.</strong> Most roles read one slide at a time. A fault that
+      belongs to the whole sequence, or to the whole page, is invisible to all of them: each slide passes
+      on its own. Seats 9 and 11 read at those larger sizes, so the reader is not the one who finds
+      them.</p>
     </div>
   </section>
 
@@ -630,10 +618,10 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <p class="eyebrow">The gates</p>
     <h2>A rule that depends on being remembered is not a gate</h2>
     <div class="col">
-      <p class="lede">Three of this process's rules were prose for their whole lives, and each was
-      skipped precisely when it mattered. Each is now a script with an exit code, wired to run
-      automatically and silent when the answer is fine. This is the transferable part: the mechanism
-      works on any rule you cannot afford to have depend on recall.</p>
+      <p class="lede">Three of these rules were prose for years, and each was skipped exactly when it
+      mattered. Each is now a script that runs by itself and stays quiet when the answer is fine. Take
+      this part even if you take nothing else. It works on any rule you cannot afford to leave to
+      memory.</p>
     </div>
 
     <div class="scroller">
@@ -645,10 +633,10 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         <tbody>
           <tr>
             <th scope="row">murderboard_<wbr>freshness.sh</th>
-            <td><strong>Is this repo's copy of the process current?</strong> Compares the vendored stamp
-            against the upstream commit. Runs silently at session start from a cache, and again — with a
-            forced refresh — at the moment of review. It is not murderboard-specific: point it at any
-            upstream you vendor from.</td>
+            <td><strong>Is this copy of the process current?</strong> Compares the stamp against the
+            original. Runs quietly at session start from a cache, and again, forced fresh, at the moment
+            of review. Point it at any upstream you copy from; nothing about it is specific to this
+            process.</td>
             <td class="exits">
               <span class="pill ok">0</span>current<br>
               <span class="pill warn">1</span>stale<br>
@@ -657,9 +645,9 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
           </tr>
           <tr>
             <th scope="row">murderboard_<wbr>roster.sh</th>
-            <td><strong>Did every role actually run?</strong> Derives the roster from the process file —
-            never from memory — and checks the finished report accounts for all of them. Add a role
-            upstream and every consumer's check picks it up with no edit anywhere.</td>
+            <td><strong>Did every role run?</strong> Reads the roster out of the process file, never
+            from memory, and checks that the report accounts for all of them. Add a role upstream and
+            every copy's check picks it up, with no edit anywhere.</td>
             <td class="exits">
               <span class="pill ok">0</span>all present<br>
               <span class="pill warn">1</span>a role is missing<br>
@@ -668,9 +656,9 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
           </tr>
           <tr>
             <th scope="row">require_commit_<wbr>before_message.sh</th>
-            <td><strong>Does the thing you're about to tell someone actually exist yet?</strong> For
-            multi-agent setups: refuses a cross-session message while the working tree is dirty. Messages
-            between sessions are socket traffic — nothing persists them.</td>
+            <td><strong>Does the thing you are about to tell someone exist yet?</strong> For
+            multi-agent setups: refuses to send a message between sessions while the work is uncommitted.
+            Nothing stores those messages, so what they describe had better be in git.</td>
             <td class="exits">
               <span class="pill ok">0</span>allow<br>
               <span class="pill warn">2</span>block
@@ -681,12 +669,12 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     </div>
 
     <div class="note">
-      <p><strong>Where the roster gate came from.</strong> “Every role runs” was prose for its whole
-      life. Then a run that fired 7 of 11 roles and a run that fired all 11 cleanly produced reports no
-      reader could tell apart. <em>“No findings from role 9”</em> is worth nothing if role 9 was never
-      spawned — so the ledger became mandatory, and then machine-checked.</p>
-      <p>Every gate also ships <code>--selftest</code>, which proves each branch can still fire. A gate
-      that cannot ring is not a gate either.</p>
+      <p><strong>Where the roster gate came from.</strong> “Every role runs” was prose. Then a run
+      using 7 of 11 roles and a run using all 11 produced reports no reader could tell apart.
+      <em>“No findings from role 9”</em> is worth nothing if role 9 never ran. So the ledger became
+      required, and then machine-checked.</p>
+      <p>Every gate ships <code>--selftest</code>, which proves each branch can still fire. An alarm
+      that cannot ring is not an alarm.</p>
     </div>
   </section>
 
@@ -696,20 +684,19 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <div class="two-up">
       <div class="card">
         <h3>1 · The corrected document</h3>
-        <p>Not the draft plus a list of what's wrong with it. The repaired artifact — and where it is
-        generated by a script, the rebuilt file, newer than the last fix and newer than every input it
-        embeds.</p>
+        <p>Not the draft plus a list of its faults. The repaired document — and if a script builds it,
+        the rebuilt file, newer than the last fix and newer than everything it draws on.</p>
       </div>
       <div class="card">
         <h3>2 · A plain-language summary</h3>
-        <p>Which dimensions were checked, what was found and fixed, how many verify rounds it took, and
-        every remaining <span class="flag">⚠</span> flag. Plus the calibration line — see below.</p>
+        <p>What was checked, what was found and fixed, how many rounds it took, and every
+        <span class="flag">⚠</span> still standing. Plus the warning below.</p>
       </div>
       <div class="card">
         <h3>3 · The role ledger</h3>
         <p>One row per role, <em>all</em> of them, each carrying its findings or its “no findings, and
         here is what I checked” line. This is the only evidence the panel ran. If nothing survived
-        review, say so plainly — never manufacture findings to look thorough.</p>
+        review, say so. Never invent findings to look thorough.</p>
       </div>
     </div>
   </section>
@@ -722,56 +709,54 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       The process requires you to say so, in the delivered summary, in these terms or equivalent:</p>
       <blockquote>“This review found and fixed N defects. It is not a correctness proof. The convergence
       table measures how quickly reviewers stopped finding things, not whether anything remains.”</blockquote>
-      <p style="margin-top:1.1rem">The reason is that the run record is the most quotable thing the
-      process emits, and <em>“11/11 roles, severity floor reached”</em> reads to any human as a clean bill
-      of health. The role ledger fixed <em>“7 of 11” and “11 of 11” look alike.</em> It did not fix the
-      next one up: <strong>“11 of 11 and clean” and “11 of 11 and correct” look alike</strong> — and the
-      second is what a reader takes away. No convergence table can tell a document with nothing left to
-      find from one whose reviewers were all looking in the same wrong place.</p>
+      <p style="margin-top:1.1rem">The run record is the most quotable thing the process produces, and
+      <em>“11/11 roles, severity floor reached”</em> reads to anyone as a clean bill of health. The role
+      ledger fixed one confusion: <em>“7 of 11” and “11 of 11” look alike.</em> It did not fix the next
+      one. <strong>“11 of 11 and clean” and “11 of 11 and correct” also look alike</strong>, and the
+      second is what a reader takes away. No table can tell a document with nothing left to find from one
+      whose reviewers all looked in the same wrong place.</p>
     </div>
 
     <div class="two-up">
       <div class="card">
         <h3>It does not replace an expert</h3>
-        <p>The panel checks that claims are sourced, consistent, attributed to their origin, and
-        legible. It cannot supply judgment that is not in the room. Someone who knows the field will
-        catch, half asleep, things this process will not catch at full effort — that a result is
-        implausible for reasons no source states, that the method is sound but wrong for the question,
-        that the interesting finding is the one nobody wrote down.</p>
-        <p>Run it as a floor under expert review, never as a substitute for it.</p>
+        <p>The panel checks that claims are sourced, consistent, traced to their origin, and legible.
+        It cannot supply judgment nobody involved has. Someone who knows the field will catch, half
+        asleep, what this process misses at full effort: that a result is implausible for reasons no
+        source states, that the method is sound but wrong for the question, that the interesting finding
+        is the one nobody wrote down.</p>
+        <p>Run it as a floor under expert review, never as a substitute.</p>
       </div>
       <div class="card">
         <h3>It is not finished, and is not meant to be</h3>
-        <p>Every rule here was added <em>after</em> a defect got through. That is the only evidence
-        any of them is worth having, and it also means the rule set is incomplete by construction:
-        it covers the failures already suffered, and says nothing about the next one.</p>
-        <p>So it is built to keep changing — the roster is derived rather than recalled, and the
-        freshness gate exists because copies of an evolving process go stale silently. Expect to
-        amend it. A version of this that stopped changing would be a version that stopped learning.</p>
+        <p>Every rule here was added <em>after</em> something slipped through. That is the only
+        evidence a rule is worth having. It also means the set is incomplete: it covers the mistakes
+        already made and says nothing about the next one.</p>
+        <p>So it is built to change. The roster is read from the process file rather than remembered,
+        and the freshness gate exists because copies go stale in silence. Expect to add to it.</p>
       </div>
     </div>
 
     <p class="note"><strong>Caveat emptor.</strong> Adopt it as a discipline that raises the floor and
-    leaves a checkable trace, which is what it demonstrably does. Do not adopt it as a guarantee, and
-    do not let a clean report stand in for someone competent having actually read the thing.</p>
+    leaves a record. Do not adopt it as a guarantee. Do not let a clean report stand in for someone
+    competent having read the thing.</p>
   </section>
 
   <section id="adopt">
     <p class="eyebrow">Implementation</p>
     <h2>Putting it in your own project</h2>
     <div class="col">
-      <p class="lede">There is no package to install and nothing to subscribe to. Each project keeps
-      its own <em>copy</em> of the files, so a fresh download of that project works on any machine with
-      nothing else fetched. The cost of copies is that they go out of date silently — which is the
-      whole reason the freshness gate exists.</p>
+      <p class="lede">Nothing to install and nothing to subscribe to. Each project keeps its own
+      <em>copy</em> of the files, so a fresh download works on any machine. Copies go out of date in
+      silence, which is why the freshness gate exists.</p>
     </div>
 
     <div class="glossary">
       <p>Six words the rest of this section uses</p>
       <dl>
         <dt>repo</dt>
-        <dd>Short for repository — the folder of files that <em>is</em> your project, tracked by
-        version control (almost always <span class="nb">git</span>) so every change has a history.</dd>
+        <dd>Short for repository: the folder of files that <em>is</em> your project, tracked by version
+        control (almost always <span class="nb">git</span>) so every change has a history.</dd>
 
         <dt>vendor (verb)</dt>
         <dd>To copy someone else's files into your own project rather than depend on them remotely.
@@ -786,9 +771,8 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         commit. This is how a check stops depending on anyone remembering it.</dd>
 
         <dt>exit code</dt>
-        <dd>The number a script returns when it finishes. <code>0</code> conventionally means fine;
-        anything else means something specific and non-fine. It is what lets one script's verdict
-        drive another's behaviour.</dd>
+        <dd>The number a script returns when it finishes. <code>0</code> means fine; each other number
+        means something specific. It is how one script's verdict can drive another's behaviour.</dd>
 
         <dt>gate</dt>
         <dd>A check placed so that work cannot proceed past it unnoticed. The opposite of a written
@@ -801,13 +785,13 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         <h3>Copy the files in, and stamp them</h3>
         <p>The process document under <code>docs/</code>, the scripts under <code>tools/</code>, and — if
         you use Claude Code — the skill to <code>.claude/skills/murderboard/</code>. Each copy carries a
-        one-line stamp saying which upstream commit it came from, so drift is visible. Use the repo's
-        <code>murderboard_revendor.py</code> rather than hand-editing the stamp.</p>
+        one-line stamp naming the commit it came from, so drift shows. Use the repo's
+        <code>murderboard_revendor.py</code>; editing the stamp by hand corrupts files.</p>
       </li>
       <li>
         <h3>Wire the gates so they fire without being remembered</h3>
-        <p>Freshness at session start as an early warning, and the roster check against every finished
-        report. This is the step that makes it a process instead of a good intention.</p>
+        <p>Freshness at session start, as an early warning. The roster check against every finished
+        report. This step is what makes it a process rather than a good intention.</p>
 <pre><span class="c"># session start — silent unless your copy is stale</span>
 bash tools/murderboard_freshness.sh <span class="k">--hook</span>
 
@@ -816,10 +800,10 @@ bash tools/murderboard_roster.sh check REPORT.md</pre>
       </li>
       <li>
         <h3>Point the literature tool at your library</h3>
-        <p>Reviewers need real papers, not remembered ones. <code>fetch_paper.py</code> fetches only from
-        open-access hosts, caches what it gets, searches your curated library <em>before</em> downloading,
-        and adds anything paywalled to a want-list for a human instead of scraping it. It needs nothing
-        beyond Python 3, plus <code>pypdf</code> or <code>pdftotext</code> if you want text out of PDFs.</p>
+        <p>Reviewers need real papers, not remembered ones. <code>fetch_paper.py</code> fetches only
+        from open-access hosts, keeps what it gets, searches your own library <em>before</em> downloading,
+        and adds anything paywalled to a list for a human rather than scraping it. It needs Python 3, plus
+        <code>pypdf</code> or <code>pdftotext</code> to read PDFs.</p>
 <pre>export MURDERBOARD_LIT=<span class="k">"/path/to/your/pdf/library"</span>
 
 python3 tools/fetch_paper.py <span class="k">--have</span> smith attention   <span class="c"># check the library first</span>
@@ -829,27 +813,26 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
       <li>
         <h3>Make it the default, in writing</h3>
         <p>Add a rule to your project's instructions — <code>CLAUDE.md</code>, a contributing guide, a
-        team norm — that document deliverables go through the murderboard before delivery. The repo
-        ships a paragraph to paste. Skip this step and the files sit in the repository unused; the
-        preceding three steps are what make the rule enforceable, this one is what makes it a rule.</p>
+        team norm — that documents go through the murderboard before delivery. The repo ships a paragraph
+        to paste. Skip this and the files sit unused. The first three steps make the rule enforceable;
+        this one makes it a rule.</p>
       </li>
     </ol>
 
     <div class="two-up">
       <div class="card">
         <h3>If you use Claude Code</h3>
-        <p>Install the skill and run <code>/murderboard &lt;artifact&gt;</code>. It sequences the parts
-        that must not depend on memory: freshness gated at the moment of review rather than at startup,
-        the roster derived rather than recalled, the artifact resolved to the <em>built</em> file rather
-        than its generator and fingerprinted before and after, and a run record emitted and then checked
-        by the roster gate.</p>
+        <p>Install the skill and run <code>/murderboard &lt;artifact&gt;</code>. It runs the parts that
+        must not depend on memory: it checks freshness at the moment of review rather than at startup,
+        reads the roster from the process file, resolves the document to the <em>built</em> file rather
+        than its generator, fingerprints it before and after, and writes a record the roster gate then
+        checks.</p>
       </div>
       <div class="card">
         <h3>If you don't</h3>
-        <p>None of this requires AI. The eleven roles are a checklist; the gates are shell scripts.
-        Run the panel as human review — one person in eleven passes, or eleven people in one — under
-        the same output contract. The structure and the resulting record are what do the work, not the
-        identity of the reviewer.</p>
+        <p>None of this requires AI. The eleven roles are a checklist; the gates are shell scripts. Run
+        the panel as human review — one person in eleven passes, or eleven people in one — and hand back
+        the same three things. The structure and the record do the work, not the reviewer's identity.</p>
       </div>
     </div>
   </section>
@@ -864,19 +847,19 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
     </div>
     <div class="provenance">
       <p><strong>What review this page has had</strong>, since it argues that documents should say.</p>
-      <p>Drafted, self-reviewed, then given one <strong>outside pass by a second reviewer</strong>,
-      whose findings — a false self-containment claim, an audience wider in the commit message than
-      on the page, and a role-2 description that reproduced a rule's pre-2026-08-24 wording — are
-      applied above. That was one reviewer with four findings: <strong>not a murderboard run.</strong>
-      No role ledger, no blind pass, and roles 1, 3, 5, 9, 10 and 11 have never been run against it.</p>
-      <p>Which makes this page an honest example of its own subject: reviewed enough to be worth
-      reading, not enough to be quoted as verified. <span class="flag">⚠</span></p>
+      <p>Drafted, self-reviewed, then read once by a <strong>second reviewer</strong>. That reviewer
+      found four faults — a false claim that the page was self-contained, an audience described more
+      broadly in the commit message than on the page, and a role-2 description quoting a rule's older
+      wording — and all four are fixed above. One reviewer, four findings: <strong>not a murderboard
+      run.</strong> No role ledger, no blind pass. Roles 1, 3, 5, 9, 10, and 11 have never read it.</p>
+      <p>So the page is an honest example of its own subject: reviewed enough to be worth reading, not
+      enough to be quoted as verified. <span class="flag">⚠</span></p>
     </div>
 
-    <p class="colophon">The process document is the authority on what gets reviewed and by whom; it keeps
-    an appendix of the incidents behind each rule. The kit was extracted and generalized from a
-    calcium-imaging research project, where it grew out of real slop incidents — nothing in the core
-    carries that project's domain with it.</p>
+    <p class="colophon">The process document is the authority on what gets reviewed and by whom, and its
+    appendix records the incident behind each rule. The kit came out of a calcium-imaging research
+    project, where it grew from real incidents. Nothing in the core carries that project's subject
+    with it.</p>
   </footer>
 
 </div>
