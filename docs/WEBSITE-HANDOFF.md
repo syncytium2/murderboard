@@ -1,5 +1,22 @@
 # Handoff — publish the murderboard explainer to a real website
 
+> ## ✅ DONE — 2026-08-25. This job was carried out; the body below is the work order as
+> written, kept as a record.
+>
+> **The site is live at <https://murderboard.tonydefazio.com/>.** Read the rest as history,
+> not as instructions: the "Verified state" table describes the world *before* the work, so
+> its rows now read false in the present tense. Specifically — Pages **is** enabled (`main`
+> `/docs`), the explainer **is** published, and `murderboard.tonydefazio.com` **does**
+> resolve. The apex `tonydefazio.com` is still deliberately empty.
+>
+> What was done: the subdomain, the complete-document skeleton, and no analytics — the three
+> recommendations below. `docs/murderboard-explainer.html` was **renamed** to
+> `docs/index.html` (#36), so there is exactly one copy; `.nojekyll` and `CNAME` were added;
+> Cloudflare got one `CNAME murderboard → syncytium2.github.io`, DNS-only.
+>
+> This closes **residual flag 2** of `docs/reviews/explainer_murderboard_2026-08-25.md` — the
+> quirks-mode font split in the gates table — because the served page now carries a doctype.
+
 **Written 2026-08-25.** For a session that is not this one. Everything below marked
 "verified" was checked at that date; re-check anything load-bearing before acting on it.
 
