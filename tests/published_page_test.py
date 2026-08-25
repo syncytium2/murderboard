@@ -115,6 +115,62 @@ def check(src):
         if frag not in ids:
             bad.append("dead url(#%s) — an SVG marker/gradient that does not exist" % frag)
 
+    # 6. The footer stamp.
+    bad += check_stamp(src)
+
+    return bad
+
+
+# The day the site first served to the public. A LITERAL on purpose: a born-on
+# date that can be quietly edited is not a born-on date, it is just another
+# mutable field. If it ever legitimately changes, changing it here is the
+# deliberate act that should be.
+BORN = "2026-08-25"
+
+STAMP_RE = re.compile(r'<p class="stamp">(.*?)</p>', re.S)
+BORN_RE = re.compile(
+    r'Born\s*<time datetime="(\d{4}-\d{2}-\d{2})">(\d{4}-\d{2}-\d{2})</time>')
+VERSION_RE = re.compile(r'Version\s*<b>(\d+\.\d+\.\d+)</b>')
+UPDATED_RE = re.compile(
+    r'Updated\s*<time datetime="(\d{4}-\d{2}-\d{2})">(\d{4}-\d{2}-\d{2})</time>')
+
+
+def check_stamp(src):
+    """The footer must carry born-on, version and updated, and they must agree.
+
+    A stamp is only worth having if it cannot rot unnoticed. An `updated` older
+    than `born`, or a <time> whose machine-readable attribute disagrees with the
+    text beside it, is worse than no stamp at all: it looks maintained.
+    """
+    bad = []
+    m = STAMP_RE.search(src)
+    if not m:
+        return ['no <p class="stamp"> — the born/version/updated stamp is missing']
+    stamp = m.group(1)
+
+    b, v, u = BORN_RE.search(stamp), VERSION_RE.search(stamp), UPDATED_RE.search(stamp)
+    if not b:
+        bad.append("stamp has no well-formed Born <time> (YYYY-MM-DD)")
+    if not v:
+        bad.append("stamp has no well-formed Version <b>N.N.N</b>")
+    if not u:
+        bad.append("stamp has no well-formed Updated <time> (YYYY-MM-DD)")
+    if not (b and v and u):
+        return bad
+
+    # A <time> whose datetime disagrees with its visible text is the defect a
+    # reader cannot see and a machine reads the wrong way round.
+    if b.group(1) != b.group(2):
+        bad.append("Born datetime=%s but text reads %s" % (b.group(1), b.group(2)))
+    if u.group(1) != u.group(2):
+        bad.append("Updated datetime=%s but text reads %s" % (u.group(1), u.group(2)))
+
+    if b.group(1) != BORN:
+        bad.append("Born date changed: page says %s, the site was born %s"
+                   % (b.group(1), BORN))
+    if u.group(1) < b.group(1):
+        bad.append("Updated (%s) is before Born (%s)" % (u.group(1), b.group(1)))
+
     return bad
 
 
@@ -162,6 +218,20 @@ def main():
          lambda s: s.replace('href="#limits"', 'href="#no-such-section"', 1)),
         ("html element unclosed",
          lambda s: s.replace("</html>", "", 1)),
+        # The stamp rots in more ways than it is missing.
+        ("stamp removed entirely",
+         lambda s: re.sub(r'<p class="stamp">.*?</p>', "", s, flags=re.S)),
+        ("born date silently changed",
+         lambda s: s.replace('Born <time datetime="%s">%s' % (BORN, BORN),
+                             'Born <time datetime="2020-01-01">2020-01-01', 1)),
+        ("time datetime disagrees with its visible text",
+         lambda s: s.replace('<time datetime="%s">%s</time>' % (BORN, BORN),
+                             '<time datetime="%s">2019-05-05</time>' % BORN, 1)),
+        ("version malformed (not N.N.N)",
+         lambda s: s.replace("<b>0.1.0</b>", "<b>v0.1</b>", 1)),
+        ("updated older than born",
+         lambda s: s.replace('Updated <time datetime="%s">%s' % (BORN, BORN),
+                             'Updated <time datetime="2001-01-01">2001-01-01', 1)),
     ]
     for name, mutate in controls:
         if not check(mutate(src)):
