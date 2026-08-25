@@ -127,7 +127,6 @@ def check(src):
 # deliberate act that should be.
 BORN = "2026-08-25"
 
-STAMP_RE = re.compile(r'<p class="stamp">(.*?)</p>', re.S)
 BORN_RE = re.compile(
     r'Born\s*<time datetime="(\d{4}-\d{2}-\d{2})">(\d{4}-\d{2}-\d{2})</time>')
 VERSION_RE = re.compile(r'Version\s*<b>(\d+\.\d+\.\d+)</b>')
@@ -136,19 +135,19 @@ UPDATED_RE = re.compile(
 
 
 def check_stamp(src):
-    """The footer must carry born-on, version and updated, and they must agree.
+    """The page must carry born-on, version and updated, and they must agree.
 
     A stamp is only worth having if it cannot rot unnoticed. An `updated` older
     than `born`, or a <time> whose machine-readable attribute disagrees with the
     text beside it, is worse than no stamp at all: it looks maintained.
+
+    Searched document-wide ON PURPOSE. An earlier version required the stamp to
+    sit inside a particular element, and moving it from the footer to the
+    masthead broke the gate rather than the property — a gate that fails when
+    you rearrange the furniture teaches people to edit the gate.
     """
     bad = []
-    m = STAMP_RE.search(src)
-    if not m:
-        return ['no <p class="stamp"> — the born/version/updated stamp is missing']
-    stamp = m.group(1)
-
-    b, v, u = BORN_RE.search(stamp), VERSION_RE.search(stamp), UPDATED_RE.search(stamp)
+    b, v, u = BORN_RE.search(src), VERSION_RE.search(src), UPDATED_RE.search(src)
     if not b:
         bad.append("stamp has no well-formed Born <time> (YYYY-MM-DD)")
     if not v:
@@ -219,8 +218,10 @@ def main():
         ("html element unclosed",
          lambda s: s.replace("</html>", "", 1)),
         # The stamp rots in more ways than it is missing.
+        # Markup-agnostic, like the check itself: strip the three fields wherever
+        # they live rather than assuming the element that wraps them.
         ("stamp removed entirely",
-         lambda s: re.sub(r'<p class="stamp">.*?</p>', "", s, flags=re.S)),
+         lambda s: UPDATED_RE.sub("", VERSION_RE.sub("", BORN_RE.sub("", s)))),
         ("born date silently changed",
          lambda s: s.replace('Born <time datetime="%s">%s' % (BORN, BORN),
                              'Born <time datetime="2020-01-01">2020-01-01', 1)),
@@ -228,7 +229,7 @@ def main():
          lambda s: s.replace('<time datetime="%s">%s</time>' % (BORN, BORN),
                              '<time datetime="%s">2019-05-05</time>' % BORN, 1)),
         ("version malformed (not N.N.N)",
-         lambda s: s.replace("<b>0.1.0</b>", "<b>v0.1</b>", 1)),
+         lambda s: VERSION_RE.sub("Version <b>v0.1</b>", s, 1)),
         ("updated older than born",
          lambda s: s.replace('Updated <time datetime="%s">%s' % (BORN, BORN),
                              'Updated <time datetime="2001-01-01">2001-01-01', 1)),
