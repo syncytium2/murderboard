@@ -344,37 +344,35 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <div class="summary">
       <p class="eyebrow">Executive summary</p>
 
-      <p><b>The problem.</b> Documents ship claims that nobody checked against a source. A statistic
-      that disagrees with the run it summarizes; a citation that resolves and still credits the wrong
-      paper; a count that changes between sections; a caption that overclaims its figure. This is the
-      default outcome of any drafting process with no adversarial step between draft and delivery, and
-      it is not an artifact of machine writing — the failure modes below are documented in human
-      scholarship for as long as there has been scholarship. Faster drafting raises the cost of having
-      no review step. It did not create the problem.</p>
+      <p><b>The problem.</b> Documents go out with claims nobody checked. A number that disagrees
+      with the analysis it came from. A reference that exists but credits the wrong paper. A total
+      that changes between two pages. A caption claiming more than its figure shows. This happens
+      whenever nothing sits between writing a draft and sending it — no step where someone tries to
+      break it. People have done this for as long as they have written things down. Machines now do
+      it faster, and in better prose.</p>
 
-      <p><b>The response.</b> A written review process, eleven adversarial reviewer roles with defined
-      and non-overlapping scope, three shell gates, and one output contract. Project-neutral, vendored
-      into a repository rather than installed, Apache-2.0. Reviewers can be people or agents; the
-      process does not care which, and neither do its checks.</p>
+      <p><b>The response.</b> A written procedure, eleven reviewer roles that each attack the draft
+      from a different angle, three scripts that enforce the parts people forget, and a fixed format
+      for what comes back. It is free, tied to no particular field, and works the same whether the
+      reviewers are people or AI.</p>
 
-      <p><b>The mechanism.</b> Every sentence is either verifiable against a real source or ships
-      carrying a visible unverified flag. Every role runs on every deliverable — what scales to the
-      stakes is how they run, never which ones. Every run emits a per-role ledger, because a run that
-      fired seven of eleven roles and one that fired all eleven produced reports no reader could tell
-      apart. Three rules that used to be prose are now scripts with exit codes, wired to fire without
-      being remembered.</p>
+      <p><b>How it works.</b> Every sentence must either be checkable against something real — the
+      data, the code, a source someone actually opened — or carry a visible mark saying it is not.
+      All eleven roles run every time. The report names all eleven and says what each one found,
+      including the ones that found nothing, because otherwise a review that ran seven of them looks
+      exactly like a review that ran all eleven. The three rules people kept forgetting are now
+      scripts that run on their own.</p>
 
-      <p><b>The cost.</b> Real, and worth stating plainly. A substantial document takes eleven reviewer
-      passes, a pass to adjudicate the findings and apply them, and then a further review of the
-      <em>repaired</em> document — because the characteristic failure of this stage is a fix that breaks
-      something it was not aimed at. Short deliverables do not get that treatment: what scales to the
-      stakes is how the roles are run, never which ones.</p>
+      <p><b>The cost.</b> Eleven reviewers read the draft. One person decides which of their findings
+      to act on and makes the fixes. Then the corrected document is read again, because fixes break
+      things. A caption or a one-line summary does not get eleven reviewers — one person walks the
+      same eleven checklists in a single pass. The effort scales down; the coverage does not.</p>
 
-      <p class="last"><b>The limits.</b> A clean run is evidence the roles ran. It is not evidence the
-      document is correct. The process does not supply domain expertise it does not have, and a
-      competent expert reading their own field will catch things it misses entirely. The rule set is
-      incomplete by construction — every rule in it was added after a defect got through — and it is
-      meant to keep changing. <b>Caveat emptor.</b></p>
+      <p class="last"><b>The limits.</b> A clean report proves the reviewers did their jobs. It does
+      not prove the document is right. It cannot supply knowledge nobody involved has — an expert in
+      the field will catch, half asleep, things this misses entirely. And it is unfinished on
+      purpose: every rule here was added after something slipped through, so it covers the mistakes
+      already made and nothing else. Expect to add to it. <b>Caveat emptor.</b></p>
     </div>
 
     <nav class="jump">
