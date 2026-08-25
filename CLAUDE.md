@@ -7,6 +7,13 @@ process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`,
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 
+**The repo has a public website: <https://murderboard.tonydefazio.com/>.** It is served by
+GitHub Pages from `main` + `/docs`, so **`docs/index.html` is live** — a push to `main` that
+touches it deploys it, with no review step in between. That file is the explainer, it is the
+*only* copy (two copies drift; this repo has already had that failure), and its invariants are
+enforced by `tests/published_page_test.py` in CI. Do not add a second copy, and do not point
+anything at `docs/murderboard-explainer.html` — that was its name before #36.
+
 **The division of labour matters when editing.** `doc_review_process.md` is the authority on
 *what* gets reviewed and by whom; the skill owns only *how the review is summoned* — the parts
 that must not depend on being remembered. A new **rule** goes in the process file. A new step
@@ -22,6 +29,11 @@ they ended up as prose in the first place.
   (`IF2_LIT`/`IF2_PAPERS`, the `01-lit` autodetect). New machinery is env-driven.
 - `fetch_paper.py` has no external dependencies beyond the standard library (+ optional
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
+- **`docs/index.html` loads nothing over the network** — no webfont, no script, no analytics,
+  no CDN. The page says so in a comment at its own top, and the claim is what makes "renders
+  the same opened from disk, air-gapped, or behind a captive portal" true. Breaking it is
+  invisible on the machine of whoever breaks it, so `tests/published_page_test.py` gates it.
+  If analytics is ever wanted, that is a decision to raise, not a change to slip in.
 - After any change, bump nothing automatically — consumers re-vendor deliberately and stamp
   the commit they took (see README "Vendoring"). Just commit and push here.
 - **This repo is PUBLIC (Apache-2.0).** Two rules follow, and neither is optional:
