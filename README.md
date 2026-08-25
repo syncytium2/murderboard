@@ -3,6 +3,10 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22063835.svg)](https://doi.org/10.5281/zenodo.22063835)
 [![gates](https://github.com/syncytium2/murderboard/actions/workflows/ci.yml/badge.svg)](https://github.com/syncytium2/murderboard/actions/workflows/ci.yml)
 
+**[murderboard.tonydefazio.com](https://murderboard.tonydefazio.com/)** — the explainer, as a
+page you can read: what this is, the one rule, the eleven roles, and what you hand over. Written
+for someone deciding whether to adopt it.
+
 ## ▶ [**START HERE**](START-HERE.md) — new to this? Two minutes, no install, no Claude needed.
 
 **In a hurry:** open **[PROMPT.md](PROMPT.md)**, copy the block, paste it into any AI chat,
