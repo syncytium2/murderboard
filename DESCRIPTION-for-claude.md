@@ -122,8 +122,10 @@ them and needs a role whose unit matches (agents 9 and 11).
    **missing**, not just the present (how many values are blank/NA?), and when a
    deliverable *regenerates* something, diffs it against what it replaces and accounts for
    every difference including row count.
-2. **Citation & reference validator — "DOI or Die."** Confirms every reference exists and is
-   correctly attributed; zero tolerance for fabricated or guessed bibliographic metadata;
+2. **Citation & reference validator — "DOI or Die."** Confirms every reference exists, says what
+   is quoted, and **is the origin** — traced back to where the claim started and forward to what
+   its authors did next; existence and correct attribution are only half the check. Zero
+   tolerance for fabricated or guessed bibliographic metadata;
    never verifies a claim against a half-remembered paper — gets the text via the lit-cache
    protocol or flags it.
 3. **Consistency auditor — "Cross-Examiner."** Cross-checks within the document and against
