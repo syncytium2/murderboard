@@ -298,6 +298,23 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      novel, unattributed, or "ours", the reportable finding is never "looks fine" — it is
      *"searched X and Y; did not search Z"*. **An unsearched field is a residual `⚠`, not an
      absence of prior art.**
+   - **Trace FORWARD as well as backward — the origin is not the only place the answer hides.**
+     Following citations back finds where a method came from. It does not find where its authors
+     took it *next*, and when a deliverable wraps someone's tool or measure, that is usually where
+     the closest prior art for the **wrapping** lives. So for any third-party tool, measure or
+     library the deliverable builds on, **the authors' own later applied papers are a required
+     search target, not an optional field** — read the tool's publication page, not only the paper
+     it was introduced in. A citation set can be complete back to 1968 and still miss the paper
+     the same author published last year doing exactly what the deliverable claims as its own.
+   - **Ask what the humans hold. Correspondence is a source.** Before reporting that a claim is
+     unattributed, or that prior art could not be found, ask the people involved whether anyone
+     **has already asked someone** — an email to a tool's author, a reviewer exchange, a
+     conference conversation, an enquiry that was answered months ago and never written down.
+     That evidence is real, it is frequently decisive, and it is invisible to every literature
+     search that will ever be run. It is also the **cheapest check in this document**: one
+     question, no database, no paywall. **"Nobody was asked" is a residual `⚠`**, recorded exactly
+     like an unsearched field. Where correspondence exists, quote it and date it — a personal
+     communication is citable, and an undated one is not checkable.
 3. **Consistency auditor — "Cross-Examiner."** Cross-check **within** the document and **against companion
    docs**: counts, totals, terminology, cross-references, and figure↔text agreement. Flag
    every contradiction. **Watch for one population counted on different bases** (per-detector flags vs
@@ -1046,6 +1063,29 @@ seriously than a rule stated in the abstract.
   honestly: that run was executed single-pass on a substantial report where the process prescribes
   parallel subagents, so conformance was also short — which is why the size rule may no longer
   collapse role 2 on an attribution deliverable.
+- **The rule fired; the class did not close** (the same attribution report, re-reviewed 2026-08-24)
+  — the fix above was tested by re-running the repaired process **blind** on the same report at
+  the commit before its correction, in two independent arms that could not see each other and were
+  not told a defect had been missed. **Both caught the wrong laboratory**, independently, from
+  PubMed affiliations; a third delivery caught it again. So the origin rule works on the defect it
+  was written for.
+  Then the tool's author supplied ground truth nobody in the estate had: an email answering the
+  exact question, sent **2026-04-23, four months before the report was written** — naming his own
+  applied papers (Cecchini et al. 2022; Kreuz et al. 2024) doing the very construction the report
+  claimed as "ours", and pointing at Mainen & Sejnowski 1995 for a second claim, closing *"I was
+  kind of hoping you'd find it on your own."* **Every arm missed all of it.** Both had written, in
+  nearly identical words, that the report *"verified everything present and never asked what was
+  absent"* — and then did the same thing one level down: they reached for radar, seismology,
+  astronomy and econometrics while never checking the measure author's *later* work, and never
+  asking whether anyone had simply written to him. Someone had. The reply was in an inbox the
+  whole time. Hence the two rules above: **trace forward, and ask what the humans hold.** Lesson:
+  a rule patched to catch one instance of a defect class does not close the class, and the
+  cheapest source in the room is the one no search strategy will ever return.
+  > ⚠ **This appendix is an answer key.** These entries name the defects, the papers and the
+  > laboratories, so a blind re-run against a case recorded here is contaminated by the process
+  > document itself — the 2026-08-24 arms had this bullet's predecessor withheld for exactly that
+  > reason. When re-testing on a recorded case, redact its entry and say that you did; when
+  > choosing a case, prefer one that is **not** written down here.
 - **A green check that had stopped measuring what its name claimed** (the freshness gate's own
   selftest, 2026-08) — the case named `clone guesses are slug-scoped` existed to prove the gate's
   built-in clone guesses are admissible for its own upstream and refused for anyone else's. It
