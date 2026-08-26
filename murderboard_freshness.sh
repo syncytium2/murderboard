@@ -137,7 +137,9 @@ VERBOSE=0; FORCE_UPSTREAM=; ONE_FILE=; REFRESH=0; HOOK=0; DEFER=
 STAMP_CONFLICTED=0
 FROM_GIT=          # --from-git DIR: read the version from a checkout's HEAD, not a stamp
 PLUGIN_DIR=        # --plugin DIR:   read it from the Claude Code plugin install registry
-INSTALLED=0        # set when either of the above wins: the copy is INSTALLED, not vendored
+PLUGIN_NAME="${MURDERBOARD_PLUGIN_NAME:-murderboard}"   # name inside marketplace.json
+INSTALLED_VERSION=; INSTALLED_SHA=
+INSTALLED=0        # set for --from-git: the copy is INSTALLED, not vendored
 
 # What this run is checking. The tool started life murderboard-only, but the SAME staleness
 # failure runs in the other direction too — a consumer's vendored copy of some OTHER
@@ -235,7 +237,8 @@ stamp_from_install() {
     CHECKOUT_WHY="no python on PATH to read the plugin registry, so the installed commit cannot be determined"
     return 1
   fi
-  # Prints "SHA SOURCEREPO" (SOURCEREPO empty for a local/directory marketplace), or nothing.
+  # Prints "VERSION SHA SOURCEREPO"; SHA and SOURCEREPO may be "-" (a local/directory
+  # marketplace names no repo). Empty output means no entry for that path.
   out=$("$py" - "$dir" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" <<'PYEOF' 2>/dev/null
 import json, os, sys
 want, cfg = os.path.realpath(sys.argv[1]), sys.argv[2]
@@ -252,11 +255,10 @@ for key, entries in (inst.get("plugins") or {}).items():
     for e in entries or []:
         if os.path.realpath(e.get("installPath", "")) != want:
             continue
-        sha = e.get("gitCommitSha") or ""
         mkt = key.split("@")[-1] if "@" in key else ""
         src = (mkts.get(mkt) or {}).get("source") or {}
-        repo = src.get("repo") or "" if src.get("source") == "github" else ""
-        print(sha, repo)
+        repo = (src.get("repo") or "") if src.get("source") == "github" else ""
+        print(e.get("version") or "-", e.get("gitCommitSha") or "-", repo or "-")
         sys.exit(0)
 PYEOF
 )
@@ -264,13 +266,18 @@ PYEOF
     CHECKOUT_WHY="$dir is not a registered plugin install (no installed_plugins.json entry for that path)"
     return 1
   fi
-  local sha="${out%% *}" repo="${out#* }"
-  [ "$repo" = "$sha" ] && repo=
-  case "$sha" in
-    [0-9a-f]*) : ;;
-    *) CHECKOUT_WHY="the plugin registry has no gitCommitSha for $dir, so its version is unknown"
-       return 1 ;;
-  esac
+  local ver sha repo
+  read -r ver sha repo <<EOF
+$out
+EOF
+  [ "$repo" = "-" ] && repo=
+  [ "$sha" = "-" ] && sha=
+  INSTALLED_VERSION="$ver"
+  INSTALLED_SHA="$sha"
+  if [ "$ver" = "-" ] || [ -z "$ver" ]; then
+    CHECKOUT_WHY="the plugin registry records no version for $dir, so there is nothing to compare"
+    return 1
+  fi
   # Same identity rule as --from-git, and for the same reason: a sha compared against the
   # wrong upstream yields a confident verdict about a repository never looked at. A
   # DIRECTORY-source marketplace names no repo and cannot be checked this way; that is the
@@ -282,6 +289,90 @@ PYEOF
   fi
   [ -z "$repo" ] && VERDICT_NOTE="installed from a local marketplace, so its origin repo is unverified"
   STAMP="$sha"
+  return 0
+}
+
+# Upstream's ADVERTISED plugin version — the number the installer compares against.
+# Fetched from the marketplace manifest on the upstream default branch. Public raw URL: no
+# auth, so this works for a stranger with no gh CLI configured.
+upstream_plugin_version() {
+  # The explicit answer comes FIRST: it needs no network, so the offline flag must not
+  # suppress it. (It did, and every version case in the selftest returned "cannot reach".)
+  [ -n "${MURDERBOARD_PLUGIN_VERSION:-}" ] && { printf '%s\n' "$MURDERBOARD_PLUGIN_VERSION"; return 0; }
+  [ -n "${MURDERBOARD_NO_NET:-}" ] && return 1
+  local py=
+  for c in python3 python; do have "$c" && { py=$c; break; }; done
+  [ -z "$py" ] && return 1
+  CAP "$NET_CAP" "$py" - "$REPO_SLUG" "$PLUGIN_NAME" <<'PYEOF' 2>/dev/null
+import json, sys, urllib.request
+slug, name = sys.argv[1], sys.argv[2]
+RAW = f"https://raw.githubusercontent.com/{slug}/HEAD"
+
+
+def get(path):
+    try:
+        with urllib.request.urlopen(f"{RAW}/{path}", timeout=10) as r:
+            return json.load(r)
+    except Exception:
+        return None
+
+
+doc = get(".claude-plugin/marketplace.json")
+if doc is None:
+    sys.exit(1)
+entry = next((p for p in (doc.get("plugins") or [])
+              if isinstance(p, dict) and p.get("name") == name), None)
+if entry is None:
+    sys.exit(1)
+if entry.get("version"):
+    print(entry["version"])
+    sys.exit(0)
+# A marketplace entry MAY omit the version and leave it in the plugin's own manifest --
+# 289 of the 289 entries in anthropics/claude-plugins-official do exactly that. Follow the
+# entry's source to find it, rather than reporting "cannot reach" for a repo just answered.
+src = entry.get("source")
+sub = ""
+if isinstance(src, str) and not src.startswith(("http", "git@")):
+    # Trim exactly the leading "./" and any trailing "/" -- NOT str.strip("./"), which
+    # strips those characters as a SET from both ends and would eat a real path segment
+    # (a source of "./plugins/v1.0/" comes back as "plugins/v1", silently wrong).
+    sub = src[2:] if src.startswith("./") else src
+    sub = sub.strip("/")
+path = "/".join(x for x in (sub, ".claude-plugin/plugin.json") if x)
+man = get(path)
+if isinstance(man, dict) and man.get("version"):
+    print(man["version"])
+    sys.exit(0)
+sys.exit(1)
+PYEOF
+}
+
+# Compare two dotted versions. 0 = same, 1 = $1 older than $2, 2 = $1 newer.
+# Numeric per component, so 0.10.0 ranks above 0.9.0 — a string compare gets that backwards,
+# and getting it backwards here means telling a current install it is stale.
+version_cmp() {
+  local a="$1" b="$2" ia ib i n
+  local -a A B
+  IFS=. read -r -a A <<EOF
+$a
+EOF
+  IFS=. read -r -a B <<EOF
+$b
+EOF
+  n=${#A[@]}; [ ${#B[@]} -gt "$n" ] && n=${#B[@]}
+  # RANKABILITY IS CHECKED FIRST, over every component of both versions, not inside the
+  # comparison loop. Checked inline, an earlier difference short-circuits and returns a
+  # confident verdict before the unrankable component is ever looked at: 0.10.0 vs
+  # 0.11.0-rc1 answered "STALE" on the strength of 10 < 11, having silently not understood
+  # the version it was ranking against.
+  for ((i = 0; i < n; i++)); do
+    case "${A[i]:-0}${B[i]:-0}" in *[!0-9]*) return 3 ;; esac
+  done
+  for ((i = 0; i < n; i++)); do
+    ia=${A[i]:-0}; ib=${B[i]:-0}
+    [ "$ia" -lt "$ib" ] && return 1
+    [ "$ia" -gt "$ib" ] && return 2
+  done
   return 0
 }
 
@@ -782,22 +873,29 @@ selftest() {
   ( cd "$tmp/unborn" && git init -q . && git remote add origin https://github.com/fam/plug.git ) >/dev/null 2>&1
   fg "an unborn HEAD is undetermined" 2 "$tmp/unborn" "$inst_head"
 
-  # --- --plugin: an INSTALLED plugin is a plain copy with a registry entry -------
-  # Not a checkout — verified 2026-08-26 by installing this plugin and looking. The commit
-  # lives in installed_plugins.json, so the fixture is a fake CLAUDE_CONFIG_DIR.
+  # --- --plugin: judged on the VERSION, because that is what the updater acts on ---
+  # An installed plugin is a plain copy with a registry entry (verified 2026-08-26 by
+  # installing this one and looking), so the fixture is a fake CLAUDE_CONFIG_DIR.
+  #
+  # The comparison under test is installed version vs upstream's advertised version, NOT
+  # the commit: `claude plugin update` keys on the version string, so a sha-based verdict
+  # sends the user to a command that reports success and changes nothing.
   mkdir -p "$tmp/cfg/plugins" "$tmp/pluginst" 2>/dev/null
   echo body > "$tmp/pluginst/a"
   reg="$tmp/cfg/plugins/installed_plugins.json"
   mkt="$tmp/cfg/plugins/known_marketplaces.json"
-  printf '{"version":2,"plugins":{"p@m":[{"scope":"user","installPath":"%s","version":"0.1.0","gitCommitSha":"%s"}]}}\n' \
-         "$tmp/pluginst" "$inst_head" > "$reg"
+  writereg() { # version [sha]
+    printf '{"version":2,"plugins":{"murderboard@m":[{"scope":"user","installPath":"%s","version":"%s"%s}]}}\n' \
+           "$tmp/pluginst" "$1" "${2:+,\"gitCommitSha\":\"$2\"}" > "$reg"
+  }
+  writereg 0.2.0 "$inst_head"
   printf '{"m":{"source":{"source":"github","repo":"fam/plug"}}}\n' > "$mkt"
 
-  pl() { # name expected_rc dir upstream
-    local name="$1" want="$2" dir="$3" up="$4" got
+  pl() { # name expected_rc dir upstream_version
+    local name="$1" want="$2" dir="$3" upv="$4" got
     out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-pl" \
-          CLAUDE_CONFIG_DIR="$tmp/cfg" \
-          bash "$SELF" --slug fam/plug --plugin "$dir" --upstream "$up" --verbose 2>&1); got=$?
+          CLAUDE_CONFIG_DIR="$tmp/cfg" MURDERBOARD_PLUGIN_VERSION="$upv" \
+          bash "$SELF" --slug fam/plug --plugin "$dir" --verbose 2>&1); got=$?
     if [ "$got" -eq "$want" ]; then
       printf '  %sPASS%s  %-34s (rc=%s)\n' "$GRN" "$RST" "$name" "$got"
     else
@@ -808,19 +906,30 @@ selftest() {
   }
 
   if have python3 || have python; then
-    pl "plugin at recorded sha SILENT"  0 "$tmp/pluginst" "$inst_head"
-    pl "plugin behind upstream FIRES"   1 "$tmp/pluginst" "0123456789abcdef0123456789abcdef01234567"
+    pl "same version is SILENT"         0 "$tmp/pluginst" "0.2.0"
+    pl "an older install FIRES"         1 "$tmp/pluginst" "0.3.0"
+    # A developer running a build newer than upstream is not stale. Accusing them costs a
+    # pointless reinstall and teaches them the gate cries wolf.
+    pl "an AHEAD install is silent"     0 "$tmp/pluginst" "0.1.0"
+    # NUMERIC, not lexical. "0.10.0" > "0.9.0" as versions and < as strings; a string
+    # compare here tells a current install it is stale, every time, forever.
+    writereg 0.10.0 "$inst_head"
+    pl "0.10.0 outranks 0.9.0"          0 "$tmp/pluginst" "0.9.0"
+    pl "0.10.0 is behind 0.11.0"        1 "$tmp/pluginst" "0.11.0"
+    # Unrankable is undetermined, never "current".
+    pl "a prerelease tag is 2"          2 "$tmp/pluginst" "0.11.0-rc1"
+    writereg 0.2.0 "$inst_head"
     # A directory not in the registry must not be guessed at.
-    pl "unregistered dir is 2"          2 "$tmp/notgit"   "$inst_head"
+    pl "unregistered dir is 2"          2 "$tmp/notgit"   "0.2.0"
 
-    # The other half of the per-mode remedy check: a stale PLUGIN must name the installer,
-    # and must NOT tell the user to pull a checkout that does not exist.
+    # A stale PLUGIN must name the installer, and must NOT tell the user to pull a
+    # checkout that does not exist. (The --from-git half is asserted above.)
     pl_says=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-pl" \
-      CLAUDE_CONFIG_DIR="$tmp/cfg" bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" \
-      --upstream 0123456789abcdef0123456789abcdef01234567 2>&1 | grep -ci 'plugin update')
+      CLAUDE_CONFIG_DIR="$tmp/cfg" MURDERBOARD_PLUGIN_VERSION=9.9.9 \
+      bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" 2>&1 | grep -ci 'plugin update')
     pl_nopull=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-pl" \
-      CLAUDE_CONFIG_DIR="$tmp/cfg" bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" \
-      --upstream 0123456789abcdef0123456789abcdef01234567 2>&1 | grep -ci 'pull the checkout')
+      CLAUDE_CONFIG_DIR="$tmp/cfg" MURDERBOARD_PLUGIN_VERSION=9.9.9 \
+      bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" 2>&1 | grep -ci 'pull the checkout')
     if [ "${pl_says:-0}" -ge 1 ] && [ "${pl_nopull:-0}" -eq 0 ]; then
       printf '  %sPASS%s  %-34s\n' "$GRN" "$RST" "stale plugin says: update it"
     else
@@ -829,13 +938,13 @@ selftest() {
       fails=$((fails+1))
     fi
 
-    # NEGATIVE CONTROL — the registry entry exists but the marketplace it came from is a
-    # DIFFERENT github repo. The sha is real and every comparison downstream would run;
-    # only the identity check stops a confident verdict about a repo never looked at.
+    # NEGATIVE CONTROL — the entry exists but its marketplace is a DIFFERENT github repo.
+    # Every comparison downstream would run to completion; only the identity check stops a
+    # confident verdict about a repository never looked at.
     printf '{"m":{"source":{"source":"github","repo":"someone/else"}}}\n' > "$mkt"
     out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-pl2" \
-          CLAUDE_CONFIG_DIR="$tmp/cfg" \
-          bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" --upstream "$inst_head" 2>&1); pwrong=$?
+          CLAUDE_CONFIG_DIR="$tmp/cfg" MURDERBOARD_PLUGIN_VERSION=0.2.0 \
+          bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" 2>&1); pwrong=$?
     if [ "$pwrong" -eq 2 ]; then
       printf '  %sPASS%s  %-34s (rc=2)\n' "$GRN" "$RST" "wrong-marketplace plugin is 2"
     else
@@ -843,11 +952,23 @@ selftest() {
              "$RED" "$RST" "wrong-marketplace plugin is 2" "$pwrong"; fails=$((fails+1))
     fi
 
-    # An entry with no recorded commit must be undetermined, never "current".
+    # An entry with no version cannot be ranked -> undetermined, never "current".
     printf '{"m":{"source":{"source":"github","repo":"fam/plug"}}}\n' > "$mkt"
-    printf '{"version":2,"plugins":{"p@m":[{"scope":"user","installPath":"%s","version":"0.1.0"}]}}\n' \
+    printf '{"version":2,"plugins":{"murderboard@m":[{"scope":"user","installPath":"%s"}]}}\n' \
            "$tmp/pluginst" > "$reg"
-    pl "a shaless entry is 2"           2 "$tmp/pluginst" "$inst_head"
+    pl "a versionless entry is 2"       2 "$tmp/pluginst" "0.2.0"
+
+    # --hook must NEVER block on the network, even with a cold cache: silent, rc 0.
+    writereg 0.2.0 "$inst_head"
+    hookout=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/coldplug" \
+              CLAUDE_CONFIG_DIR="$tmp/cfg" \
+              bash "$SELF" --hook --plugin "$tmp/pluginst" --slug fam/plug 2>&1); hrc=$?
+    if [ "$hrc" -eq 0 ] && [ -z "$hookout" ]; then
+      printf '  %sPASS%s  %-34s (rc=0, silent)\n' "$GRN" "$RST" "--hook cold plugin cache silent"
+    else
+      printf '  %sFAIL%s  %-34s (rc=%s, out=%s)\n' \
+             "$RED" "$RST" "--hook cold plugin cache silent" "$hrc" "$hookout"; fails=$((fails+1))
+    fi
   else
     printf '  %sSKIP%s  %-34s (no python on PATH)\n' "$YEL" "$RST" "--plugin registry cases"
   fi
@@ -873,6 +994,7 @@ ${2:-}"; shift ;;
 $CLONE_CANDIDATES"; shift ;;
     --from-git)    FROM_GIT="${2:-}"; shift ;;
     --plugin)      PLUGIN_DIR="${2:-}"; shift ;;
+    --plugin-name) PLUGIN_NAME="${2:-}"; shift ;;
     --upstream)    FORCE_UPSTREAM="${2:-}"; shift ;;
     --refresh)     REFRESH=1 ;;
     --hook)        HOOK=1 ;;
@@ -915,18 +1037,84 @@ if gitout=$(git rev-parse --show-toplevel --git-common-dir 2>/dev/null); then
   [ -n "$cm" ] || cm=.
 fi
 
-target=; stamp=; TRUST_FILE=
+# --- --plugin: judge an install by the number its updater acts on ----------------
+#
+# MEASURED 2026-08-26, and it overturned the obvious design. This first compared the
+# install's recorded gitCommitSha against upstream HEAD — precise, tamper-proof, and
+# USELESS, because `claude plugin update` keys on the VERSION STRING: with plugin.json
+# unchanged it answers "already at the latest version (0.1.0)" and does nothing, no matter
+# how far the commit has moved. A gate that reports STALE and then hands over a remedy that
+# exits successfully without updating anything is worse than no gate — it burns the user's
+# trust once and is ignored forever after.
+#
+# So the comparison is the one the installer will actually make: installed version vs the
+# version upstream advertises in .claude-plugin/marketplace.json. The sha is still printed,
+# because it says WHICH commit is on disk, but it is not the verdict.
+#
+# THE COST, stated plainly: this makes freshness depend on a hand-maintained number, which
+# is the weakness the sha did not have. A release that forgets to bump the version is
+# invisible here. That is not a reason to compare shas instead — it is the same discipline
+# the installer already requires of the maintainer, since without a bump nobody's `/plugin
+# update` does anything either. CI carries the bump check (plugin_manifest_test.py).
 if [ -n "$PLUGIN_DIR" ]; then
   if ! stamp_from_install "$PLUGIN_DIR"; then
     echo "${YEL}$LABEL: freshness UNKNOWN — $CHECKOUT_WHY.${RST}"
     exit 2
   fi
-  target="$PLUGIN_DIR"; stamp=$STAMP; INSTALLED=1
-  # The registry is what an update rewrites, so it — not the copied tree — is what the
-  # cache trust test must age against.
-  TRUST_FILE="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/installed_plugins.json"
-  [ -r "$TRUST_FILE" ] || TRUST_FILE="$PLUGIN_DIR"
-elif [ -n "$FROM_GIT" ]; then
+
+  # CACHED, and for the same reason the sha path is: this runs in a SessionStart hook. The
+  # cache lives beside the plugin registry rather than in a git common dir — a plugin user
+  # need not be inside a repository at all, and the sha path's cache location assumes one.
+  now
+  pv_key=$(printf '%s' "$REPO_SLUG/$PLUGIN_NAME" | tr -c 'A-Za-z0-9' '-')
+  pv_cache="${MURDERBOARD_CACHE:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/.murderboard-plugver.$pv_key}"
+  up_ver=; pv_expires=0
+  if [ "$REFRESH" -eq 0 ] && [ -z "${MURDERBOARD_PLUGIN_VERSION:-}" ]; then
+    read -r up_ver pv_expires 2>/dev/null < "$pv_cache" || { up_ver=; pv_expires=0; }
+    [ "${pv_expires:-0}" -gt "$NOW" ] 2>/dev/null || up_ver=
+  fi
+  if [ -z "$up_ver" ]; then
+    if [ "$HOOK" -eq 1 ]; then
+      # Never block session startup on a lookup. Refresh detached and say nothing now; the
+      # next session judges on a warm cache. One silent session beats a slow one.
+      spawn_bg bash "$SELF" --refresh --plugin "$PLUGIN_DIR" --slug "$REPO_SLUG" \
+                            --plugin-name "$PLUGIN_NAME" --label "$LABEL"
+      exit 0
+    fi
+    up_ver=$(upstream_plugin_version) || up_ver=
+    [ -n "$up_ver" ] && [ -z "${MURDERBOARD_PLUGIN_VERSION:-}" ] && \
+      printf '%s %s\n' "$up_ver" "$((NOW + TTL))" > "$pv_cache" 2>/dev/null
+  fi
+  if [ -z "$up_ver" ]; then
+    echo "${YEL}$LABEL: cannot reach $REPO_SLUG to ask what version it publishes — freshness UNKNOWN.${RST}"
+    echo "   installed: $INSTALLED_VERSION${INSTALLED_SHA:+ (commit ${INSTALLED_SHA%${INSTALLED_SHA#???????}})}"
+    exit 2
+  fi
+  version_cmp "$INSTALLED_VERSION" "$up_ver"; vc=$?
+  case $vc in
+    0|2)  # same, or the install is AHEAD (a developer running their own build)
+      [ "$VERBOSE" -eq 1 ] && {
+        echo "${GRN}$LABEL: current${RST} (installed $INSTALLED_VERSION, upstream $up_ver)"
+        [ -n "$VERDICT_NOTE" ] && echo "   note: $VERDICT_NOTE"; }
+      exit 0 ;;
+    3)
+      echo "${YEL}$LABEL: freshness UNKNOWN — cannot rank version '$INSTALLED_VERSION' against '$up_ver'.${RST}"
+      exit 2 ;;
+  esac
+  echo "${RED}--- !! $(printf '%s' "$LABEL" | tr '[:lower:]' '[:upper:]') IS STALE — update before relying on it ---${RST}"
+  echo "   installed: $INSTALLED_VERSION   upstream: $up_ver"
+  echo "   install:   $PLUGIN_DIR${INSTALLED_SHA:+   (commit ${INSTALLED_SHA%${INSTALLED_SHA#???????}})}"
+  [ -n "$VERDICT_NOTE" ] && echo "   note:      $VERDICT_NOTE"
+  [ "$LABEL" = murderboard ] && \
+  echo "   A review run against a stale process silently omits rules already paid for."
+  echo "   This copy is an INSTALL, not a vendored set: update it in place, do not re-vendor."
+  echo "   Run  /plugin update $LABEL  (or: claude plugin update $LABEL). Do not hand-edit"
+  echo "   files under that path; the next update replaces the whole tree."
+  exit 1
+fi
+
+target=; stamp=; TRUST_FILE=
+if [ -n "$FROM_GIT" ]; then
   INSTALLED=1
   # An INSTALLED copy. Its version is HEAD, so none of the stamp-shaped failures below
   # (conflict markers in a header, a missing stamp, disagreeing stamps across the set) can
@@ -1114,14 +1302,9 @@ fi
 [ "$LABEL" = murderboard ] && \
 echo "   A review run against a stale process silently omits rules already paid for."
 if [ "$INSTALLED" -eq 1 ]; then
-  echo "   This copy is an INSTALL, not a vendored set: update it in place, do not re-vendor."
-  if [ -n "$PLUGIN_DIR" ]; then
-    # There is no checkout here to pull — the install is a plain copy the installer made.
-    echo "   Run  /plugin update $LABEL  (or: claude plugin update $LABEL). Do not hand-edit"
-    echo "   files under that path; the next update replaces the whole tree."
-  else
-    echo "   Pull the checkout above. Do not hand-edit files there; the next pull conflicts."
-  fi
+  # Reached only for --from-git; --plugin has its own verdict block and exits before here.
+  echo "   This copy is a CHECKOUT, not a vendored set: pull the checkout, do not re-vendor."
+  echo "   Do not hand-edit files there; the next pull conflicts."
 else
   echo "   Re-copy from $REPO_SLUG and bump the stamp on EVERY vendored file of this"
   echo "   family, then land it on the DEFAULT BRANCH — vendoring onto a leaf branch"
