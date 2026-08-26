@@ -87,13 +87,7 @@ travel with the project or with the person.
    four tools under `tools/`, and `skills/murderboard/SKILL.md` to
    `.claude/skills/murderboard/SKILL.md` — and stamp each with the upstream commit you copied
    from, so drift is visible. See "Vendoring" below.
-2. **Point the lit tool at your library** by setting `MURDERBOARD_LIT` to a directory of
-   PDFs (ideally on a synced/shared drive so the cache is shared across machines):
-   ```
-   export MURDERBOARD_LIT="/path/to/your/lit"
-   python3 tools/fetch_paper.py --have <author> <keyword>
-   ```
-3. **Wire the gates so they fire without being remembered.** Freshness at session start
+2. **Wire the gates so they fire without being remembered.** Freshness at session start
    (early warning) and again inside the skill at the moment of review (the actual gate);
    coverage against the finished report:
    ```
@@ -112,6 +106,12 @@ travel with the project or with the person.
    family's files are not reported as wrongly stamped. Each family caches upstream HEAD
    under its own key — a shared cache would compare one family's HEAD against another's
    stamp and be confidently wrong in both directions.
+3. **Point the lit tool at your library** by setting `MURDERBOARD_LIT` to a directory of
+   PDFs (ideally on a synced/shared drive so the cache is shared across machines):
+   ```
+   export MURDERBOARD_LIT="/path/to/your/lit"
+   python3 tools/fetch_paper.py --have <author> <keyword>
+   ```
 4. **Invoke it from your `CLAUDE.md`.** Add a rule that document deliverables run through the
    murderboard before delivery — pointing at `/murderboard` where the skill is installed, and
    at `doc_review_process.md` otherwise. See this repo's [`CLAUDE.md`](CLAUDE.md) for a

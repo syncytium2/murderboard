@@ -28,12 +28,12 @@ is the only reason it was noticed.
   carries no vendored stamp, so there is nothing to compare. Not a skipped gate; the gate ran
   and correctly declined to answer.
 - artifacts:
-  - `README.md` (`19845f1de1fc` → `c26d8f517a5e`)
+  - `README.md` (`19845f1de1fc` → `53119d6a6da5`)
   - `docs/index.html` (`3b221476ff30` → `e84cc1ce844b`)
   - `tests/published_page_test.py` (fix to a control this run exposed)
   - `tests/plugin_manifest_test.py` (new gate this run added)
 - roles:     11 of 11 run
-- rounds:    2 (draft → findings applied → blind re-check clean)
+- rounds:    3 (draft → findings applied → blind re-check → F3 reopened and fixed)
 
 ### Stated deviation
 
@@ -79,13 +79,24 @@ of wiring the gates. It does **not** set `MURDERBOARD_LIT`, and it does **not** 
 check into CI. Both documents now enumerate what installing does and does not cover. This is the
 finding that would have cost a real adopter a silently unusable literature tool.
 
-**F3 · Role 3 · pre-existing inconsistency · FLAGGED, not fixed ⚠.** `README.md` and
-`docs/index.html` order their adoption steps **differently** — README is copy → lit tool → gates
-→ invoke; the page is vendor → gates → lit tool → make-default. Any prose referring to "step 2"
-therefore means different things in the two documents. Not introduced by this change. Fixed *for
-this change* by removing the dependence: both documents now name steps instead of numbering them.
-**The underlying divergence remains and deserves its own review** — reordering a published page's
-instructions is not a change to make as a side effect of adding an install path.
+**F3 · Role 3 · pre-existing inconsistency · FIXED (round 3).** `README.md` and
+`docs/index.html` ordered their adoption steps **differently** — README was copy → lit tool →
+gates → invoke; the page was vendor → gates → lit tool → make-default. Any prose referring to
+"step 2" therefore meant different things in the two documents. Not introduced by this change.
+
+First adjudicated as *flag, do not fix*, on the reasoning that reordering a published page's
+instructions should not ride along on a change about installing. **That was overturned on the
+author's instruction to resolve it**, and the reasoning was weaker than it looked: the two
+documents describe one procedure, and leaving them disagreeing preserved a trap for whoever
+next writes "step 2" while removing the only symptom that would have revealed it.
+
+**README was moved to the page's order**, not the reverse — copy → gates → lit tool → make it
+the default. The page's order is the better one on its merits: the gates are what keep the copy
+you just made honest, so they belong next to it; the literature tool needs a PDF library many
+adopters will not have to hand, so it is the most skippable of the four; and both documents
+then close on the step that matters most. Checked first that nothing else in the repo refers to
+these steps by number — the four hits for "step N" are the review process's own steps and the
+skill's, none of them this list.
 
 **F4 · Role 5 · prose · FIXED.** "To install it, if Claude Code is what you use — two commands,
 typed at the Claude Code prompt" said "Claude Code" twice in one sentence. Tightened to "if you
@@ -120,8 +131,8 @@ A control that expires the first time the thing it guards is used is not a contr
    manifests are on `main`, because that is where the installer looks. **Run both commands on a
    clean machine immediately after merge**; until then the page documents an untested path.
 
-2. **⚠ README and the page still order their adoption steps differently** — F3. Harmless today
-   because nothing now refers to a step by number, and a live trap for the next person who does.
+2. ~~**⚠ README and the page order their adoption steps differently**~~ — **resolved in round 3.**
+   README was moved to the page's order. See F3.
 
 3. **⚠ Single-reviewer deviation.** See *Stated deviation*. Role 4's assurance is weaker than a
    parallel run's would have been.
@@ -141,6 +152,7 @@ murderboard_roster.sh --selftest     7 passed, 0 failed
 murderboard_revendor.py --selftest   all checks pass — 0 problem(s)
 ```
 
-Both artifacts' fingerprints moved (`README.md` `19845f1d…` → `c26d8f51…`; `docs/index.html`
+Both artifacts' fingerprints moved (`README.md` `19845f1d…` → `53119d6a…`; `docs/index.html`
 `3b221476…` → `e84cc1ce…`), confirming the fixes are in the files being shipped rather than
-merely claimed.
+merely claimed. README's is the round-3 value: the round-2 hash was `c26d8f51…`, and the
+reorder moved it again.
