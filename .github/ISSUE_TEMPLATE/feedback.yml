@@ -1,0 +1,64 @@
+name: Feedback on the explainer page
+description: Something on murderboard.tonydefazio.com is wrong, unclear, or missing.
+title: "[page] "
+labels: ["feedback", "explainer-page"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. This form is for the **explainer page** at
+        <https://murderboard.tonydefazio.com/>.
+
+        For the process itself, the scripts, or a vendored copy that has gone stale,
+        open a blank issue instead — this template will only get in your way.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What is wrong, unclear, or missing?
+      description: >
+        Quote the sentence if it is a wording problem. If a claim looks unsupported,
+        say which claim — that is the kind of report this project most wants.
+      placeholder: |
+        The section on ... says ..., but ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Page version
+      description: >
+        The `Version` in the strip at the very top of the page, next to Born and Updated.
+        It tells us which wording you actually read, since the page changes.
+      placeholder: "0.7.0"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of problem is it?
+      options:
+        - A claim that looks wrong or unsupported
+        - Something I could not understand
+        - Something missing I expected to find
+        - A broken link, layout, or display problem
+        - Other
+    validations:
+      required: false
+
+  - type: input
+    id: context
+    attributes:
+      label: Browser and device, if it is a display problem
+      description: Skip this unless something looked broken rather than read wrong.
+      placeholder: "iOS 18 Safari, iPhone 13"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        **Note on scope.** The page is a summary; `doc_review_process.md` is the authority.
+        Where the two disagree, the document is right and the page is the bug.
