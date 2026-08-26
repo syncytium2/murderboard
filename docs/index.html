@@ -185,6 +185,17 @@ code {
 }
 .topbar-links a:first-child { color: var(--blood); font-weight: 600; }
 .topbar-links a:hover { color: var(--blood); }
+/* Feedback sits second rather than last. The bar scrolls horizontally on a
+   phone, so anything at the far end is off-screen until someone thinks to swipe
+   a row they have no reason to think is scrollable -- and an invitation nobody
+   sees is not an invitation. Boxed rather than coloured so it reads as an
+   action without competing with "Start here" for the one red slot. */
+.topbar-links a.tb-feedback {
+  border: 1px solid var(--rule); border-radius: 999px;
+  padding: .3rem .8rem; margin: .5rem 0;
+  color: var(--ink); background: var(--bg);
+}
+.topbar-links a.tb-feedback:hover { color: var(--blood); border-color: var(--blood); }
 
 /* ---------- accordion ----------
    Sections collapse with native <details>/<summary>: NO JavaScript, so the page's
@@ -465,6 +476,7 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
   <div class="wrap">
     <div class="topbar-links">
       <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
+      <a class="tb-feedback" href="https://github.com/syncytium2/murderboard/issues/new?template=feedback.yml">Feedback</a>
       <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
       <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>
       <a href="https://github.com/syncytium2/murderboard/blob/main/doc_review_process.md">The process document</a>
@@ -478,7 +490,7 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.6.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.7.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
