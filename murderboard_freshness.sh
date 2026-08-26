@@ -1055,7 +1055,9 @@ fi
 # is the weakness the sha did not have. A release that forgets to bump the version is
 # invisible here. That is not a reason to compare shas instead — it is the same discipline
 # the installer already requires of the maintainer, since without a bump nobody's `/plugin
-# update` does anything either. CI carries the bump check (plugin_manifest_test.py).
+# update` does anything either. So the bump is gated rather than remembered: the
+# "plugin version was bumped if the plugin changed" step in .github/workflows/ci.yml fails
+# a PR that edits the plugin payload without moving the number.
 if [ -n "$PLUGIN_DIR" ]; then
   if ! stamp_from_install "$PLUGIN_DIR"; then
     echo "${YEL}$LABEL: freshness UNKNOWN — $CHECKOUT_WHY.${RST}"

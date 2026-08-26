@@ -166,6 +166,47 @@ jobs:
           python -m compileall -q .github/traffic_archive.py
           python .github/traffic_archive.py --help > /dev/null
 
+      # A FORGOTTEN VERSION BUMP IS A FALSE "CURRENT", which is the one verdict the
+      # freshness gate promises never to produce. `claude plugin update` keys on the
+      # version string: ship changed files under an unchanged version and nobody's
+      # update does anything, while murderboard_freshness.sh --plugin compares the two
+      # equal numbers and reports current. Both failures are silent and both land on
+      # strangers, so the bump is checked here rather than remembered.
+      #
+      # Scoped to the files that actually change plugin BEHAVIOUR. A README fix or a
+      # traffic-bot commit ships in the tree too (source is "./") but changes nothing a
+      # user runs, and demanding a release for it would train people to bump blindly.
+      - name: the plugin version was bumped if the plugin changed
+        if: github.event_name == 'pull_request'
+        run: |
+          base='${{ github.event.pull_request.base.sha }}'
+          git fetch --no-tags --depth=1 origin "$base" 2>/dev/null || true
+          changed=$(git diff --name-only "$base"...HEAD -- \
+                      skills hooks commands agents .claude-plugin \
+                      doc_review_process.md fetch_paper.py \
+                      'murderboard_*.sh' 'murderboard_*.py' \
+                      require_commit_before_message.sh)
+          if [ -z "$changed" ]; then
+            echo "no change to the plugin payload — no bump required"
+            exit 0
+          fi
+          echo "plugin payload changed:"; printf '  %s\n' $changed
+          now=$(python -c "import json;print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          was=$(git show "$base:.claude-plugin/plugin.json" 2>/dev/null \
+                | python -c "import json,sys;print(json.load(sys.stdin)['version'])" 2>/dev/null || echo "")
+          if [ -z "$was" ]; then
+            echo "no plugin.json on the base commit — first introduction, nothing to bump against"
+            exit 0
+          fi
+          if [ "$now" = "$was" ]; then
+            echo "::error::the plugin payload changed but .claude-plugin/plugin.json is still $now."
+            echo "::error::Installs key on this number: without a bump, /plugin update is a no-op"
+            echo "::error::and the freshness gate compares two equal versions and says 'current'."
+            echo "::error::Bump it (and marketplace.json, which must match)."
+            exit 1
+          fi
+          echo "version bumped $was -> $now"
+
       # docs/index.html is served to the public by GitHub Pages. Its three
       # load-bearing properties all fail SILENTLY: drop the doctype and every
       # browser renders it in quirks mode (the gates table changes typeface, and
