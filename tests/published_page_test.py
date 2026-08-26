@@ -42,7 +42,18 @@ NON_FETCHING_REL = {"canonical", "alternate"}
 
 
 def check(src):
-    """Return a list of problems. Empty list means the page is publishable."""
+    """Full check for the explainer: structure, plus its stamp and its form."""
+    return check_document(src) + check_stamp(src) + check_form(src)
+
+
+def check_document(src):
+    """The properties every page served from docs/ must hold, whatever it is.
+
+    Split out from check() so thanks.html can be held to the structural rules --
+    standards mode, nothing fetched, Jekyll-safe, balanced, references resolve --
+    without being asked for a version stamp or a contact form it has no business
+    carrying.
+    """
     bad = []
 
     # 1. Complete document -> standards mode.
@@ -115,9 +126,57 @@ def check(src):
         if frag not in ids:
             bad.append("dead url(#%s) — an SVG marker/gradient that does not exist" % frag)
 
-    # 6. The footer stamp.
-    bad += check_stamp(src)
+    return bad
 
+
+# The only endpoint this page may POST to. A form is the one construct here that
+# talks to a third party, so the destination is pinned: swapping the relay
+# silently would send visitors' messages somewhere else while every other check
+# in this file still passed.
+RELAY = "https://api.web3forms.com/submit"
+
+STALE_CLAIM = "No external requests."
+HONEST_CLAIM = "only if you send the form"
+
+
+def check_form(src):
+    """A form is allowed. A form the page lies about is not.
+
+    This page's whole argument is that a claim must match the thing it describes,
+    so the moment it gained a network request, its own header comment and colophon
+    had to change with it. This ties the two together: add a form and the honest
+    wording becomes mandatory; remove the form and the wording is free to go back.
+    """
+    forms = re.findall(r"<form\b[^>]*>", src)
+    if not forms:
+        # No form, no third-party request: the page may claim it fetches nothing.
+        return []
+
+    bad = []
+    for f in forms:
+        action = re.search(r'\baction\s*=\s*["\']([^"\']*)', f)
+        if not action:
+            bad.append("<form> has no action")
+        elif action.group(1) != RELAY:
+            bad.append("form posts to %s, not the pinned relay %s"
+                       % (action.group(1), RELAY))
+        if not re.search(r'\bmethod\s*=\s*["\']post["\']', f, re.I):
+            bad.append("form is not method=POST — a GET would put the message in the URL")
+
+    if 'name="botcheck"' not in src:
+        bad.append("form has no botcheck honeypot")
+    if 'name="redirect"' not in src:
+        bad.append("form has no redirect, so a sender lands on the relay's own page")
+    # Collapse whitespace before looking for prose. Both claims wrap across source
+    # lines, and a literal substring search silently misses a sentence that is
+    # present but broken by an indent -- which is a check that fails open the day
+    # someone reflows a paragraph.
+    flat = re.sub(r"\s+", " ", src)
+    if re.sub(r"\s+", " ", STALE_CLAIM) in flat:
+        bad.append('page carries a form but still claims "%s"' % STALE_CLAIM)
+    if re.sub(r"\s+", " ", HONEST_CLAIM) not in flat:
+        bad.append('page carries a form but never says the request is send-only '
+                   '(expected the phrase "%s")' % HONEST_CLAIM)
     return bad
 
 
@@ -186,13 +245,28 @@ def main():
 
     src = PAGE.read_text(encoding="utf-8")
 
-    # There must be exactly ONE copy of the page. Two copies drift, and this repo
-    # has already had that failure: the page went stale within an hour of #31.
-    strays = [p for p in DOCS.rglob("*.html") if p != PAGE]
+    # There must be exactly ONE copy of the explainer. Two copies drift, and this
+    # repo has already had that failure: the page went stale within an hour of
+    # #31. thanks.html is a different page, not a copy — it is where the contact
+    # form lands a sender — so it is named here rather than silently tolerated.
+    # Anything else appearing in docs/ is a stray until someone says otherwise.
+    KNOWN = {PAGE.name, "thanks.html"}
+    strays = [p for p in DOCS.rglob("*.html") if p.name not in KNOWN]
     for s in strays:
-        failures.append("second copy of the page: docs/%s" % s.relative_to(DOCS))
+        failures.append("unexpected page in docs/: %s" % s.relative_to(DOCS))
 
     failures += check(src)
+
+    # The landing page is not the explainer — no stamp, no jump nav, no form — but
+    # it is served to the public from the same directory, so the properties that
+    # make a page publishable at all still apply to it.
+    thanks = DOCS / "thanks.html"
+    if thanks.exists():
+        tsrc = thanks.read_text(encoding="utf-8")
+        for problem in check_document(tsrc):
+            failures.append("thanks.html: %s" % problem)
+    else:
+        failures.append("docs/thanks.html is missing — the form's redirect lands nowhere")
 
     # NEGATIVE CONTROLS. A fixture that cannot fail proves nothing, so each mutation
     # below must be caught. If one stops being caught, the check has rotted open and
@@ -233,6 +307,23 @@ def main():
         ("updated older than born",
          lambda s: s.replace('Updated <time datetime="%s">%s' % (BORN, BORN),
                              'Updated <time datetime="2001-01-01">2001-01-01', 1)),
+        # The form is the only thing on the page that talks to a third party, so
+        # every way it can quietly change has to be a failure.
+        ("form relay swapped for another host",
+         lambda s: s.replace(RELAY, "https://evil.example/collect", 1)),
+        ("form downgraded to GET (message would land in the URL)",
+         lambda s: s.replace('method="POST"', 'method="GET"', 1)),
+        ("honeypot removed",
+         lambda s: s.replace('name="botcheck"', 'name="notacheck"', 1)),
+        ("redirect removed, sender lands on the relay's page",
+         lambda s: s.replace('name="redirect"', 'name="notaredirect"', 1)),
+        ("page reverts to claiming it requests nothing",
+         lambda s: s.replace("Nothing is requested on load.", STALE_CLAIM, 1)),
+        # Regex, not str.replace: the phrase wraps across source lines in both
+        # places it appears, so a literal mutation would change nothing and the
+        # control would "pass" by doing nothing at all.
+        ("page drops the send-only wording while keeping the form",
+         lambda s: re.sub(r"only\s+if\s+you\s+send\s+the\s+form", "never", s)),
     ]
     for name, mutate in controls:
         if not check(mutate(src)):

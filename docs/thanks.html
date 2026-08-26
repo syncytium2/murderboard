@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Message sent — The Murderboard</title>
+<meta name="robots" content="noindex">
+<!-- Where Web3Forms lands a visitor after a successful send. Loads nothing: same
+     posture as the page that sent them here, and the same reason — it has to render
+     from disk, air-gapped, or behind a captive portal. Palette tokens are copied
+     rather than shared because there is no build step and a second stylesheet would
+     be a network request. -->
+
+<style>
+:root {
+  --bg:        #F3F2EF;
+  --surface:   #FFFFFF;
+  --ink:       #1B1719;
+  --ink-soft:  #5C5459;
+  --rule:      #D8D4CE;
+  --blood:     #8A1C2B;
+  --f-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI Variable Display",
+               "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --f-body:    Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype",
+               Palatino, "Book Antiqua", Georgia, "Liberation Serif", serif;
+  --f-mono:    ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", "Roboto Mono",
+               Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141215; --surface: #1C191D; --ink: #EDE9E6;
+    --ink-soft: #A79EA1; --rule: #342F35; --blood: #E0808C;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141215; --surface: #1C191D; --ink: #EDE9E6;
+  --ink-soft: #A79EA1; --rule: #342F35; --blood: #E0808C;
+}
+* { box-sizing: border-box; }
+html { font-size: 17px; }
+@media (max-width: 760px) { html { font-size: 18.5px; } }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 1rem; line-height: 1.6;
+  display: grid; place-items: center; min-height: 100vh;
+  padding: clamp(1.15rem, 4vw, 2.5rem);
+  -webkit-font-smoothing: antialiased;
+}
+main {
+  max-width: 44ch; background: var(--surface);
+  border: 1px solid var(--rule); border-top: 3px solid var(--blood);
+  border-radius: 3px; padding: clamp(1.6rem, 5vw, 2.4rem);
+}
+.eyebrow {
+  font-family: var(--f-mono); font-size: .7rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--blood); margin: 0 0 .9rem;
+}
+h1 {
+  font-family: var(--f-display); font-weight: 700;
+  font-size: clamp(1.5rem, 4vw, 2.1rem); line-height: 1.14;
+  letter-spacing: -.028em; margin: 0 0 1rem;
+}
+p { margin: 0 0 1.05em; color: var(--ink-soft); }
+p:last-child { margin-bottom: 0; }
+a { color: var(--blood); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+</style>
+</head>
+<body>
+
+<main>
+  <p class="eyebrow">Message sent</p>
+  <h1>Thanks &mdash; it arrived.</h1>
+  <p>If you reported a claim that looks wrong or unsupported, that is the most useful thing
+  anyone sends this project. It gets checked against the source rather than argued with.</p>
+  <p>No reply is automatic. If you left an address and the message needs one, you will get it
+  from a person.</p>
+  <p><a href="https://murderboard.tonydefazio.com/">Back to the page</a> &middot;
+  <a href="https://github.com/syncytium2/murderboard">The repository</a></p>
+</main>
+
+</body>
+</html>
