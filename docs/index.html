@@ -299,6 +299,10 @@ pre .k { color: var(--blood); }
 /* ---------- footer ---------- */
 footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 clamp(3rem,7vw,5rem); }
 .links { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-family: var(--f-mono); font-size: .88rem; }
+/* "Get it" sits in the masthead, so a reader has the repo before the scroll
+   rather than after it. The eyebrow is red on white here, same as every other
+   section label, so it reads as a labelled block and not as stray links. */
+.getit { margin-top: clamp(1.75rem, 4vw, 2.4rem); }
 .colophon { margin-top: 2rem; font-size: .92rem; color: var(--ink-faint); max-width: var(--measure); }
 /* Version stamp. Lives in the masthead kicker, which already supplies the mono
    face and the wrapping flex row, so this only has to keep the whole stamp
@@ -384,13 +388,27 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.2.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.3.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
     <p class="deck">A panel convened to tear a thing apart before it is defended for real
     &mdash; hostile enough that what the real review turns up is news, rather than something
     you could have caught yourself.</p>
+
+    <div class="getit">
+      <p class="eyebrow">Get it</p>
+      <div class="links">
+        <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
+        <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
+        <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>
+        <a href="https://github.com/syncytium2/murderboard/blob/main/doc_review_process.md">The process document</a>
+        <a href="https://github.com/syncytium2/bugarach/blob/main/docs/reviews/pensub_export_validation_murderboard_2026-08-20.md">A public run record</a>
+        <a href="https://doi.org/10.5281/zenodo.22063835">DOI</a>
+        <a href="https://github.com/syncytium2/murderboard/blob/main/LICENSE">Apache-2.0</a>
+        <a href="https://murderboard.tonydefazio.com/">murderboard.tonydefazio.com</a>
+      </div>
+    </div>
 
     <div class="stats">
       <div><b>11</b><span>reviewer roles, every one of them, every time</span></div>
@@ -1068,17 +1086,6 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
   </section>
 
   <footer>
-    <p class="eyebrow">Get it</p>
-    <div class="links">
-      <a href="https://murderboard.tonydefazio.com/">murderboard.tonydefazio.com</a>
-      <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
-      <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
-      <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>
-      <a href="https://github.com/syncytium2/murderboard/blob/main/doc_review_process.md">The process document</a>
-      <a href="https://github.com/syncytium2/bugarach/blob/main/docs/reviews/pensub_export_validation_murderboard_2026-08-20.md">A public run record</a>
-      <a href="https://doi.org/10.5281/zenodo.22063835">DOI</a>
-      <a href="https://github.com/syncytium2/murderboard/blob/main/LICENSE">Apache-2.0</a>
-    </div>
     <p class="colophon">The process document is the authority on what gets reviewed and by whom; where
     this page and that document disagree, that document is right. The murderboard came out of a
     calcium-imaging research project, where it grew from real incidents; nothing in the process or the
