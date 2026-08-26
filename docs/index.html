@@ -6,10 +6,16 @@
 <title>The Murderboard</title>
 <meta name="description" content="A review process for catching unchecked claims. Eleven reviewer roles, three scripts, and a fixed format for what comes back. Open source, Apache-2.0.">
 <link rel="canonical" href="https://murderboard.tonydefazio.com/">
-<!-- No external requests. Every font stack ends in a generic family, so nothing here waits
-     on a network: the page renders the same opened from disk, air-gapped, or behind a
+<!-- Nothing is requested on load. Every font stack ends in a generic family, so nothing here
+     waits on a network: the page renders the same opened from disk, air-gapped, or behind a
      captive portal. A webfont link would make "opens from disk" false in the one case that
-     matters. Named faces are OS-bundled where available and fall through where not. -->
+     matters. Named faces are OS-bundled where available and fall through where not.
+
+     ONE EXCEPTION, stated rather than buried: the contact form at the foot of the page does a
+     plain HTML POST to Web3Forms, and that request happens only when a visitor presses Send.
+     There is no script - a native form submit keeps the scriptless posture and degrades
+     perfectly. That is why the colophon reads "one network request, and only if you send the
+     form" rather than the flat "no network requests" this page used to claim. -->
 
 <style>
 .nb { white-space: nowrap; }
@@ -444,6 +450,64 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 .provenance p { font-size: .95rem; color: var(--ink-soft); }
 .provenance p:first-of-type { color: var(--ink); }
 
+/* ---------- contact ----------
+   A plain HTML POST, no JavaScript: the same shape tonydefazio.com uses, and the
+   reason the scriptless posture survives a form at all. no_peak solves this with
+   fetch and React state; this page has no bundle to put that in, and a native
+   submit degrades perfectly. The destination address appears nowhere here -- the
+   relay key only names an inbox and can read nothing back -- so a scraper that
+   parses this page gets nothing to harvest. */
+.contact-sec { border-top: 1px solid var(--rule); padding: clamp(2.75rem, 7vw, 5rem) 0; }
+.contact-sec h2 { margin-bottom: 1.4rem; }
+.contact-grid {
+  display: grid; gap: clamp(1.5rem, 4vw, 3rem);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  align-items: start;
+}
+.contact-sec p { max-width: 46ch; color: var(--ink-soft); }
+.contact-sec p b { color: var(--ink); font-weight: 600; }
+form.contact { display: grid; gap: .85rem; max-width: 34rem; }
+form.contact label {
+  display: grid; gap: .35rem;
+  font-family: var(--f-mono); font-size: .72rem; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+form.contact input[type="email"], form.contact textarea {
+  font-family: var(--f-body); font-size: 1rem; line-height: 1.5; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+  padding: .6rem .7rem; width: 100%;
+  text-transform: none; letter-spacing: normal;
+}
+form.contact input[type="email"]:focus, form.contact textarea:focus {
+  outline: 2px solid var(--blood); outline-offset: 1px; border-color: var(--blood);
+}
+form.contact textarea { resize: vertical; min-height: 7rem; }
+/* Honeypot: hidden from people, irresistible to bots. */
+form.contact .botcheck { position: absolute; left: -9999px; opacity: 0; height: 0; width: 0; }
+form.contact button {
+  font-family: var(--f-display); font-weight: 600; font-size: .95rem;
+  background: var(--blood); color: var(--surface); border: 1px solid var(--blood);
+  border-radius: 3px; padding: .7rem 1.4rem; cursor: pointer; justify-self: start;
+  transition: opacity .15s;
+}
+form.contact button:hover { opacity: .88; }
+form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* The dark palette's --blood is a light rose (#E0808C), so white-on-rose is only
+   2.75:1. The label flips to dark ink there -- 6.45:1 -- while light mode keeps
+   white on #8A1C2B at 9.20:1.
+
+   The dark-media guard is NOT optional, and tonydefazio.com is missing it: with
+   the selector written flat, `:root:not([data-theme="light"])` also matches the
+   DEFAULT state, where no data-theme attribute is set at all -- which is light
+   mode -- and the flip would put #1B1719 on #8A1C2B at 1.93:1. tonydefazio.com
+   reaches the same four outcomes by following the flat rule with a
+   prefers-color-scheme: light counter-rule; the media wrapper does it in one
+   rule instead of two. Computed, not eyeballed. */
+:root[data-theme="dark"] form.contact button { color: #1B1719; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) form.contact button { color: #1B1719; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
@@ -476,7 +540,7 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
   <div class="wrap">
     <div class="topbar-links">
       <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
-      <a class="tb-feedback" href="https://github.com/syncytium2/murderboard/issues/new?template=feedback.yml">Feedback</a>
+      <a class="tb-feedback" href="#contact">Feedback</a>
       <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
       <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>
       <a href="https://github.com/syncytium2/murderboard/blob/main/doc_review_process.md">The process document</a>
@@ -490,7 +554,7 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.7.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.8.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -1217,11 +1281,51 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
     </details>
   </section>
 
+  <section class="contact-sec" id="contact">
+    <span class="eyebrow">Feedback</span>
+    <h2>Found something wrong with this page?</h2>
+    <div class="contact-grid">
+      <div>
+        <p>A claim that looks unsupported is <b>the most useful thing anyone sends this
+        project</b> &mdash; it gets checked against the source rather than argued with. Wording
+        that made no sense to you is the second most useful, because the page cannot see its
+        own blind spots.</p>
+        <p>Quote the sentence, and include the <b>version</b> from the strip at the top of the
+        page &mdash; this page changes, and a report against wording that no longer exists
+        cannot be acted on.</p>
+        <p>Prefer a public, trackable report? Open an
+        <a href="https://github.com/syncytium2/murderboard/issues/new?template=feedback.yml">issue
+        on the repository</a> instead. Either reaches the same person.</p>
+      </div>
+      <form class="contact" action="https://api.web3forms.com/submit" method="POST">
+        <input type="hidden" name="access_key" value="b8c22a4e-b446-4d81-a4e1-b3ba4aaa3bc4">
+        <input type="hidden" name="subject" value="murderboard.tonydefazio.com contact form">
+        <input type="hidden" name="from_name" value="murderboard.tonydefazio.com">
+        <input type="hidden" name="redirect" value="https://murderboard.tonydefazio.com/thanks.html">
+        <label>
+          Your email
+          <input type="email" name="email" required placeholder="you@lab.edu"
+                 autocomplete="email">
+        </label>
+        <label>
+          Message
+          <textarea name="message" required rows="5"
+                    placeholder="The section on ... says ..., but &hellip;"></textarea>
+        </label>
+        <input type="checkbox" name="botcheck" class="botcheck" tabindex="-1"
+               autocomplete="off" aria-hidden="true">
+        <button type="submit">Send message</button>
+      </form>
+    </div>
+  </section>
+
   <footer>
     <p class="colophon">The process document is the authority on what gets reviewed and by whom; where
     this page and that document disagree, that document is right. The murderboard came out of a
     calcium-imaging research project, where it grew from real incidents; nothing in the process or the
-    scripts carries that subject with it. This page lives at
+    scripts carries that subject with it. This page loads no fonts, runs no JavaScript, sets no
+    cookies and carries no analytics; it makes exactly one network request, and only if you send
+    the form above. This page lives at
     <a href="https://murderboard.tonydefazio.com/">murderboard.tonydefazio.com</a> and the source
     is at <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>.
     Copyright 2026 Tony DeFazio, Apache-2.0.</p>
