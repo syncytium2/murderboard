@@ -148,6 +148,24 @@ jobs:
       - name: revendor --example-config is valid JSON
         run: python murderboard_revendor.py --example-config | python -c "import json,sys; json.load(sys.stdin)"
 
+      # The plugin manifests are exercised ONLY on a stranger's machine, at install
+      # time, after a push to main -- nothing here loads them, because a contributor
+      # working in the checkout uses the files directly. Same invisible-locally shape
+      # as docs/index.html below, so it gets the same treatment. Three of the failures
+      # it catches (the two manifests disagreeing on the version, a hook naming a
+      # script that moved, the freshness gate losing the --plugin flag its own hook
+      # passes it) produce a plugin that installs, reports success, and does nothing.
+      - name: the plugin is still installable
+        run: python tests/plugin_manifest_test.py
+
+      # Runs daily in a scheduled workflow against a 14-day window that GitHub then
+      # discards. A break is unrecoverable rather than merely annoying, so it is
+      # checked here on every PR instead of being discovered a fortnight later.
+      - name: the traffic archiver compiles and runs
+        run: |
+          python -m compileall -q .github/traffic_archive.py
+          python .github/traffic_archive.py --help > /dev/null
+
       # docs/index.html is served to the public by GitHub Pages. Its three
       # load-bearing properties all fail SILENTLY: drop the doctype and every
       # browser renders it in quirks mode (the gates table changes typeface, and

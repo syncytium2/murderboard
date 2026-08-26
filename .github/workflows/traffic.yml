@@ -1,0 +1,59 @@
+name: traffic archive
+
+# WHAT THIS IS FOR. GitHub keeps clone and view counts for 14 DAYS and then discards them.
+# This repo is distributed by copying -- vendored, or installed as a plugin -- so a fetch of
+# the repo is the only adoption signal that exists upstream at all. Anthropic does not report
+# plugin installs to a plugin's author, and a marketplace install is itself just a fetch. If
+# nothing writes this down daily, the entire record of whether anyone uses this is a rolling
+# two-week window that nobody is looking at.
+#
+# DAILY IS NOT OPTIONAL. The window is 14 days, so a schedule that slips for a fortnight
+# loses data permanently. Run it daily and let it be boring.
+#
+# THE TOKEN. The traffic API requires PUSH ACCESS. The default GITHUB_TOKEN is scoped to the
+# repo but does not reliably carry the traffic permission, so this prefers a PAT in the
+# TRAFFIC_TOKEN secret and falls back to GITHUB_TOKEN. If the run fails with 403, that is
+# which of the two you got: create a fine-grained PAT with "Administration: read" on this
+# repo and store it as TRAFFIC_TOKEN. The script exits 2 rather than writing zeros, so a
+# failure shows up as a red run instead of a plausible-looking flat line.
+#
+# THIS COMMITS TO A PUBLIC REPO. metrics/traffic.csv is world-readable and permanent once
+# pushed. That is a deliberate choice -- the numbers are modest, the caveats are in the
+# script's header, and a project that asks others to adopt it can afford to show its own
+# adoption. If that is ever not wanted, the fix is to stop committing the file, not to
+# rewrite the history that already published it.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'      # daily, off the hour: the top of the hour is heavily contended
+  workflow_dispatch:
+
+permissions:
+  contents: write             # to commit the archive back
+
+concurrency:
+  group: traffic-archive
+  cancel-in-progress: false   # never cancel a run that is mid-commit
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: fetch and merge the window
+        env:
+          GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
+        run: python3 .github/traffic_archive.py --repo "${{ github.repository }}" --out metrics/traffic.csv
+
+      - name: commit if anything changed
+        run: |
+          if git diff --quiet -- metrics/traffic.csv; then
+            echo "no change today"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metrics/traffic.csv
+          git commit -m "traffic: $(date -u +%Y-%m-%d)"
+          git push

@@ -25,6 +25,9 @@
 #                                            Appears in every message.
 #   murderboard_freshness.sh --slug O/R      upstream repo (default: syncytium2/murderboard)
 #   murderboard_freshness.sh --clone PATH    where a local clone of that upstream lives
+#   murderboard_freshness.sh --plugin DIR    the copy is an INSTALLED Claude Code plugin:
+#                                            take the commit the installer recorded for it
+#   murderboard_freshness.sh --from-git DIR  the copy is a plain CHECKOUT: take its HEAD
 #   murderboard_freshness.sh --upstream SHA  skip upstream lookup (testing / offline)
 #   murderboard_freshness.sh --refresh       ignore the cache, re-resolve upstream now
 #   murderboard_freshness.sh --hook          never touch the network; serve the cache and
@@ -57,6 +60,25 @@
 # too: three consumers ran interface2's PRE-FIX SessionStart hook for weeks, including the
 # commit written expressly so they would not inherit that outage. One gate, pointed at a
 # family with --label/--slug/--clone/--file, serves every vendoring relationship.
+#
+# TWO WAYS A COPY CAN CARRY ITS VERSION. A VENDORED copy is loose files, so its version has
+# to be written down — that is the stamp, and the whole cache/trust apparatus above exists
+# because a written-down version can be edited, forgotten, or corrupted. An INSTALLED copy
+# did not come from a human with a text editor, so its version was recorded by whatever
+# installed it: `--plugin DIR` reads the commit Claude Code stored for that install, and
+# `--from-git DIR` reads a plain checkout's HEAD. Everything downstream is unchanged,
+# because all three paths produce a sha.
+#
+# The plugin install path must NOT be exempted from this gate. It is tempting — `/plugin
+# update` exists, so staleness is "handled" — but nothing FIRES it, which makes it exactly
+# the class of rule this gate was written to replace. An installed copy goes stale the same
+# way a vendored one does; it just cannot lie about which commit it is at.
+#
+# --from-git DEMANDS THE CHECKOUT PROVE ITS IDENTITY. A sha is a sha: pointed at some
+# unrelated repository, the comparison below would run to completion and report a confident
+# STALE about a repo it never looked at — the manufactured-confidence failure that
+# DEFAULT_CLONE_CANDIDATES is split in two to avoid. So the checkout's remotes must name
+# $REPO_SLUG. No match is exit 2, not a verdict.
 #
 # Project-neutral: no hardcoded consumer paths. Override anything via the env vars below.
 
@@ -113,6 +135,9 @@ else RED=; YEL=; GRN=; RST=; fi
 
 VERBOSE=0; FORCE_UPSTREAM=; ONE_FILE=; REFRESH=0; HOOK=0; DEFER=
 STAMP_CONFLICTED=0
+FROM_GIT=          # --from-git DIR: read the version from a checkout's HEAD, not a stamp
+PLUGIN_DIR=        # --plugin DIR:   read it from the Claude Code plugin install registry
+INSTALLED=0        # set when either of the above wins: the copy is INSTALLED, not vendored
 
 # What this run is checking. The tool started life murderboard-only, but the SAME staleness
 # failure runs in the other direction too — a consumer's vendored copy of some OTHER
@@ -168,6 +193,125 @@ stamp_of() {
 }
 
 have() { command -v "$1" >/dev/null 2>&1; }
+
+# --from-git: an INSTALLED copy's version is its own HEAD. Sets $STAMP, or fails with a
+# reason on stderr. See the "TWO WAYS A COPY CAN CARRY ITS VERSION" note in the header.
+#
+# The identity check is not ceremony. Without it this function happily returns the HEAD of
+# whatever checkout it was handed, and the verdict block downstream — which only compares
+# shas — announces STALE about an unrelated repository. Remote URLs vary in form
+# (https://host/O/R, https://host/O/R.git, git@host:O/R.git, and a file:// path in tests),
+# so match on the O/R substring rather than parsing, and accept ANY remote: a plugin
+# install's remote is not guaranteed to be named `origin`.
+CHECKOUT_WHY=
+# --plugin: an INSTALLED Claude Code plugin. Sets $STAMP, or fails with a reason.
+#
+# MEASURED, not assumed (2026-08-26, by installing this plugin and looking): the install is
+# a PLAIN COPY at ~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/. It has no .git,
+# so there is no HEAD in it to read. What it does have is a registry entry — the installer
+# records the commit it took under `gitCommitSha` in installed_plugins.json, keyed by the
+# same installPath. That is the identity, and it is a sha, so every comparison below is
+# unchanged. A version string would not have done: it is hand-maintained, and a forgotten
+# bump would read as "current" — the one verdict this gate promises never to invent.
+#
+# Falls back to the directory's own HEAD when it is a checkout, which covers developing the
+# plugin against a live clone.
+#
+# JSON needs a parser. Rather than scrape a machine-written file with grep and inherit a
+# silent break the next time its formatting changes, this asks for python and returns 2
+# without one. Undetermined is honest; a guess here would be the fail-open the no-heredoc
+# hook already taught this project about.
+stamp_from_install() {
+  local dir="$1" py= out
+  STAMP=; STAMP_CONFLICTED=0; CHECKOUT_WHY=
+  if [ ! -d "$dir" ]; then CHECKOUT_WHY="no such directory: $dir"; return 1; fi
+  # A real checkout answers for itself, and more precisely than the registry can.
+  if git -C "$dir" rev-parse --git-dir >/dev/null 2>&1; then
+    stamp_from_checkout "$dir" && return 0
+    return 1
+  fi
+  for c in python3 python; do have "$c" && { py=$c; break; }; done
+  if [ -z "$py" ]; then
+    CHECKOUT_WHY="no python on PATH to read the plugin registry, so the installed commit cannot be determined"
+    return 1
+  fi
+  # Prints "SHA SOURCEREPO" (SOURCEREPO empty for a local/directory marketplace), or nothing.
+  out=$("$py" - "$dir" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" <<'PYEOF' 2>/dev/null
+import json, os, sys
+want, cfg = os.path.realpath(sys.argv[1]), sys.argv[2]
+base = os.path.join(cfg, "plugins")
+try:
+    inst = json.load(open(os.path.join(base, "installed_plugins.json")))
+except Exception:
+    sys.exit(0)
+try:
+    mkts = json.load(open(os.path.join(base, "known_marketplaces.json")))
+except Exception:
+    mkts = {}
+for key, entries in (inst.get("plugins") or {}).items():
+    for e in entries or []:
+        if os.path.realpath(e.get("installPath", "")) != want:
+            continue
+        sha = e.get("gitCommitSha") or ""
+        mkt = key.split("@")[-1] if "@" in key else ""
+        src = (mkts.get(mkt) or {}).get("source") or {}
+        repo = src.get("repo") or "" if src.get("source") == "github" else ""
+        print(sha, repo)
+        sys.exit(0)
+PYEOF
+)
+  if [ -z "$out" ]; then
+    CHECKOUT_WHY="$dir is not a registered plugin install (no installed_plugins.json entry for that path)"
+    return 1
+  fi
+  local sha="${out%% *}" repo="${out#* }"
+  [ "$repo" = "$sha" ] && repo=
+  case "$sha" in
+    [0-9a-f]*) : ;;
+    *) CHECKOUT_WHY="the plugin registry has no gitCommitSha for $dir, so its version is unknown"
+       return 1 ;;
+  esac
+  # Same identity rule as --from-git, and for the same reason: a sha compared against the
+  # wrong upstream yields a confident verdict about a repository never looked at. A
+  # DIRECTORY-source marketplace names no repo and cannot be checked this way; that is the
+  # developer's own clone, and refusing it would disable the gate in the one case where the
+  # person can actually act on it. Accepted, and labelled as unverified in the source.
+  if [ -n "$repo" ] && [ "$repo" != "$REPO_SLUG" ]; then
+    CHECKOUT_WHY="that plugin came from $repo, not $REPO_SLUG — refusing to judge one repository against another"
+    return 1
+  fi
+  [ -z "$repo" ] && VERDICT_NOTE="installed from a local marketplace, so its origin repo is unverified"
+  STAMP="$sha"
+  return 0
+}
+
+stamp_from_checkout() {
+  local dir="$1" sha urls
+  STAMP=; STAMP_CONFLICTED=0; CHECKOUT_WHY=
+  if [ ! -d "$dir" ]; then CHECKOUT_WHY="no such directory: $dir"; return 1; fi
+  if ! git -C "$dir" rev-parse --git-dir >/dev/null 2>&1; then
+    CHECKOUT_WHY="$dir is not a git checkout, so it carries no HEAD to read"
+    return 1
+  fi
+  urls=$(git -C "$dir" remote -v 2>/dev/null)
+  if [ -z "$urls" ]; then
+    CHECKOUT_WHY="$dir has no remotes, so it cannot prove it is a copy of $REPO_SLUG"
+    return 1
+  fi
+  case "$urls" in
+    *"$REPO_SLUG"*) : ;;
+    *) CHECKOUT_WHY="no remote in $dir names $REPO_SLUG — refusing to judge a checkout of some other repository"
+       return 1 ;;
+  esac
+  # An unborn HEAD (freshly `git init`ed, nothing committed) has no sha. Ask for a commit
+  # explicitly so that case fails here rather than yielding the literal string "HEAD".
+  sha=$(git -C "$dir" rev-parse --verify --quiet HEAD^{commit} 2>/dev/null) || sha=
+  case "$sha" in
+    [0-9a-f]*) STAMP="$sha"; return 0 ;;
+  esac
+  CHECKOUT_WHY="$dir has no commit at HEAD"
+  return 1
+}
 
 # Run "$@" detached, so the caller can exit immediately.
 #
@@ -295,7 +439,7 @@ resolve_upstream() {
 # --- selftest ----------------------------------------------------------------
 # The single highest-yield rule in this project's verification doctrine: run the check
 # against data whose answer you ALREADY KNOW, and confirm it reports that answer. A gate
-# that cannot fire manufactures confidence. Five cases, no network.
+# that cannot fire manufactures confidence. No network, in any case.
 selftest() {
   local rc fails=0 out
   TMPD=$(mktemp -d 2>/dev/null || mktemp -d -t mbft)
@@ -567,6 +711,147 @@ selftest() {
            "$RED" "$RST" "conflicted header is not a stamp" "$conf_rc" "${conf_says:-0}"; fails=$((fails+1))
   fi
 
+  # --- --from-git: an INSTALLED copy carries its version in HEAD ----------------
+  # Five cases. The two that matter most are the NEGATIVE CONTROLS at the end: a checkout
+  # of the wrong repository, and a checkout that is not a repository at all. Both must be
+  # 2. If either ever returns 1, this mode has become a confident-verdict generator
+  # pointed at whatever directory it was handed.
+  mkdir -p "$tmp/inst" 2>/dev/null
+  ( cd "$tmp/inst" && git init -q . && git config user.email s@t && git config user.name s \
+    && git remote add origin "https://github.com/fam/plug.git" \
+    && echo one > a && git add a && git commit -qm one \
+    && echo two > a && git commit -qam two ) >/dev/null 2>&1
+  inst_head=$(git -C "$tmp/inst" rev-parse HEAD 2>/dev/null)
+  inst_prev=$(git -C "$tmp/inst" rev-parse HEAD~1 2>/dev/null)
+
+  fg() { # name expected_rc dir upstream
+    local name="$1" want="$2" dir="$3" up="$4" got
+    out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-fg" \
+          bash "$SELF" --slug fam/plug --from-git "$dir" --upstream "$up" --verbose 2>&1); got=$?
+    if [ "$got" -eq "$want" ]; then
+      printf '  %sPASS%s  %-34s (rc=%s)\n' "$GRN" "$RST" "$name" "$got"
+    else
+      printf '  %sFAIL%s  %-34s (rc=%s, want %s)\n%s\n' \
+             "$RED" "$RST" "$name" "$got" "$want" "$out"
+      fails=$((fails+1))
+    fi
+  }
+
+  fg "install at HEAD is SILENT"    0 "$tmp/inst" "$inst_head"
+  fg "install behind HEAD FIRES"    1 "$tmp/inst" "0123456789abcdef0123456789abcdef01234567"
+
+  # A stale INSTALL must be told to update the install, and told the RIGHT WAY for how it
+  # got here. "Re-copy the files and bump the stamp on every vendored file" has no referent
+  # for either kind, and an alert nobody can act on is an alert that gets tuned out. The two
+  # kinds differ: a checkout is pulled, a plugin install has no checkout to pull and is
+  # replaced wholesale by the installer. Asserted per mode so neither can inherit the
+  # other's instruction unnoticed. (The --plugin half is in the registry block below.)
+  fg_says=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-fg" \
+    bash "$SELF" --slug fam/plug --from-git "$tmp/inst" \
+    --upstream 0123456789abcdef0123456789abcdef01234567 2>&1 \
+    | grep -ci 'pull the checkout')
+  fg_notplug=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-fg" \
+    bash "$SELF" --slug fam/plug --from-git "$tmp/inst" \
+    --upstream 0123456789abcdef0123456789abcdef01234567 2>&1 | grep -ci 'plugin update')
+  if [ "${fg_says:-0}" -ge 1 ] && [ "${fg_notplug:-0}" -eq 0 ]; then
+    printf '  %sPASS%s  %-34s\n' "$GRN" "$RST" "stale checkout says: pull it"
+  else
+    printf '  %sFAIL%s  %-34s (pull=%s want >=1; plugin=%s want 0)\n' \
+           "$RED" "$RST" "stale checkout says: pull it" "${fg_says:-0}" "${fg_notplug:-0}"
+    fails=$((fails+1))
+  fi
+
+  # NEGATIVE CONTROL 1 — the wrong repository. The checkout is real and its HEAD is a
+  # real sha, so every comparison downstream runs to completion; only the identity check
+  # stands between that and a confident STALE about a repo this gate never looked at.
+  # (fg() always passes a slug that matches, so this case is spelled out rather than
+  # routed through it: the whole point is a slug the checkout's remotes do NOT name.)
+  out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-fg" \
+        bash "$SELF" --slug someone/else --from-git "$tmp/inst" --upstream "$inst_prev" 2>&1); wrong_rc=$?
+  if [ "$wrong_rc" -eq 2 ]; then
+    printf '  %sPASS%s  %-34s (rc=2)\n' "$GRN" "$RST" "wrong-repo checkout is undetermined"
+  else
+    printf '  %sFAIL%s  %-34s (rc=%s, want 2)\n' \
+           "$RED" "$RST" "wrong-repo checkout is undetermined" "$wrong_rc"; fails=$((fails+1))
+  fi
+
+  # NEGATIVE CONTROL 2 — not a checkout at all, and a checkout with nothing committed.
+  mkdir -p "$tmp/notgit" 2>/dev/null; echo x > "$tmp/notgit/a"
+  fg "a non-git dir is undetermined" 2 "$tmp/notgit" "$inst_head"
+  mkdir -p "$tmp/unborn" 2>/dev/null
+  ( cd "$tmp/unborn" && git init -q . && git remote add origin https://github.com/fam/plug.git ) >/dev/null 2>&1
+  fg "an unborn HEAD is undetermined" 2 "$tmp/unborn" "$inst_head"
+
+  # --- --plugin: an INSTALLED plugin is a plain copy with a registry entry -------
+  # Not a checkout — verified 2026-08-26 by installing this plugin and looking. The commit
+  # lives in installed_plugins.json, so the fixture is a fake CLAUDE_CONFIG_DIR.
+  mkdir -p "$tmp/cfg/plugins" "$tmp/pluginst" 2>/dev/null
+  echo body > "$tmp/pluginst/a"
+  reg="$tmp/cfg/plugins/installed_plugins.json"
+  mkt="$tmp/cfg/plugins/known_marketplaces.json"
+  printf '{"version":2,"plugins":{"p@m":[{"scope":"user","installPath":"%s","version":"0.1.0","gitCommitSha":"%s"}]}}\n' \
+         "$tmp/pluginst" "$inst_head" > "$reg"
+  printf '{"m":{"source":{"source":"github","repo":"fam/plug"}}}\n' > "$mkt"
+
+  pl() { # name expected_rc dir upstream
+    local name="$1" want="$2" dir="$3" up="$4" got
+    out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-pl" \
+          CLAUDE_CONFIG_DIR="$tmp/cfg" \
+          bash "$SELF" --slug fam/plug --plugin "$dir" --upstream "$up" --verbose 2>&1); got=$?
+    if [ "$got" -eq "$want" ]; then
+      printf '  %sPASS%s  %-34s (rc=%s)\n' "$GRN" "$RST" "$name" "$got"
+    else
+      printf '  %sFAIL%s  %-34s (rc=%s, want %s)\n%s\n' \
+             "$RED" "$RST" "$name" "$got" "$want" "$out"
+      fails=$((fails+1))
+    fi
+  }
+
+  if have python3 || have python; then
+    pl "plugin at recorded sha SILENT"  0 "$tmp/pluginst" "$inst_head"
+    pl "plugin behind upstream FIRES"   1 "$tmp/pluginst" "0123456789abcdef0123456789abcdef01234567"
+    # A directory not in the registry must not be guessed at.
+    pl "unregistered dir is 2"          2 "$tmp/notgit"   "$inst_head"
+
+    # The other half of the per-mode remedy check: a stale PLUGIN must name the installer,
+    # and must NOT tell the user to pull a checkout that does not exist.
+    pl_says=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-pl" \
+      CLAUDE_CONFIG_DIR="$tmp/cfg" bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" \
+      --upstream 0123456789abcdef0123456789abcdef01234567 2>&1 | grep -ci 'plugin update')
+    pl_nopull=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-pl" \
+      CLAUDE_CONFIG_DIR="$tmp/cfg" bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" \
+      --upstream 0123456789abcdef0123456789abcdef01234567 2>&1 | grep -ci 'pull the checkout')
+    if [ "${pl_says:-0}" -ge 1 ] && [ "${pl_nopull:-0}" -eq 0 ]; then
+      printf '  %sPASS%s  %-34s\n' "$GRN" "$RST" "stale plugin says: update it"
+    else
+      printf '  %sFAIL%s  %-34s (update=%s want >=1; pull=%s want 0)\n' \
+             "$RED" "$RST" "stale plugin says: update it" "${pl_says:-0}" "${pl_nopull:-0}"
+      fails=$((fails+1))
+    fi
+
+    # NEGATIVE CONTROL — the registry entry exists but the marketplace it came from is a
+    # DIFFERENT github repo. The sha is real and every comparison downstream would run;
+    # only the identity check stops a confident verdict about a repo never looked at.
+    printf '{"m":{"source":{"source":"github","repo":"someone/else"}}}\n' > "$mkt"
+    out=$(MURDERBOARD_NO_NET=1 MURDERBOARD_REPO= MURDERBOARD_CACHE="$tmp/nocache-pl2" \
+          CLAUDE_CONFIG_DIR="$tmp/cfg" \
+          bash "$SELF" --slug fam/plug --plugin "$tmp/pluginst" --upstream "$inst_head" 2>&1); pwrong=$?
+    if [ "$pwrong" -eq 2 ]; then
+      printf '  %sPASS%s  %-34s (rc=2)\n' "$GRN" "$RST" "wrong-marketplace plugin is 2"
+    else
+      printf '  %sFAIL%s  %-34s (rc=%s, want 2)\n' \
+             "$RED" "$RST" "wrong-marketplace plugin is 2" "$pwrong"; fails=$((fails+1))
+    fi
+
+    # An entry with no recorded commit must be undetermined, never "current".
+    printf '{"m":{"source":{"source":"github","repo":"fam/plug"}}}\n' > "$mkt"
+    printf '{"version":2,"plugins":{"p@m":[{"scope":"user","installPath":"%s","version":"0.1.0"}]}}\n' \
+           "$tmp/pluginst" > "$reg"
+    pl "a shaless entry is 2"           2 "$tmp/pluginst" "$inst_head"
+  else
+    printf '  %sSKIP%s  %-34s (no python on PATH)\n' "$YEL" "$RST" "--plugin registry cases"
+  fi
+
   echo
   if [ "$fails" -eq 0 ]; then echo "${GRN}all checks pass${RST}"; else echo "${RED}$fails FAILED${RST}"; fi
   return $fails
@@ -586,6 +871,8 @@ ${2:-}"; shift ;;
     --slug)        REPO_SLUG="${2:-}"; shift ;;
     --clone)       CLONE_CANDIDATES="${2:-}
 $CLONE_CANDIDATES"; shift ;;
+    --from-git)    FROM_GIT="${2:-}"; shift ;;
+    --plugin)      PLUGIN_DIR="${2:-}"; shift ;;
     --upstream)    FORCE_UPSTREAM="${2:-}"; shift ;;
     --refresh)     REFRESH=1 ;;
     --hook)        HOOK=1 ;;
@@ -628,8 +915,39 @@ if gitout=$(git rev-parse --show-toplevel --git-common-dir 2>/dev/null); then
   [ -n "$cm" ] || cm=.
 fi
 
-target=; stamp=
-if [ -n "$ONE_FILE" ]; then
+target=; stamp=; TRUST_FILE=
+if [ -n "$PLUGIN_DIR" ]; then
+  if ! stamp_from_install "$PLUGIN_DIR"; then
+    echo "${YEL}$LABEL: freshness UNKNOWN — $CHECKOUT_WHY.${RST}"
+    exit 2
+  fi
+  target="$PLUGIN_DIR"; stamp=$STAMP; INSTALLED=1
+  # The registry is what an update rewrites, so it — not the copied tree — is what the
+  # cache trust test must age against.
+  TRUST_FILE="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/installed_plugins.json"
+  [ -r "$TRUST_FILE" ] || TRUST_FILE="$PLUGIN_DIR"
+elif [ -n "$FROM_GIT" ]; then
+  INSTALLED=1
+  # An INSTALLED copy. Its version is HEAD, so none of the stamp-shaped failures below
+  # (conflict markers in a header, a missing stamp, disagreeing stamps across the set) can
+  # occur here — they are properties of a version somebody wrote down by hand. Skipped,
+  # not reported as absent.
+  if ! stamp_from_checkout "$FROM_GIT"; then
+    echo "${YEL}$LABEL: freshness UNKNOWN — $CHECKOUT_WHY.${RST}"
+    exit 2
+  fi
+  target="$FROM_GIT"; stamp=$STAMP
+  # The cache trust test asks whether the cached HEAD was resolved AFTER this copy last
+  # changed. For a checkout, what moves on update is the HEAD file, not the directory's
+  # mtime — an update that lands the same tree would not touch the directory at all.
+  gd=$(git -C "$FROM_GIT" rev-parse --git-dir 2>/dev/null)
+  case "$gd" in
+    /*) TRUST_FILE="$gd/HEAD" ;;
+    "") TRUST_FILE="$FROM_GIT" ;;
+    *)  TRUST_FILE="$FROM_GIT/$gd/HEAD" ;;
+  esac
+  [ -r "$TRUST_FILE" ] || TRUST_FILE="$FROM_GIT"
+elif [ -n "$ONE_FILE" ]; then
   target="$ONE_FILE"
   stamp_of "$target" && stamp=$STAMP
 else
@@ -644,6 +962,7 @@ if [ -z "$target" ] || [ ! -r "$target" ]; then
   [ "$VERBOSE" -eq 1 ] && echo "${YEL}murderboard: no vendored copy found${RST}"
   exit 2
 fi
+TRUST_FILE="${TRUST_FILE:-$target}"
 if [ "${STAMP_CONFLICTED:-0}" -eq 1 ]; then
   echo "${RED}$LABEL: ${target#$root/} has UNRESOLVED CONFLICT MARKERS in its header.${RST}"
   echo "   This file is not vendored at any commit — it holds two stamps and a merge that was"
@@ -694,7 +1013,7 @@ if [ -z "$FORCE_UPSTREAM" ] && [ "$REFRESH" -eq 0 ]; then
     # wrong for a multi-worktree repo: the cache lives in the shared git common dir, so
     # ~17 worktrees sitting at different stamps each invalidated the others' trust and the
     # check went silent almost everywhere. A timestamp is per-file and survives sharing.
-    [ "${resolved:-0}" -ge "$(mtime "$target")" ] 2>/dev/null || trusted=0
+    [ "${resolved:-0}" -ge "$(mtime "$TRUST_FILE")" ] 2>/dev/null || trusted=0
   fi
 fi
 
@@ -778,25 +1097,54 @@ case "$source" in *local-clone*)
   ;;
 esac
 
-echo "${RED}--- !! $(printf '%s' "$LABEL" | tr '[:lower:]' '[:upper:]') IS STALE — re-vendor before relying on it ---${RST}"
-echo "   vendored: $stamp   upstream: ${head_sha%${head_sha#???????}}   (via $source)"
-echo "   file:     ${target#$root/}"
+# THE REMEDY DEPENDS ON HOW THE COPY GOT HERE, and telling a plugin user to "re-copy the
+# files and bump the stamp on every vendored file" sends them to do something that has no
+# meaning for their install — at which point the gate has correctly detected staleness and
+# then handed over an instruction that cannot be followed. An unactionable alert is a
+# tuned-out alert.
+echo "${RED}--- !! $(printf '%s' "$LABEL" | tr '[:lower:]' '[:upper:]') IS STALE — update before relying on it ---${RST}"
+if [ "$INSTALLED" -eq 1 ]; then
+  echo "   installed: $stamp   upstream: ${head_sha%${head_sha#???????}}   (via $source)"
+  echo "   install:   $target"
+  [ -n "$VERDICT_NOTE" ] && echo "   note:      $VERDICT_NOTE"
+else
+  echo "   vendored: $stamp   upstream: ${head_sha%${head_sha#???????}}   (via $source)"
+  echo "   file:     ${target#$root/}"
+fi
 [ "$LABEL" = murderboard ] && \
 echo "   A review run against a stale process silently omits rules already paid for."
-echo "   Re-copy from $REPO_SLUG and bump the stamp on EVERY vendored file of this"
-echo "   family, then land it on the DEFAULT BRANCH — vendoring onto a leaf branch"
-echo "   leaves every new worktree inheriting the old copy."
+if [ "$INSTALLED" -eq 1 ]; then
+  echo "   This copy is an INSTALL, not a vendored set: update it in place, do not re-vendor."
+  if [ -n "$PLUGIN_DIR" ]; then
+    # There is no checkout here to pull — the install is a plain copy the installer made.
+    echo "   Run  /plugin update $LABEL  (or: claude plugin update $LABEL). Do not hand-edit"
+    echo "   files under that path; the next update replaces the whole tree."
+  else
+    echo "   Pull the checkout above. Do not hand-edit files there; the next pull conflicts."
+  fi
+else
+  echo "   Re-copy from $REPO_SLUG and bump the stamp on EVERY vendored file of this"
+  echo "   family, then land it on the DEFAULT BRANCH — vendoring onto a leaf branch"
+  echo "   leaves every new worktree inheriting the old copy."
+fi
 
 # Disagreeing stamps across the vendored set are their own defect. SCOPED to the family
 # being checked: when the caller named files explicitly, only those are cross-checked.
 # Otherwise a repo vendoring two upstreams reports every file of the OTHER family as
 # "wrongly stamped" — noise that reads as findings and buries the real line.
-for f in ${EXPLICIT_FILES:-$STAMPED_FILES}; do
-  ff="$f"; [ -r "$ff" ] || ff="$root/$f"
-  [ -r "$ff" ] || continue
-  [ "$ff" = "$target" ] && continue
-  stamp_of "$ff" || continue
-  same_commit "$STAMP" "$stamp" || echo "   note: $f is stamped $STAMP, not $stamp"
-done
+#
+# An INSTALLED copy has no stamps to disagree — every file in it is at the checkout's one
+# HEAD by construction. Walking the list there would read the CONSUMER's own vendored files
+# (a repo may do both) and report them against the plugin's HEAD: two different families,
+# compared, with the mismatch printed as a defect in the wrong one.
+if [ "$INSTALLED" -eq 0 ]; then
+  for f in ${EXPLICIT_FILES:-$STAMPED_FILES}; do
+    ff="$f"; [ -r "$ff" ] || ff="$root/$f"
+    [ -r "$ff" ] || continue
+    [ "$ff" = "$target" ] && continue
+    stamp_of "$ff" || continue
+    same_commit "$STAMP" "$stamp" || echo "   note: $f is stamped $STAMP, not $stamp"
+  done
+fi
 
 exit 1
