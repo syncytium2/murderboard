@@ -554,7 +554,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.8.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.9.0</b> &middot; Updated <time datetime="2026-08-26">2026-08-26</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -1182,15 +1182,31 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
     </summary>
     <div class="sec-body">
     <div class="col">
-      <p class="lede">Nothing to install and nothing to subscribe to. Each project keeps its own
-      <em>copy</em> of the files, so anyone who clones your project gets a working murderboard with
-      it. Copies go out of date in silence, which is why the freshness gate exists.</p>
+      <p class="lede">Nothing to subscribe to, and two ways in. A project can keep its own
+      <em>copy</em> of the files, so anyone who clones that project gets a working murderboard with
+      it; or, if you use Claude Code, you can install it once and have it wherever you work.
+      Both go out of date in silence, which is why the freshness gate exists.</p>
       <p><strong>To try it in two minutes with no setup at all</strong>, open
       <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>, copy the
       block, paste it into any AI chat, then paste your document. Its role list is generated from the
       process document, so it cannot drift.
       <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">START-HERE.md</a> is
-      the same idea at more length. The steps below are for wiring it into a project permanently.</p>
+      the same idea at more length. The rest of this section is for wiring it in permanently.</p>
+      <p><strong>To install it</strong>, if you use Claude Code &mdash; two commands, typed at its
+      prompt rather than in a terminal:</p>
+<pre>/plugin marketplace add syncytium2/murderboard
+/plugin install murderboard@murderboard</pre>
+      <p>That is the skill, the process document, both review gates and the literature tool, with the
+      freshness check wired to run at the start of a session.</p>
+      <p><strong>Installing does not do everything the steps below do.</strong> It replaces
+      <em>vendoring the files in</em>, and the session-start half of <em>wiring the gates</em>. Pointing
+      the literature tool at a library is still yours, and so is the roster check, which belongs in
+      your project's automated checks where it can block. <em>Making it the default, in writing</em>
+      matters most and no install can do it: putting the files within reach is not the same as making
+      anyone use them.</p>
+      <p><strong>Copying wins when the murderboard has to travel with the project rather than with the
+      person.</strong> An install lives in your own home directory, so a colleague who clones your
+      repository does not get it.</p>
     </div>
 
     <div class="glossary">
@@ -1263,7 +1279,9 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
     <div class="two-up">
       <div class="card">
         <h3>If you use Claude Code</h3>
-        <p>Install the skill and run <code>/murderboard &lt;document&gt;</code>. It runs the parts that
+        <p>Install the plugin, or vendor the skill, then run <code>/murderboard &lt;document&gt;</code>.
+        It finds either layout, and prefers your project's own copy when both are present, because
+        that copy is the version your project declared. It runs the parts that
         must not depend on memory: it checks freshness at the moment of review, not just at startup;
         reads the role list from the process document; resolves the document to the <em>built</em> file
         rather than the program that generates it; records a checksum before and after; and writes a

@@ -42,7 +42,7 @@ it honest, and the skill that calls it up:
 | [`murderboard_roster.sh`](murderboard_roster.sh) | The coverage gate. **Derives** the role roster from `doc_review_process.md` (never recalled, so a new role propagates to every consumer for free) and checks that a finished review report accounts for **every** role — **0 all present · 1 one missing · 2 unknown**. It exists because "every role runs" was prose: a run that fired 7 of 11 roles and one that fired all 11 cleanly produced reports no reader could tell apart. |
 | [`murderboard_revendor.py`](murderboard_revendor.py) | The re-vendor tool. Does the update the freshness gate tells you to do, without the corruption the obvious `sed` causes: it rewrites the stamp on **exactly one line** — line 1, or line 2 behind a shebang, or JSON's `"_vendored"` key — and never touches a stamp-shaped string in a body. `murderboard_freshness.sh` has **11** stamp-shaped strings in its body, because it documents the format. It also refuses two silent failures: a stamp on some *other* early line (the gate reads it, so the copy drifts behind a green check) and a file set that disagrees with your SessionStart hook's `--file` list. `--check` reports without writing; `--selftest` proves the rewrite is surgical **and** that the two broken implementations fail its fixtures. Configured by `.murderboard-vendor.json` in your repo, not by editing this file — so it can re-vendor itself. |
 | [`require_commit_before_message.sh`](require_commit_before_message.sh) | The durability gate. Refuses a cross-session message while the working tree is dirty — **0 allow · 2 block** — so a session may tell another session something only once that something exists in git. Messages between sessions are socket traffic: nothing persists them, and when a session exits its half of every conversation is gone. One estate lost a finding four sessions had established, and noticed only because someone asked whether the messages were committed. Wire it as a `PreToolUse` hook on the message-sending tool; vendor it to `.claude/hooks/`. `--selftest` proves every branch fires. |
-| [`skills/murderboard/SKILL.md`](skills/murderboard/SKILL.md) | The call-up, for consumers using Claude Code. `/murderboard <artifact>` runs the process **as a sequence that cannot be half-executed**: freshness gated at the moment of review (not at session start), roster derived, artifact resolved to the built file rather than its generator and fingerprinted before/after, and a run record emitted and then checked by `murderboard_roster.sh`. Vendor it to `.claude/skills/murderboard/`. |
+| [`skills/murderboard/SKILL.md`](skills/murderboard/SKILL.md) | The call-up, for consumers using Claude Code. `/murderboard <artifact>` runs the process **as a sequence that cannot be half-executed**: freshness gated at the moment of review (not at session start), roster derived, artifact resolved to the built file rather than its generator and fingerprinted before/after, and a run record emitted and then checked by `murderboard_roster.sh`. Vendor it to `.claude/skills/murderboard/`, or install the plugin and get it in place. It resolves either layout, and prefers your repo's vendored copy when both are present — that copy is the version your project declared. |
 
 None depends on another at runtime; the process doc simply tells its reviewer agents to use
 the lit tool when they need a paper, and the skill sequences the rest.
@@ -59,17 +59,35 @@ that motivated each rule.)
 
 ## How a project adopts it
 
+**If you use Claude Code, install it** — two commands at the Claude Code prompt, not a shell:
+
+```
+/plugin marketplace add syncytium2/murderboard
+/plugin install murderboard@murderboard
+```
+
+That gets the skill, the process document, both review gates and the literature tool, and
+wires the freshness check to run at session start. `/murderboard <artifact>` works immediately.
+
+**It does not do everything the four steps below do.** It replaces *copying the files*, and the
+session-start half of *wiring the gates*. **Pointing the lit tool at your library is still
+yours** — it has none until you set `MURDERBOARD_LIT` — and so is the roster check, which
+belongs in your CI where it can block, not in a plugin. ***Invoking it from your `CLAUDE.md`*
+matters most and no install can do it:** putting the files within reach is not the same as
+making anyone use them.
+
+**Vendoring remains the documented path, and is the better one when a fresh clone of your
+project must carry a working murderboard with it.** An install lives in the person's home
+directory, not your repo, so a colleague who clones your project does not get it. The two also
+go stale differently, and both are gated: a vendored copy is judged by the stamp written into
+it, an install by the version its updater acts on. Pick by whether the murderboard needs to
+travel with the project or with the person.
+
 1. **Copy the files** into the consuming repo — `doc_review_process.md` under `docs/`, the
    four tools under `tools/`, and `skills/murderboard/SKILL.md` to
    `.claude/skills/murderboard/SKILL.md` — and stamp each with the upstream commit you copied
    from, so drift is visible. See "Vendoring" below.
-2. **Point the lit tool at your library** by setting `MURDERBOARD_LIT` to a directory of
-   PDFs (ideally on a synced/shared drive so the cache is shared across machines):
-   ```
-   export MURDERBOARD_LIT="/path/to/your/lit"
-   python3 tools/fetch_paper.py --have <author> <keyword>
-   ```
-3. **Wire the gates so they fire without being remembered.** Freshness at session start
+2. **Wire the gates so they fire without being remembered.** Freshness at session start
    (early warning) and again inside the skill at the moment of review (the actual gate);
    coverage against the finished report:
    ```
@@ -88,6 +106,12 @@ that motivated each rule.)
    family's files are not reported as wrongly stamped. Each family caches upstream HEAD
    under its own key — a shared cache would compare one family's HEAD against another's
    stamp and be confidently wrong in both directions.
+3. **Point the lit tool at your library** by setting `MURDERBOARD_LIT` to a directory of
+   PDFs (ideally on a synced/shared drive so the cache is shared across machines):
+   ```
+   export MURDERBOARD_LIT="/path/to/your/lit"
+   python3 tools/fetch_paper.py --have <author> <keyword>
+   ```
 4. **Invoke it from your `CLAUDE.md`.** Add a rule that document deliverables run through the
    murderboard before delivery — pointing at `/murderboard` where the skill is installed, and
    at `doc_review_process.md` otherwise. See this repo's [`CLAUDE.md`](CLAUDE.md) for a

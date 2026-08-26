@@ -20,10 +20,19 @@ in `doc_review_process.md`, which you will load in step 2 and follow.
 
 ## 0. Resolve the paths — do not assume a layout
 
-Consumers vendor these files to different places. Find them before anything else:
+There are two ways these files get onto a machine, and they land in different places:
+**vendored** (copied into the repo, at whatever paths that project chose) or **installed**
+(a Claude Code plugin, under `~/.claude/plugins/cache/…`). Find them before anything else:
 
 ```bash
 root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+MODE=vendored; MB=
+
+# VENDORED WINS when the repo has its own copy, even if a plugin is also installed.
+# That copy is the project's declared version — possibly pinned on purpose, and it is the
+# one its CI and its SessionStart hook police. Silently preferring the newer installed
+# copy would review against a process the repo never agreed to, and the run record would
+# name a commit that appears nowhere in it.
 for p in docs/doc_review_process.md doc_review_process.md; do
   [ -r "$root/$p" ] && PROCESS="$root/$p" && break
 done
@@ -33,22 +42,52 @@ done
 for p in tools/murderboard_roster.sh murderboard_roster.sh; do
   [ -r "$root/$p" ] && ROSTER="$root/$p" && break
 done
+
+# Nothing vendored here — fall back to the plugin install. $CLAUDE_PLUGIN_ROOT is set when
+# this skill came from a plugin, but do not rely on it reaching the shell: glob the install
+# cache as a fallback, newest version last.
+if [ -z "${PROCESS:-}" ]; then
+  MB="${CLAUDE_PLUGIN_ROOT:-}"
+  if [ -z "$MB" ] || [ ! -r "$MB/doc_review_process.md" ]; then
+    for d in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/*/murderboard/*/; do
+      [ -r "$d/doc_review_process.md" ] && MB="${d%/}"
+    done
+  fi
+  if [ -n "$MB" ] && [ -r "$MB/doc_review_process.md" ]; then
+    MODE=installed
+    PROCESS="$MB/doc_review_process.md"
+    FRESH="$MB/murderboard_freshness.sh"
+    ROSTER="$MB/murderboard_roster.sh"
+  fi
+fi
+echo "mode=$MODE process=${PROCESS:-NONE}"
 ```
 
-If `$PROCESS` is missing, **stop** and say the repo has not vendored the murderboard — do not
-reconstruct the process from memory. A remembered murderboard is the thing this whole
-apparatus exists to prevent.
+If `$PROCESS` is missing, **stop** and say the repo has neither vendored the murderboard nor
+got it installed — do not reconstruct the process from memory. A remembered murderboard is
+the thing this whole apparatus exists to prevent.
 
 ## 1. Freshness — a HARD GATE, here, now
 
 ```bash
-bash "$FRESH" --refresh --verbose ; echo "exit=$?"
+if [ "$MODE" = installed ]; then
+  bash "$FRESH" --refresh --verbose --plugin "$MB" ; echo "exit=$?"
+else
+  bash "$FRESH" --refresh --verbose ; echo "exit=$?"
+fi
 ```
 
+The two modes ask the same question — *is this copy behind upstream?* — of different
+evidence. A vendored copy is judged by the stamp written into it; an installed one by the
+commit the installer recorded for it. Both answer 0/1/2 and both are hard gates. **An
+install is not exempt:** `/plugin update` exists but nothing fires it, so an installed copy
+goes stale exactly the way a vendored one does.
+
 - **exit 0** — current. Proceed.
-- **exit 1 — STALE. STOP.** Re-vendor from upstream first, then start over. Do not "note it
-  and continue": a review run against a stale process silently omits rules the process has
-  already learned, and the report will claim coverage it did not have.
+- **exit 1 — STALE. STOP.** Update first, then start over — re-vendor if `MODE=vendored`,
+  `/plugin update murderboard` if `MODE=installed`. Do not "note it and continue": a review
+  run against a stale process silently omits rules the process has already learned, and the
+  report will claim coverage it did not have.
 - **exit 2** — could not determine. Proceed, but the run record's `freshness:` field says
   `UNDETERMINED`, and you say so in the delivered summary.
 
@@ -123,7 +162,7 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 ```markdown
 # Murderboard run — <artifact>
 - upstream:  syncytium2/murderboard @ <sha>      # from step 1
-- vendored:  <sha of this repo's copy>           # from step 1
+- copy:      vendored | installed @ <sha>        # from step 0/1 — say WHICH, and at what
 - freshness: current | UNDETERMINED
 - artifact:  <path> (<hash before> -> <hash after>)
 - roles:     <n> of <n> run

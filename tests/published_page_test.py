@@ -304,9 +304,16 @@ def main():
                              '<time datetime="%s">2019-05-05</time>' % BORN, 1)),
         ("version malformed (not N.N.N)",
          lambda s: VERSION_RE.sub("Version <b>v0.1</b>", s, 1)),
+        # Rewrites whatever Updated CURRENTLY says, via the same regex the check uses.
+        # It used to substitute the literal BORN date, which worked only while the page
+        # had never been updated -- Born and Updated were both 2026-08-25 at the time it
+        # was written. The first real bump (0.9.0, 2026-08-26) made the replace a no-op,
+        # so the mutation was never injected. It failed loudly rather than passing
+        # vacuously, which is why this was caught, but a negative control that expires
+        # the first time the thing it guards is used is not a control.
         ("updated older than born",
-         lambda s: s.replace('Updated <time datetime="%s">%s' % (BORN, BORN),
-                             'Updated <time datetime="2001-01-01">2001-01-01', 1)),
+         lambda s: UPDATED_RE.sub(
+             'Updated <time datetime="2001-01-01">2001-01-01</time>', s, 1)),
         # The form is the only thing on the page that talks to a third party, so
         # every way it can quietly change has to be a failure.
         ("form relay swapped for another host",
