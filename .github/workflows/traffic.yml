@@ -10,6 +10,12 @@ name: traffic archive
 # DAILY IS NOT OPTIONAL. The window is 14 days, so a schedule that slips for a fortnight
 # loses data permanently. Run it daily and let it be boring.
 #
+# IT ALSO RECORDS THIS REPO'S OWN CI, because most of the traffic IS this repo's own CI.
+# actions/checkout runs once per JOB, and the gates workflow is four jobs, so a single push
+# costs about four clones. Measured 2026-08-12..25: 236 CI jobs against 349 clones -- 68%.
+# Without the ci_jobs column that confound is invisible in the file and whoever reads it
+# later concludes the project is four times more popular than it is.
+#
 # THE TOKEN. The traffic API requires PUSH ACCESS. The default GITHUB_TOKEN is scoped to the
 # repo but does not reliably carry the traffic permission, so this prefers a PAT in the
 # TRAFFIC_TOKEN secret and falls back to GITHUB_TOKEN. If the run fails with 403, that is
@@ -30,6 +36,7 @@ on:
 
 permissions:
   contents: write             # to commit the archive back
+  actions: read               # to count this repo's OWN CI checkouts, see below
 
 concurrency:
   group: traffic-archive
