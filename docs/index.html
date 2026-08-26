@@ -161,9 +161,37 @@ code {
 }
 .jump a:hover { color: var(--blood); border-color: var(--blood); }
 
+/* ---------- accordion ----------
+   Sections collapse with native <details>/<summary>: NO JavaScript, so the page's
+   zero-script property — which tests/published_page_test.py gates — is untouched.
+   The text of a closed section is still in the DOM, so search engines read it and
+   a browser's find-in-page can reveal it. The id lives on the <summary>, inside
+   the <details>, so following #panel opens the section it lands in. */
+details.sec > summary {
+  cursor: pointer; list-style: none; display: block;
+  position: relative; padding: .15rem 3rem .15rem 0;
+}
+details.sec > summary::-webkit-details-marker { display: none; }
+details.sec > summary h2 { margin-bottom: 0; }
+details.sec > summary:hover h2 { color: var(--blood); }
+details.sec > summary:focus-visible {
+  outline: 2px solid var(--slate); outline-offset: 6px; border-radius: 2px;
+}
+/* A glyph rather than a rotating chevron: it reads the same at any font size,
+   needs no transform, and does not animate for prefers-reduced-motion to disable. */
+details.sec > summary::after {
+  content: "+"; position: absolute; right: .3rem; top: 50%;
+  transform: translateY(-50%); line-height: 1;
+  font-family: var(--f-mono); font-size: 1.75rem; font-weight: 400;
+  color: var(--blood);
+}
+details.sec[open] > summary::after { content: "\2212"; }
+.sec-body { margin-top: 1.4rem; }
+
 /* ---------- sections ---------- */
 section { padding: clamp(2.75rem, 7vw, 5rem) 0; border-top: 1px solid var(--rule); }
 .eyebrow {
+  display: block;
   font-family: var(--f-mono); font-size: .7rem; letter-spacing: .16em;
   text-transform: uppercase; color: var(--blood); margin: 0 0 .9rem;
 }
@@ -388,7 +416,7 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.4.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.5.0</b> &middot; Updated <time datetime="2026-08-25">2026-08-25</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -460,9 +488,13 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     </nav>
   </header>
 
-  <section id="problem">
-    <p class="eyebrow">Why it exists</p>
-    <h2>Everything here traces to a real defect</h2>
+  <section>
+    <details class="sec">
+    <summary id="problem">
+      <span class="eyebrow">Why it exists</span>
+      <h2>Everything here traces to a real defect</h2>
+    </summary>
+    <div class="sec-body">
     <div class="col">
       <p class="lede">Slop is not bad writing. It is confident writing that nobody checked. It reads
       as finished. Nothing on the page separates a verified sentence from a plausible one.</p>
@@ -497,11 +529,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     the rules. They are internal to the project that produced them, so a reader cannot audit them
     from outside &mdash; which makes them an account of where the rules came from, not evidence that
     the rules work. <span class="flag">&#9888;</span></p>
+    </div>
+    </details>
   </section>
 
-  <section id="rule">
-    <p class="eyebrow">The core principle</p>
-    <h2>One rule underneath the rest</h2>
+  <section>
+    <details class="sec">
+    <summary id="rule">
+      <span class="eyebrow">The core principle</span>
+      <h2>One rule underneath the rest</h2>
+    </summary>
+    <div class="sec-body">
     <div class="rule-card">
       <p>Every sentence must be <strong>either</strong> verifiable against a real source &mdash; the
       data, the code, a prior result, a checked citation &mdash; <strong>or</strong> explicitly
@@ -510,11 +548,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       verified is neither deleted nor quietly kept: it ships marked
       <span class="flag">&#9888;</span>, so the reader can see which sentences are not backed.</p>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="loop">
-    <p class="eyebrow">The process</p>
-    <h2>Draft, attack, repair, re-attack, deliver</h2>
+  <section>
+    <details class="sec">
+    <summary id="loop">
+      <span class="eyebrow">The process</span>
+      <h2>Draft, attack, repair, re-attack, deliver</h2>
+    </summary>
+    <div class="sec-body">
     <p class="col lede">Six steps, and one of them loops. The order is load-bearing: step 0 runs
     before the draft exists, and step 4 is both the step people skip and the step that catches the
     fixes that broke something else.</p>
@@ -652,11 +696,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         </div>
       </li>
     </ol>
+    </div>
+    </details>
   </section>
 
-  <section id="panel">
-    <p class="eyebrow">The review team</p>
-    <h2>Eleven seats on the panel</h2>
+  <section>
+    <details class="sec">
+    <summary id="panel">
+      <span class="eyebrow">The review team</span>
+      <h2>Eleven seats on the panel</h2>
+    </summary>
+    <div class="sec-body">
     <div class="col">
       <p class="lede">Each role gets the draft <em>and</em> the real sources &mdash; the data, the
       code, the companion documents &mdash; and returns findings in one shape: location, issue,
@@ -778,11 +828,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       <em>murder</em> your darlings, not kill, in <em>On the Art of Writing</em> (1916) &mdash; the
       older word, and the better fit here.</p>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="deliver">
-    <p class="eyebrow">The output contract</p>
-    <h2>Three things, or it isn't finished</h2>
+  <section>
+    <details class="sec">
+    <summary id="deliver">
+      <span class="eyebrow">The output contract</span>
+      <h2>Three things, or it isn't finished</h2>
+    </summary>
+    <div class="sec-body">
     <div class="two-up">
       <div class="card">
         <h3>1 &middot; The corrected document</h3>
@@ -803,11 +859,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         invent findings to look thorough.</p>
       </div>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="gates">
-    <p class="eyebrow">The gates</p>
-    <h2>A rule that depends on being remembered is not a gate</h2>
+  <section>
+    <details class="sec">
+    <summary id="gates">
+      <span class="eyebrow">The gates</span>
+      <h2>A rule that depends on being remembered is not a gate</h2>
+    </summary>
+    <div class="sec-body">
     <div class="col">
       <p class="lede">A gate is a check placed in the path of the work, so it fires whether or not
       anyone remembers it &mdash; the way a smoke alarm is not a rule about smoke. Two rules of this
@@ -903,11 +965,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       verdict at all and allows when it cannot see a project.</p>
       <p>Every gate ships <code>--selftest</code>, which proves each branch can still fire.</p>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="limits">
-    <p class="eyebrow">Read this before you quote a run</p>
-    <h2>What it does not do</h2>
+  <section>
+    <details class="sec">
+    <summary id="limits">
+      <span class="eyebrow">Read this before you quote a run</span>
+      <h2>What it does not do</h2>
+    </summary>
+    <div class="sec-body">
     <div class="caution">
       <p><strong>A clean run is evidence the roles ran. It is not evidence the document is
       correct.</strong> The process requires you to say so, in the delivered summary, in these terms
@@ -978,11 +1046,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       its own subject &mdash; reviewed enough to be worth reading, not enough to be quoted as
       verified.</p>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="adopt">
-    <p class="eyebrow">Implementation</p>
-    <h2>Putting it in your own project</h2>
+  <section>
+    <details class="sec">
+    <summary id="adopt">
+      <span class="eyebrow">Implementation</span>
+      <h2>Putting it in your own project</h2>
+    </summary>
+    <div class="sec-body">
     <div class="col">
       <p class="lede">Nothing to install and nothing to subscribe to. Each project keeps its own
       <em>copy</em> of the files, so anyone who clones your project gets a working murderboard with
@@ -1079,6 +1153,8 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
         structure and the record do the work, not the reviewer's identity.</p>
       </div>
     </div>
+    </div>
+    </details>
   </section>
 
   <footer>
