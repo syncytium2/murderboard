@@ -23,6 +23,17 @@ they ended up as prose in the first place.
 
 ## If you are working IN this repo
 
+- **This repo is for murderboard development only** — the process, the gates, the lit tool, the
+  skill, the site, and their tests. Work that is not *about* the murderboard (course or workshop
+  material, session plans, reviews of another project's documents, scratch notes for something
+  else) belongs in its own repo. This is not tidiness. Other projects vendor from here, so
+  anything committed lands in their copies, and a public history cannot be recalled once it has
+  been cloned. The failure is quiet: doing foreign work in this checkout leaves no trace until
+  the day something foreign gets committed.
+  **This line states the rule; it does not enforce it.** Enforcement is a `PreToolUse` guard
+  wired from `.claude/settings.local.json` — deliberately local and unshipped, because it encodes
+  one maintainer's filing habits rather than anything about the murderboard, and it is a filename
+  heuristic that catches the obvious case and nothing subtler.
 - Keep every file **project-neutral.** No hardcoded paths, project names, or domain jargon
   in the core — the calcium-imaging origin lives only in the appendix of
   `doc_review_process.md` and in explicit back-compat branches of `fetch_paper.py`
