@@ -153,6 +153,34 @@ for rel in ("doc_review_process.md", "murderboard_freshness.sh", "murderboard_ro
     check(f"the plugin root carries {rel}", (ROOT / rel).is_file())
     check(f"the skill resolves {rel} from the plugin root", f'$MB/{rel}' in skill)
 
+# --- 5. the documented install commands match the actual manifests -----------------
+# README.md and docs/index.html both print the two commands a stranger will type, and
+# docs/index.html is published straight from main. Rename the plugin or move the repo and
+# those strings become instructions that fail for everyone while every other test here
+# still passes -- the manifests would agree with each other perfectly, and with nothing a
+# reader is told to type. The page is the only copy of itself (CLAUDE.md), so it cannot be
+# checked against a duplicate; it has to be checked against the source of truth.
+# DERIVED from plugin.json's own repository URL, never hardcoded here: a literal would be a
+# fourth copy of the slug, and this test would then happily confirm that three documents all
+# agree with a string that moved.
+repo_url = (plugin.get("repository") or "").rstrip("/")
+slug = "/".join(repo_url.split("/")[-2:]) if repo_url.count("/") >= 2 else ""
+check("plugin.json carries a usable repository URL", bool(slug), f"({repo_url!r})")
+
+want_add = f"/plugin marketplace add {slug}"
+want_install = f"/plugin install {plugin['name']}@{market.get('name')}"
+for doc in ("README.md", "docs/index.html"):
+    p = ROOT / doc
+    if not p.is_file():
+        check(f"{doc} exists", False)
+        continue
+    body = p.read_text(encoding="utf-8")
+    if "/plugin install" not in body and "/plugin marketplace add" not in body:
+        continue          # this document does not document installing; nothing to drift
+    check(f"{doc} documents the real marketplace", want_add in body, f"({want_add})")
+    check(f"{doc} documents the real plugin@marketplace", want_install in body,
+          f"({want_install})")
+
 print()
 if FAILURES:
     print("FAILED: " + "; ".join(FAILURES))
