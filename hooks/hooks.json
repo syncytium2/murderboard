@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "Shipped to PLUGIN INSTALLS only. This repo's own dev hooks live in .claude/settings.json",
+    "and are unrelated: a contributor working in the checkout is not running the plugin.",
+    "",
+    "ONE HOOK, and deliberately only one. The early-warning freshness check is the only thing",
+    "here that a user cannot reasonably be asked to remember, and it is silent when current.",
+    "The repo's other two gates are NOT wired: require_commit_before_message.sh blocks a tool",
+    "call when the tree is dirty, and no-heredoc-source.sh blocks a class of Bash command.",
+    "Both are good rules and both are somebody's opinion about how their repo should work --",
+    "installing a review harness must not silently start refusing a stranger's commands. They",
+    "ship in the plugin for anyone who wants them; see the README.",
+    "",
+    "--hook never touches the network: it serves a cached verdict and refreshes detached, so",
+    "session startup is never blocked on a lookup. --plugin reads the commit Claude Code",
+    "recorded for this install; with no answer it exits 2 and says nothing."
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/murderboard_freshness.sh\" --hook --plugin \"${CLAUDE_PLUGIN_ROOT}\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/murderboard_freshness.sh\" --hook --plugin \"${CLAUDE_PLUGIN_ROOT}\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

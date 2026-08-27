@@ -7,6 +7,13 @@ process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`,
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 
+**The repo has a public website: <https://murderboard.tonydefazio.com/>.** It is served by
+GitHub Pages from `main` + `/docs`, so **`docs/index.html` is live** — a push to `main` that
+touches it deploys it, with no review step in between. That file is the explainer, it is the
+*only* copy (two copies drift; this repo has already had that failure), and its invariants are
+enforced by `tests/published_page_test.py` in CI. Do not add a second copy, and do not point
+anything at `docs/murderboard-explainer.html` — that was its name before #36.
+
 **The division of labour matters when editing.** `doc_review_process.md` is the authority on
 *what* gets reviewed and by whom; the skill owns only *how the review is summoned* — the parts
 that must not depend on being remembered. A new **rule** goes in the process file. A new step
@@ -16,12 +23,34 @@ they ended up as prose in the first place.
 
 ## If you are working IN this repo
 
+- **This repo is for murderboard development only** — the process, the gates, the lit tool, the
+  skill, the site, and their tests. Work that is not *about* the murderboard (course or workshop
+  material, session plans, reviews of another project's documents, scratch notes for something
+  else) belongs in its own repo. This is not tidiness. Other projects vendor from here, so
+  anything committed lands in their copies, and a public history cannot be recalled once it has
+  been cloned. The failure is quiet: doing foreign work in this checkout leaves no trace until
+  the day something foreign gets committed.
+  **This line states the rule; it does not enforce it.** Enforcement is a `PreToolUse` guard
+  wired from `.claude/settings.local.json` — deliberately local and unshipped, because it encodes
+  one maintainer's filing habits rather than anything about the murderboard, and it is a filename
+  heuristic that catches the obvious case and nothing subtler.
 - Keep every file **project-neutral.** No hardcoded paths, project names, or domain jargon
   in the core — the calcium-imaging origin lives only in the appendix of
   `doc_review_process.md` and in explicit back-compat branches of `fetch_paper.py`
   (`IF2_LIT`/`IF2_PAPERS`, the `01-lit` autodetect). New machinery is env-driven.
 - `fetch_paper.py` has no external dependencies beyond the standard library (+ optional
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
+- **`docs/index.html` loads nothing over the network** — no webfont, no script, no analytics,
+  no CDN. The page says so in a comment at its own top, and the claim is what makes "renders
+  the same opened from disk, air-gapped, or behind a captive portal" true. Breaking it is
+  invisible on the machine of whoever breaks it, so `tests/published_page_test.py` gates it.
+  If analytics is ever wanted, that is a decision to raise, not a change to slip in.
+- **The page footer carries a stamp: `Born · Version · Updated`.** When you change
+  `docs/index.html`, bump **Version** and set **Updated** to the date you publish. **Born never
+  changes** — `tests/published_page_test.py` pins it to a literal and fails if it moves, because
+  a born-on date that can be quietly edited is just another mutable field. Versions are
+  `MAJOR.MINOR.PATCH`; the site started at `0.1.0` on 2026-08-25. (This stamp is the *page's*
+  version and is unrelated to the vendoring stamps below, which track upstream commits.)
 - After any change, bump nothing automatically — consumers re-vendor deliberately and stamp
   the commit they took (see README "Vendoring"). Just commit and push here.
 - **This repo is PUBLIC (Apache-2.0).** Two rules follow, and neither is optional:
@@ -55,7 +84,9 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one.
+> pass as a clean one. **Every artifact this produces is ours and stays here** — the
+> corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
+> the process comes from, never where our reviews go.
 
 ## Practicing what it preaches
 

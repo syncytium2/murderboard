@@ -37,6 +37,10 @@ nothing is visible as a role that ran, not as a role that got skipped.
 
 ## Level 2 — Claude Code. Five minutes.
 
+> **From here on you need a repo of your own.** Level 1 writes nothing. Level 2 does: each
+> review leaves a run record, and it belongs in *your* project. Do not work inside a clone of
+> this repo — that is how your documents end up in somebody else's tool.
+
 If you use [Claude Code](https://claude.com/claude-code), you can run the whole thing with one
 command instead of pasting.
 

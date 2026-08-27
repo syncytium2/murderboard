@@ -6,10 +6,16 @@
 <title>The Murderboard</title>
 <meta name="description" content="A review process for catching unchecked claims. Eleven reviewer roles, three scripts, and a fixed format for what comes back. Open source, Apache-2.0.">
 <link rel="canonical" href="https://murderboard.tonydefazio.com/">
-<!-- No external requests. Every font stack ends in a generic family, so nothing here waits
-     on a network: the page renders the same opened from disk, air-gapped, or behind a
+<!-- Nothing is requested on load. Every font stack ends in a generic family, so nothing here
+     waits on a network: the page renders the same opened from disk, air-gapped, or behind a
      captive portal. A webfont link would make "opens from disk" false in the one case that
-     matters. Named faces are OS-bundled where available and fall through where not. -->
+     matters. Named faces are OS-bundled where available and fall through where not.
+
+     ONE EXCEPTION, stated rather than buried: the contact form at the foot of the page does a
+     plain HTML POST to Web3Forms, and that request happens only when a visitor presses Send.
+     There is no script - a native form submit keeps the scriptless posture and degrades
+     perfectly. That is why the colophon reads "one network request, and only if you send the
+     form" rather than the flat "no network requests" this page used to claim. -->
 
 <style>
 .nb { white-space: nowrap; }
@@ -161,9 +167,73 @@ code {
 }
 .jump a:hover { color: var(--blood); border-color: var(--blood); }
 
+/* ---------- top bar ----------
+   "Get it" is the page's job, so it sits above the wordmark rather than below
+   the argument. Horizontal scroll rather than wrap keeps it one line tall on a
+   phone: a wrapped link list above the title would push the title off screen,
+   which is the opposite of putting this first. The scrollbar is hidden because
+   a persistent bar would sit on top of the links on the platforms that show
+   one; the row still scrolls by touch, wheel and keyboard. */
+.topbar {
+  border-bottom: 1px solid var(--rule); background: var(--surface);
+}
+.topbar .wrap { display: flex; }
+.topbar-links {
+  display: flex; gap: 0 1.4rem; align-items: center;
+  overflow-x: auto; scrollbar-width: none;
+  font-family: var(--f-mono); font-size: .78rem; white-space: nowrap;
+  width: 100%;
+}
+.topbar-links::-webkit-scrollbar { display: none; }
+.topbar-links a {
+  color: var(--ink-soft); text-decoration: none;
+  padding: .95rem 0; flex: 0 0 auto;
+}
+.topbar-links a:first-child { color: var(--blood); font-weight: 600; }
+.topbar-links a:hover { color: var(--blood); }
+/* Feedback sits second rather than last. The bar scrolls horizontally on a
+   phone, so anything at the far end is off-screen until someone thinks to swipe
+   a row they have no reason to think is scrollable -- and an invitation nobody
+   sees is not an invitation. Boxed rather than coloured so it reads as an
+   action without competing with "Start here" for the one red slot. */
+.topbar-links a.tb-feedback {
+  border: 1px solid var(--rule); border-radius: 999px;
+  padding: .3rem .8rem; margin: .5rem 0;
+  color: var(--ink); background: var(--bg);
+}
+.topbar-links a.tb-feedback:hover { color: var(--blood); border-color: var(--blood); }
+
+/* ---------- accordion ----------
+   Sections collapse with native <details>/<summary>: NO JavaScript, so the page's
+   zero-script property — which tests/published_page_test.py gates — is untouched.
+   The text of a closed section is still in the DOM, so search engines read it and
+   a browser's find-in-page can reveal it. The id lives on the <summary>, inside
+   the <details>, so following #panel opens the section it lands in. */
+details.sec > summary {
+  cursor: pointer; list-style: none; display: block;
+  position: relative; padding: .15rem 3rem .15rem 0;
+}
+details.sec > summary::-webkit-details-marker { display: none; }
+details.sec > summary h2 { margin-bottom: 0; }
+details.sec > summary:hover h2 { color: var(--blood); }
+details.sec > summary:focus-visible {
+  outline: 2px solid var(--slate); outline-offset: 6px; border-radius: 2px;
+}
+/* A glyph rather than a rotating chevron: it reads the same at any font size,
+   needs no transform, and does not animate for prefers-reduced-motion to disable. */
+details.sec > summary::after {
+  content: "+"; position: absolute; right: .3rem; top: 50%;
+  transform: translateY(-50%); line-height: 1;
+  font-family: var(--f-mono); font-size: 1.75rem; font-weight: 400;
+  color: var(--blood);
+}
+details.sec[open] > summary::after { content: "\2212"; }
+.sec-body { margin-top: 1.4rem; }
+
 /* ---------- sections ---------- */
 section { padding: clamp(2.75rem, 7vw, 5rem) 0; border-top: 1px solid var(--rule); }
 .eyebrow {
+  display: block;
   font-family: var(--f-mono); font-size: .7rem; letter-spacing: .16em;
   text-transform: uppercase; color: var(--blood); margin: 0 0 .9rem;
 }
@@ -300,6 +370,12 @@ pre .k { color: var(--blood); }
 footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 clamp(3rem,7vw,5rem); }
 .links { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-family: var(--f-mono); font-size: .88rem; }
 .colophon { margin-top: 2rem; font-size: .92rem; color: var(--ink-faint); max-width: var(--measure); }
+/* Version stamp. Lives in the masthead kicker, which already supplies the mono
+   face and the wrapping flex row, so this only has to keep the whole stamp
+   together as one wrap unit and lift the version out of the surrounding grey. */
+.stamp { white-space: nowrap; }
+.stamp b { font-weight: 600; color: var(--ink-soft); }
+@media (max-width: 26rem) { .stamp { white-space: normal; } }
 
 /* ---------- stat strip ---------- */
 .stats {
@@ -322,8 +398,14 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 }
 
 /* ---------- the loop diagram ---------- */
-.figure { margin: 2rem 0 0; }
-.figure svg { display: block; width: 100%; height: auto; max-width: 780px; }
+/* The diagram is authored on a 780-unit viewBox with 10-13px labels. Scaled to
+   fit a 375px phone that is a factor of 0.43, so those labels rendered at
+   4.3-5.6px -- the exact defect doc_review_process.md records under figure
+   legibility, present on every phone. It now stops shrinking at 620px and
+   scrolls instead, the treatment the wide table already gets. Scaling is
+   uniform, so nothing reflows: the geometry is unchanged, only the floor. */
+.figure { margin: 2rem 0 0; overflow-x: auto; }
+.figure svg { display: block; width: 100%; height: auto; max-width: 780px; min-width: 620px; }
 .figure figcaption {
   margin-top: .8rem; font-size: .93rem; color: var(--ink-soft); max-width: var(--measure);
 }
@@ -368,23 +450,117 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
 .provenance p { font-size: .95rem; color: var(--ink-soft); }
 .provenance p:first-of-type { color: var(--ink); }
 
+/* ---------- contact ----------
+   A plain HTML POST, no JavaScript: the same shape tonydefazio.com uses, and the
+   reason the scriptless posture survives a form at all. no_peak solves this with
+   fetch and React state; this page has no bundle to put that in, and a native
+   submit degrades perfectly. The destination address appears nowhere here -- the
+   relay key only names an inbox and can read nothing back -- so a scraper that
+   parses this page gets nothing to harvest. */
+.contact-sec { border-top: 1px solid var(--rule); padding: clamp(2.75rem, 7vw, 5rem) 0; }
+.contact-sec h2 { margin-bottom: 1.4rem; }
+.contact-grid {
+  display: grid; gap: clamp(1.5rem, 4vw, 3rem);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  align-items: start;
+}
+.contact-sec p { max-width: 46ch; color: var(--ink-soft); }
+.contact-sec p b { color: var(--ink); font-weight: 600; }
+form.contact { display: grid; gap: .85rem; max-width: 34rem; }
+form.contact label {
+  display: grid; gap: .35rem;
+  font-family: var(--f-mono); font-size: .72rem; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+form.contact input[type="email"], form.contact textarea {
+  font-family: var(--f-body); font-size: 1rem; line-height: 1.5; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+  padding: .6rem .7rem; width: 100%;
+  text-transform: none; letter-spacing: normal;
+}
+form.contact input[type="email"]:focus, form.contact textarea:focus {
+  outline: 2px solid var(--blood); outline-offset: 1px; border-color: var(--blood);
+}
+form.contact textarea { resize: vertical; min-height: 7rem; }
+/* Honeypot: hidden from people, irresistible to bots. */
+form.contact .botcheck { position: absolute; left: -9999px; opacity: 0; height: 0; width: 0; }
+form.contact button {
+  font-family: var(--f-display); font-weight: 600; font-size: .95rem;
+  background: var(--blood); color: var(--surface); border: 1px solid var(--blood);
+  border-radius: 3px; padding: .7rem 1.4rem; cursor: pointer; justify-self: start;
+  transition: opacity .15s;
+}
+form.contact button:hover { opacity: .88; }
+form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* The dark palette's --blood is a light rose (#E0808C), so white-on-rose is only
+   2.75:1. The label flips to dark ink there -- 6.45:1 -- while light mode keeps
+   white on #8A1C2B at 9.20:1.
+
+   The dark-media guard is NOT optional, and tonydefazio.com is missing it: with
+   the selector written flat, `:root:not([data-theme="light"])` also matches the
+   DEFAULT state, where no data-theme attribute is set at all -- which is light
+   mode -- and the flip would put #1B1719 on #8A1C2B at 1.93:1. tonydefazio.com
+   reaches the same four outcomes by following the flat rule with a
+   prefers-color-scheme: light counter-rule; the media wrapper does it in one
+   rule instead of two. Computed, not eyeballed. */
+:root[data-theme="dark"] form.contact button { color: #1B1719; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) form.contact button { color: #1B1719; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+}
+
+/* ---------- phone ----------
+   Touch targets. The accordion is now the primary interaction, and a summary
+   whose hit area is the height of its text is a summary you miss. 44px is the
+   floor both platform guidelines use; the jump pills and the top bar get the
+   same treatment. These are min-heights, not paddings, so nothing moves on a
+   pointer device where the targets were already fine. */
+@media (pointer: coarse) {
+  details.sec > summary { padding-top: .55rem; padding-bottom: .55rem; }
+  .jump a { min-height: 44px; display: flex; align-items: center; }
+  .topbar-links a { min-height: 44px; display: flex; align-items: center; }
+  .links a { min-height: 44px; display: inline-flex; align-items: center; }
+}
+
+@media (max-width: 30rem) {
+  /* At 11vw the wordmark can still set wide enough to break "Murderboard"
+     mid-word on a narrow phone. Tighten the clamp so it stays on one line. */
+  .wordmark { font-size: clamp(2.5rem, 13vw, 3.4rem); }
+  /* Give the summary marker room so a long heading never runs under it. */
+  details.sec > summary { padding-right: 2.4rem; }
 }
 </style>
 </head>
 <body>
 
+<nav class="topbar" aria-label="Project links">
+  <div class="wrap">
+    <div class="topbar-links">
+      <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
+      <a class="tb-feedback" href="#contact">Feedback</a>
+      <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
+      <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>
+      <a href="https://github.com/syncytium2/murderboard/blob/main/doc_review_process.md">The process document</a>
+      <a href="https://github.com/syncytium2/bugarach/blob/main/docs/reviews/pensub_export_validation_murderboard_2026-08-20.md">A public run record</a>
+      <a href="https://doi.org/10.5281/zenodo.22063835">DOI</a>
+      <a href="https://github.com/syncytium2/murderboard/blob/main/LICENSE">Apache-2.0</a>
+    </div>
+  </div>
+</nav>
+
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.9.1</b> &middot; Updated <time datetime="2026-08-27">2026-08-27</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
-    <p class="deck"><b>Not the detective's corkboard.</b> The older sense of the word: a panel
-    convened to tear a thing apart before it is defended for real, hostile enough that the actual
-    review holds no surprises.</p>
+    <p class="deck">A panel convened to tear a thing apart before it is defended for real
+    &mdash; hostile enough that what the real review turns up is news, rather than something
+    you could have caught yourself.</p>
 
     <div class="stats">
       <div><b>11</b><span>reviewer roles, every one of them, every time</span></div>
@@ -396,32 +572,28 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     <div class="summary">
       <p class="eyebrow">Executive summary</p>
 
-      <p><b>The problem.</b> Documents go out with claims nobody checked. A number that disagrees
-      with the analysis it came from. A reference that exists but credits the wrong paper. A total
-      that changes between two pages. It happens whenever nothing sits between writing a draft and
-      sending it &mdash; no step where someone tries to break it.</p>
+      <p><b>The problem.</b> Unchecked documents ship. A number that disagrees with its source. A
+      reference crediting the wrong paper. A total that changes between pages. Nothing sits
+      between draft and send.</p>
 
-      <p><b>The response.</b> A written procedure, eleven reviewer roles that each look for a
-      different kind of fault, three scripts that enforce what gets forgotten, and a fixed format
-      for what comes back. Free, tied to no field, and designed to work the same whether the
-      reviewers are humans or AI.</p>
+      <p><b>The response.</b> Eleven reviewer roles, three scripts, one fixed report format. Free,
+      tied to no field, the same whether the reviewers are humans or AI.</p>
 
-      <p><b>The method.</b> Every sentence must be checkable against something real &mdash; the
-      data, the code, a source someone actually opened &mdash; or carry a visible mark saying it is
-      not. All eleven roles run every time, and the report names all eleven, including those that
-      found nothing: otherwise a review that ran seven looks exactly like one that ran eleven.</p>
+      <p><b>The method.</b> Every sentence is checkable against the data, the code, or a source
+      someone opened &mdash; or it carries a mark saying it is not. All eleven roles run every
+      time and the report names all eleven. Otherwise a review that ran seven looks like one that
+      ran eleven.</p>
 
-      <p><b>The cost.</b> Eleven reviewers read the draft. One human decides what to act on and
-      makes the fixes. Then a reviewer who has not seen the findings reads the corrected document,
-      because fixes break things &mdash; up to three rounds, then it stops, converged or not. A
-      caption or a one-line summary gets one reviewer walking all eleven checklists in a single
-      pass, except that citations stay a separate reviewer whenever the document attributes a
+      <p><b>The cost.</b> Eleven reviewers read the draft. One human decides and fixes. Then a
+      reviewer who has not seen the findings reads it again, because fixes break things. Three
+      rounds, then it stops, converged or not. A caption gets one reviewer walking all eleven
+      checklists &mdash; except citations, which stay separate when the document attributes a
       method or claims novelty.</p>
 
-      <p class="last"><b>The limits.</b> A clean report proves the reviewers did their jobs. It does
-      not prove the document is right, and <strong>whether this process finds more than some other
-      approach has never been measured</strong>. <a href="#limits">What it does not do</a> is the
-      section to read before adopting it.</p>
+      <p class="last"><b>The limits.</b> A clean report proves the reviewers did their jobs. It
+      does not prove the document is right, and <strong>whether this beats any other approach has
+      never been measured</strong>. Read <a href="#limits">What it does not do</a> before adopting
+      it.</p>
     </div>
 
     <p class="signpost">Everything down to <em>What you hand over</em>, and all of
@@ -440,9 +612,13 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     </nav>
   </header>
 
-  <section id="problem">
-    <p class="eyebrow">Why it exists</p>
-    <h2>Everything here traces to a real defect</h2>
+  <section>
+    <details class="sec">
+    <summary id="problem">
+      <span class="eyebrow">Why it exists</span>
+      <h2>Everything here traces to a real defect</h2>
+    </summary>
+    <div class="sec-body">
     <div class="col">
       <p class="lede">Slop is not bad writing. It is confident writing that nobody checked. It reads
       as finished. Nothing on the page separates a verified sentence from a plausible one.</p>
@@ -477,11 +653,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
     the rules. They are internal to the project that produced them, so a reader cannot audit them
     from outside &mdash; which makes them an account of where the rules came from, not evidence that
     the rules work. <span class="flag">&#9888;</span></p>
+    </div>
+    </details>
   </section>
 
-  <section id="rule">
-    <p class="eyebrow">The core principle</p>
-    <h2>One rule underneath the rest</h2>
+  <section>
+    <details class="sec">
+    <summary id="rule">
+      <span class="eyebrow">The core principle</span>
+      <h2>One rule underneath the rest</h2>
+    </summary>
+    <div class="sec-body">
     <div class="rule-card">
       <p>Every sentence must be <strong>either</strong> verifiable against a real source &mdash; the
       data, the code, a prior result, a checked citation &mdash; <strong>or</strong> explicitly
@@ -490,11 +672,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       verified is neither deleted nor quietly kept: it ships marked
       <span class="flag">&#9888;</span>, so the reader can see which sentences are not backed.</p>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="loop">
-    <p class="eyebrow">The process</p>
-    <h2>Draft, attack, repair, re-attack, deliver</h2>
+  <section>
+    <details class="sec">
+    <summary id="loop">
+      <span class="eyebrow">The process</span>
+      <h2>Draft, attack, repair, re-attack, deliver</h2>
+    </summary>
+    <div class="sec-body">
     <p class="col lede">Six steps, and one of them loops. The order is load-bearing: step 0 runs
     before the draft exists, and step 4 is both the step people skip and the step that catches the
     fixes that broke something else.</p>
@@ -632,11 +820,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         </div>
       </li>
     </ol>
+    </div>
+    </details>
   </section>
 
-  <section id="panel">
-    <p class="eyebrow">The review team</p>
-    <h2>Eleven seats on the panel</h2>
+  <section>
+    <details class="sec">
+    <summary id="panel">
+      <span class="eyebrow">The review team</span>
+      <h2>Eleven seats on the panel</h2>
+    </summary>
+    <div class="sec-body">
     <div class="col">
       <p class="lede">Each role gets the draft <em>and</em> the real sources &mdash; the data, the
       code, the companion documents &mdash; and returns findings in one shape: location, issue,
@@ -758,11 +952,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       <em>murder</em> your darlings, not kill, in <em>On the Art of Writing</em> (1916) &mdash; the
       older word, and the better fit here.</p>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="deliver">
-    <p class="eyebrow">The output contract</p>
-    <h2>Three things, or it isn't finished</h2>
+  <section>
+    <details class="sec">
+    <summary id="deliver">
+      <span class="eyebrow">The output contract</span>
+      <h2>Three things, or it isn't finished</h2>
+    </summary>
+    <div class="sec-body">
     <div class="two-up">
       <div class="card">
         <h3>1 &middot; The corrected document</h3>
@@ -783,11 +983,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
         invent findings to look thorough.</p>
       </div>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="gates">
-    <p class="eyebrow">The gates</p>
-    <h2>A rule that depends on being remembered is not a gate</h2>
+  <section>
+    <details class="sec">
+    <summary id="gates">
+      <span class="eyebrow">The gates</span>
+      <h2>A rule that depends on being remembered is not a gate</h2>
+    </summary>
+    <div class="sec-body">
     <div class="col">
       <p class="lede">A gate is a check placed in the path of the work, so it fires whether or not
       anyone remembers it &mdash; the way a smoke alarm is not a rule about smoke. Two rules of this
@@ -883,11 +1089,17 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       verdict at all and allows when it cannot see a project.</p>
       <p>Every gate ships <code>--selftest</code>, which proves each branch can still fire.</p>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="limits">
-    <p class="eyebrow">Read this before you quote a run</p>
-    <h2>What it does not do</h2>
+  <section>
+    <details class="sec">
+    <summary id="limits">
+      <span class="eyebrow">Read this before you quote a run</span>
+      <h2>What it does not do</h2>
+    </summary>
+    <div class="sec-body">
     <div class="caution">
       <p><strong>A clean run is evidence the roles ran. It is not evidence the document is
       correct.</strong> The process requires you to say so, in the delivered summary, in these terms
@@ -958,21 +1170,48 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
       its own subject &mdash; reviewed enough to be worth reading, not enough to be quoted as
       verified.</p>
     </div>
+    </div>
+    </details>
   </section>
 
-  <section id="adopt">
-    <p class="eyebrow">Implementation</p>
-    <h2>Putting it in your own project</h2>
+  <section>
+    <details class="sec">
+    <summary id="adopt">
+      <span class="eyebrow">Implementation</span>
+      <h2>Putting it in your own project</h2>
+    </summary>
+    <div class="sec-body">
     <div class="col">
-      <p class="lede">Nothing to install and nothing to subscribe to. Each project keeps its own
-      <em>copy</em> of the files, so anyone who clones your project gets a working murderboard with
-      it. Copies go out of date in silence, which is why the freshness gate exists.</p>
+      <p class="lede"><strong>It goes in your project, not in this one.</strong> You need a repo
+      of your own: the murderboard reviews your documents and leaves a record of each review, and
+      those are yours &mdash; your drafts, your findings, your numbers. Nothing of yours ever needs
+      to reach this repo, and nothing of yours should. It is public and it is copied from, so
+      anything landing here lands in other people&rsquo;s copies too.</p>
+      <p class="lede">Nothing to subscribe to, and two ways in. A project can keep its own
+      <em>copy</em> of the files, so anyone who clones that project gets a working murderboard with
+      it; or, if you use Claude Code, you can install it once and have it wherever you work.
+      Both go out of date in silence, which is why the freshness gate exists.</p>
       <p><strong>To try it in two minutes with no setup at all</strong>, open
       <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>, copy the
       block, paste it into any AI chat, then paste your document. Its role list is generated from the
       process document, so it cannot drift.
       <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">START-HERE.md</a> is
-      the same idea at more length. The steps below are for wiring it into a project permanently.</p>
+      the same idea at more length. The rest of this section is for wiring it in permanently.</p>
+      <p><strong>To install it</strong>, if you use Claude Code &mdash; two commands, typed at its
+      prompt rather than in a terminal:</p>
+<pre>/plugin marketplace add syncytium2/murderboard
+/plugin install murderboard@murderboard</pre>
+      <p>That is the skill, the process document, both review gates and the literature tool, with the
+      freshness check wired to run at the start of a session.</p>
+      <p><strong>Installing does not do everything the steps below do.</strong> It replaces
+      <em>vendoring the files in</em>, and the session-start half of <em>wiring the gates</em>. Pointing
+      the literature tool at a library is still yours, and so is the roster check, which belongs in
+      your project's automated checks where it can block. <em>Making it the default, in writing</em>
+      matters most and no install can do it: putting the files within reach is not the same as making
+      anyone use them.</p>
+      <p><strong>Copying wins when the murderboard has to travel with the project rather than with the
+      person.</strong> An install lives in your own home directory, so a colleague who clones your
+      repository does not get it.</p>
     </div>
 
     <div class="glossary">
@@ -1045,7 +1284,9 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
     <div class="two-up">
       <div class="card">
         <h3>If you use Claude Code</h3>
-        <p>Install the skill and run <code>/murderboard &lt;document&gt;</code>. It runs the parts that
+        <p>Install the plugin, or vendor the skill, then run <code>/murderboard &lt;document&gt;</code>.
+        It finds either layout, and prefers your project's own copy when both are present, because
+        that copy is the version your project declared. It runs the parts that
         must not depend on memory: it checks freshness at the moment of review, not just at startup;
         reads the role list from the process document; resolves the document to the <em>built</em> file
         rather than the program that generates it; records a checksum before and after; and writes a
@@ -1059,24 +1300,58 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
         structure and the record do the work, not the reviewer's identity.</p>
       </div>
     </div>
+    </div>
+    </details>
+  </section>
+
+  <section class="contact-sec" id="contact">
+    <span class="eyebrow">Feedback</span>
+    <h2>Found something wrong with this page?</h2>
+    <div class="contact-grid">
+      <div>
+        <p>A claim that looks unsupported is <b>the most useful thing anyone sends this
+        project</b> &mdash; it gets checked against the source rather than argued with. Wording
+        that made no sense to you is the second most useful, because the page cannot see its
+        own blind spots.</p>
+        <p>Quote the sentence, and include the <b>version</b> from the strip at the top of the
+        page &mdash; this page changes, and a report against wording that no longer exists
+        cannot be acted on.</p>
+        <p>Prefer a public, trackable report? Open an
+        <a href="https://github.com/syncytium2/murderboard/issues/new?template=feedback.yml">issue
+        on the repository</a> instead. Either reaches the same person.</p>
+      </div>
+      <form class="contact" action="https://api.web3forms.com/submit" method="POST">
+        <input type="hidden" name="access_key" value="b8c22a4e-b446-4d81-a4e1-b3ba4aaa3bc4">
+        <input type="hidden" name="subject" value="murderboard.tonydefazio.com contact form">
+        <input type="hidden" name="from_name" value="murderboard.tonydefazio.com">
+        <input type="hidden" name="redirect" value="https://murderboard.tonydefazio.com/thanks.html">
+        <label>
+          Your email
+          <input type="email" name="email" required placeholder="you@lab.edu"
+                 autocomplete="email">
+        </label>
+        <label>
+          Message
+          <textarea name="message" required rows="5"
+                    placeholder="The section on ... says ..., but &hellip;"></textarea>
+        </label>
+        <input type="checkbox" name="botcheck" class="botcheck" tabindex="-1"
+               autocomplete="off" aria-hidden="true">
+        <button type="submit">Send message</button>
+      </form>
+    </div>
   </section>
 
   <footer>
-    <p class="eyebrow">Get it</p>
-    <div class="links">
-      <a href="https://murderboard.tonydefazio.com/">murderboard.tonydefazio.com</a>
-      <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
-      <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
-      <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>
-      <a href="https://github.com/syncytium2/murderboard/blob/main/doc_review_process.md">The process document</a>
-      <a href="https://github.com/syncytium2/bugarach/blob/main/docs/reviews/pensub_export_validation_murderboard_2026-08-20.md">A public run record</a>
-      <a href="https://doi.org/10.5281/zenodo.22063835">DOI</a>
-      <a href="https://github.com/syncytium2/murderboard/blob/main/LICENSE">Apache-2.0</a>
-    </div>
     <p class="colophon">The process document is the authority on what gets reviewed and by whom; where
     this page and that document disagree, that document is right. The murderboard came out of a
     calcium-imaging research project, where it grew from real incidents; nothing in the process or the
-    scripts carries that subject with it. Copyright 2026 Tony DeFazio, Apache-2.0.</p>
+    scripts carries that subject with it. This page loads no fonts, runs no JavaScript, sets no
+    cookies and carries no analytics; it makes exactly one network request, and only if you send
+    the form above. This page lives at
+    <a href="https://murderboard.tonydefazio.com/">murderboard.tonydefazio.com</a> and the source
+    is at <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>.
+    Copyright 2026 Tony DeFazio, Apache-2.0.</p>
   </footer>
 
 </div>

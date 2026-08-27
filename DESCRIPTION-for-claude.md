@@ -9,9 +9,9 @@ above; none are from memory.*
 ## What this project is
 
 This repo, `syncytium2/murderboard`, is the canonical source of the **murderboard**: a
-project-neutral, anti-slop review harness for document deliverables. The name is the old
-sense of *murder board* — a panel that tries to tear a thing apart before it ships, so that
-what survives is trustworthy. It exists because slop ships when nobody adversarially checks
+project-neutral, anti-slop review harness for document deliverables. A *murder board* is a
+panel that tries to tear a thing apart before it ships, so that what survives is
+trustworthy. It exists because slop ships when nobody adversarially checks
 a draft against its real sources: statistics that disagree with the runs they summarize,
 reference lists written from memory, counts that contradict themselves, captions that
 overclaim, and plots that are internally consistent but wrong because the generating code

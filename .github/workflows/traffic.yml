@@ -1,0 +1,90 @@
+name: traffic archive
+
+# WHAT THIS IS FOR. GitHub keeps clone and view counts for 14 DAYS and then discards them.
+# This repo is distributed by copying -- vendored, or installed as a plugin -- so a fetch of
+# the repo is the only adoption signal that exists upstream at all. Anthropic does not report
+# plugin installs to a plugin's author, and a marketplace install is itself just a fetch. If
+# nothing writes this down daily, the entire record of whether anyone uses this is a rolling
+# two-week window that nobody is looking at.
+#
+# DAILY IS NOT OPTIONAL. The window is 14 days, so a schedule that slips for a fortnight
+# loses data permanently. Run it daily and let it be boring.
+#
+# IT ALSO RECORDS THIS REPO'S OWN CI, because most of the traffic IS this repo's own CI.
+# actions/checkout runs once per JOB, and the gates workflow is four jobs, so a single push
+# costs about four clones. Measured 2026-08-12..25: 236 CI jobs against 349 clones -- 68%.
+# Without the ci_jobs column that confound is invisible in the file and whoever reads it
+# later concludes the project is four times more popular than it is.
+#
+# THE TOKEN. The traffic API requires PUSH ACCESS. The default GITHUB_TOKEN is scoped to the
+# repo but does not reliably carry the traffic permission, so this prefers a PAT in the
+# TRAFFIC_TOKEN secret and falls back to GITHUB_TOKEN. If the run fails with 403, that is
+# which of the two you got: create a fine-grained PAT with "Administration: read" on this
+# repo and store it as TRAFFIC_TOKEN. The script exits 2 rather than writing zeros, so a
+# failure shows up as a red run instead of a plausible-looking flat line.
+#
+# THIS COMMITS TO A PUBLIC REPO. traffic.csv is world-readable and permanent once pushed.
+# That is a deliberate choice -- the numbers are modest, the caveats travel with them, and a
+# project that asks others to adopt it can afford to show its own adoption. If that is ever
+# not wanted, the fix is to stop committing the file, not to rewrite the history that already
+# published it.
+#
+# IT WRITES TO THE `metrics` BRANCH, NOT `main`. Found by running it: main is protected and
+# rejected the push (GH006, 4 required status checks). The obvious fix -- a token with write
+# access to main -- would put a secret that can write to main into a public repository, which
+# is a worse trade than a branch. The better reason is the second one: main's history is a
+# curated log of problem statements, and ~365 `traffic: <date>` commits a year would drown it.
+#
+# The branch is bootstrapped BY HAND, once, and this workflow does not create it. See the
+# "check out the metrics branch" step for why that is deliberate.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'      # daily, off the hour: the top of the hour is heavily contended
+  workflow_dispatch:
+
+permissions:
+  contents: write             # to commit the archive back
+  actions: read               # to count this repo's OWN CI checkouts, see below
+
+concurrency:
+  group: traffic-archive
+  cancel-in-progress: false   # never cancel a run that is mid-commit
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      # main, for the script. The DATA lives on the orphan `metrics` branch, checked out
+      # separately below -- see the branch's own README for why it is not on main.
+      - uses: actions/checkout@v4
+
+      - name: check out the metrics branch alongside
+        run: |
+          git fetch --no-tags --depth=1 origin metrics
+          git worktree add ../metrics FETCH_HEAD
+          git -C ../metrics switch -c metrics
+
+      # DELIBERATELY NOT self-bootstrapping. If the branch is missing this fails here, loudly,
+      # instead of helpfully creating one -- an archive that silently restarts from empty
+      # looks identical to an archive that has always been empty, and the data GitHub has
+      # already discarded cannot be recovered to tell them apart.
+      - name: fetch and merge the window
+        env:
+          GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
+        run: python3 .github/traffic_archive.py --repo "${{ github.repository }}" --out ../metrics/traffic.csv
+
+      - name: commit if anything changed
+        working-directory: ../metrics
+        run: |
+          if git diff --quiet -- traffic.csv; then
+            echo "no change today"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add traffic.csv
+          git commit -m "traffic: $(date -u +%Y-%m-%d)"
+          # Not --force. A rejected push means something else wrote to this branch and the
+          # run should fail so a human looks, rather than quietly discarding whatever it was.
+          git push origin metrics
