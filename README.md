@@ -59,6 +59,14 @@ that motivated each rule.)
 
 ## How a project adopts it
 
+> **Step zero, and it is not optional: you need a repo of your own, and this is not it.**
+> The murderboard reviews *your* documents and writes records about them — your drafts, your
+> findings, your numbers, sometimes things you have not published. All of that belongs in the
+> project being reviewed. **Nothing of yours belongs in this repo.** This one is public,
+> Apache-2.0, and *vendored*: other projects copy files out of it, so anything committed here
+> lands in their copies and cannot be recalled. If you do not have a repo yet, make one before
+> you start — it is the one part of this the murderboard cannot do for you.
+
 **If you use Claude Code, install it** — two commands at the Claude Code prompt, not a shell:
 
 ```

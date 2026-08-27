@@ -84,7 +84,9 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one.
+> pass as a clean one. **Every artifact this produces is ours and stays here** — the
+> corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
+> the process comes from, never where our reviews go.
 
 ## Practicing what it preaches
 

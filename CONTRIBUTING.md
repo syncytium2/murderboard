@@ -2,6 +2,11 @@
 
 > **Just want to use it?** You are in the wrong file — see **[START-HERE.md](START-HERE.md)**.
 > You do not need to contribute, fork, or understand this page to run a murderboard.
+>
+> **Either way, you need a repo of your own.** Whatever you review, and every record a review
+> produces, belongs there. **Nothing of yours goes in this one** — not your documents, not your
+> run records, not your project's rules. This repo is public and vendored: a commit here reaches
+> everyone who copies from it, and it cannot be taken back.
 
 ## First: you probably want to vendor, not contribute
 
@@ -49,6 +54,13 @@ So: open a PR when you have something that **generalises**. Keep it local when i
   imported lazily inside the function that needs them). A consumer must be able to drop the
   file in and run it. CI enforces this.
 - Rules with no incident behind them. See below — this is the one that gets PRs closed.
+- **Anything that is yours rather than everyone's.** Your reviewed documents, your run records
+  under `docs/reviews/`, your project's own rules, your notes. Those live in your repo. This is
+  the easiest mistake on the list to make by accident, because running a murderboard *inside a
+  clone of the murderboard* puts them here by default — check where the run record landed before
+  you commit. (This repo made the same mistake in the other direction on 2026-08-26: a session
+  did an unrelated project's work in this checkout, which is why `CLAUDE.md` now opens with a
+  scope rule.)
 
 ---
 
