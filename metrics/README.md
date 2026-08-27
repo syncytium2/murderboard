@@ -1,19 +1,34 @@
 # metrics/
 
+**The data is on the [`metrics`](../../tree/metrics) branch, not here.** This directory holds
+only the explainer, because the numbers are easy to misread and should not travel without it.
+
 `traffic.csv` is a permanent record of a number GitHub throws away.
 
 GitHub serves clone and view counts for the **last 14 days only** and keeps no history.
 This project is distributed by copying — vendored into a consumer, or installed as a
 plugin — so a fetch of the repo is the only adoption signal that exists upstream at all.
 Without something writing it down daily, the entire record of whether anyone uses this is a
-rolling fortnight that nobody is reading.
+rolling fortnight that nobody is reading. It is already doing its job: the series carries
+**2026-08-12**, a day GitHub no longer serves.
 
 `.github/workflows/traffic.yml` runs `.github/traffic_archive.py` once a day and merges the
-window into the CSV, newest value per date winning. To run it by hand:
+window into the CSV on the `metrics` branch, newest value per date winning.
+
+**Why a separate branch.** `main` is protected and rejected the workflow's push (`GH006`).
+Handing the workflow a token that can write to `main` would put that secret in a public
+repository, which is a worse trade than an extra branch — and the better reason is that
+`main`'s history is a curated log of problem statements that ~365 `traffic: <date>` commits a
+year would drown. The branch is **bootstrapped by hand and the workflow will not create it**:
+an archive that silently restarts from empty is indistinguishable from one that was always
+empty, and the discarded days cannot be recovered to tell them apart.
+
+To run it by hand, against a checkout of the data branch:
 
 ```
+git fetch origin metrics && git worktree add ../metrics origin/metrics
 GH_TOKEN=$(gh auth token) python3 .github/traffic_archive.py \
-    --repo syncytium2/murderboard --out metrics/traffic.csv
+    --repo syncytium2/murderboard --out ../metrics/traffic.csv
 ```
 
 ## Columns
