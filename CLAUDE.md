@@ -3,7 +3,8 @@
 This repo is the canonical source of the **murderboard**: an anti-slop review process
 (`doc_review_process.md`), a literature tool (`fetch_paper.py`), three gates that keep the
 process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`,
-`require_commit_before_message.sh`), and the call-up skill
+`require_commit_before_message.sh`), a team compiler that turns the process file's roles into
+one agent file each (`murderboard_agents.py` → `agents/`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 
@@ -20,6 +21,14 @@ that must not depend on being remembered. A new **rule** goes in the process fil
 that would otherwise be skipped goes in the skill. Putting a rule in the skill hides it from
 consumers who read the process directly; putting call-up mechanics in the process file is how
 they ended up as prose in the first place.
+
+**`agents/` is compiled output — never edit a file in it.** `murderboard_agents.py` slices the
+process file's role blocks and its *"what each role must be able to reach"* table into one agent
+file per role. Change a role's checklist, its nickname, or the tools it may reach **in
+`doc_review_process.md`**, then run `python3 murderboard_agents.py write`. A hand-edit to
+`agents/*.md` is a second copy of a rule and `tests/agents_generated_test.py` fails on it — the
+same drift that cost this repo two copies of the published page, except here it silently changes
+what a reviewer actually checks while the document consumers read still says the old thing.
 
 ## If you are working IN this repo
 
@@ -84,7 +93,11 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one. **Every artifact this produces is ours and stays here** — the
+> pass as a clean one. The reviewers themselves live in `.claude/agents/`, **compiled** from the
+> process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run
+> `murderboard_agents.py --dir .claude/agents write` after every re-vendor, or your reviewers
+> keep running the checklists they had before while the freshness gate reports current.
+> **Every artifact this produces is ours and stays here** — the
 > corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
 > the process comes from, never where our reviews go.
 

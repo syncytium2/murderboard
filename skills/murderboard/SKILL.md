@@ -42,6 +42,12 @@ done
 for p in tools/murderboard_roster.sh murderboard_roster.sh; do
   [ -r "$root/$p" ] && ROSTER="$root/$p" && break
 done
+for p in tools/murderboard_agents.py murderboard_agents.py; do
+  [ -r "$root/$p" ] && COMPILER="$root/$p" && break
+done
+# Where the compiled agent files belong in THIS repo. Claude Code loads `.claude/agents/`;
+# the murderboard's own checkout is a plugin, so its copies live at `agents/` and ship.
+AGENTDIR="$root/.claude/agents"; [ -d "$root/.claude-plugin" ] && AGENTDIR="$root/agents"
 
 # Nothing vendored here — fall back to the plugin install. $CLAUDE_PLUGIN_ROOT is set when
 # this skill came from a plugin, but do not rely on it reaching the shell: glob the install
@@ -58,9 +64,11 @@ if [ -z "${PROCESS:-}" ]; then
     PROCESS="$MB/doc_review_process.md"
     FRESH="$MB/murderboard_freshness.sh"
     ROSTER="$MB/murderboard_roster.sh"
+    COMPILER="$MB/murderboard_agents.py"
+    AGENTDIR="$MB/agents"      # the plugin ships them already compiled
   fi
 fi
-echo "mode=$MODE process=${PROCESS:-NONE}"
+echo "mode=$MODE process=${PROCESS:-NONE} agents=${AGENTDIR:-NONE}"
 ```
 
 If `$PROCESS` is missing, **stop** and say the repo has neither vendored the murderboard nor
@@ -125,6 +133,31 @@ bash "$ROSTER" count
 Spawn **one subagent per row returned**, no fewer. The roster is derived from the process
 file, so when upstream adds role 12 every consumer picks it up without editing this skill.
 
+### 4a. Compile the specialists, then spawn them BY NAME
+
+Each role has its own agent file — frontmatter, its own checklist, and the tool grant the
+process file gives it — compiled out of `$PROCESS`. Bring them up to date first; a stale
+agent file is a reviewer running last month's checklist:
+
+```bash
+if [ -n "${COMPILER:-}" ]; then
+  python3 "$COMPILER" --process "$PROCESS" --dir "$AGENTDIR" check \
+    || python3 "$COMPILER" --process "$PROCESS" --dir "$AGENTDIR" write
+  python3 "$COMPILER" --process "$PROCESS" --dir "$AGENTDIR" list   # N<TAB>agent-name<TAB>path
+fi
+```
+
+Then spawn each row's `agent-name` as the subagent type. **If the named agent does not
+resolve** — freshly written files are not picked up until Claude Code rescans, and a consumer
+may have vendored the process file without the compiler — fall back to spawning a generic
+subagent whose prompt is **the contents of that role's agent file**, and if there is no agent
+file either, the role's block from `$PROCESS`. All three paths run the same eleven roles.
+
+**Say which path you used in the run record.** The fallback loses the tool grant — a role that
+should hold `WebSearch` gets whatever the generic subagent has — and a review whose citation
+validator could not reach a DOI is not the same review as one whose could. `roles:` in the
+header takes a suffix: `11 of 11 run (named agents)` or `11 of 11 run (inline fallback)`.
+
 Scale to stakes in *how* you run them, never in *which* ones:
 
 - **Substantial deliverable** (methods, manuscript, explainer, deck, multi-paragraph report)
@@ -165,7 +198,7 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - copy:      vendored | installed @ <sha>        # from step 0/1 — say WHICH, and at what
 - freshness: current | UNDETERMINED
 - artifact:  <path> (<hash before> -> <hash after>)
-- roles:     <n> of <n> run
+- roles:     <n> of <n> run (named agents | inline fallback)   # from step 4a
 - rounds:    <n> blind verify rounds to clean
 ```
 

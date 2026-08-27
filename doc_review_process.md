@@ -214,8 +214,15 @@ reviewers were all looking in the same wrong place.
 ## The review team
 
 Spawn these as parallel subagents, each given the draft **and** pointers to the real
-sources (the data paths, the code, the companion docs, the handoffs). Each returns a
-structured finding list: *location · issue · severity · suggested fix · could-I-verify-it-against-a-source (yes/no)*.
+sources (the data paths, the code, the companion docs, the handoffs).
+
+**Each role returns a structured finding list**, one row per finding: *location · issue · severity ·
+suggested fix · could-I-verify-it-against-a-source (yes/no)*.
+
+Those are two paragraphs on purpose. The first is addressed to **whoever spawns the team**, the
+second to **each reviewer**, and `murderboard_agents.py` compiles only the second into the agent
+files — a single paragraph mixing the two would hand every reviewer an instruction to spawn the
+team it is already a member of.
 
 **Roles are split by what it COSTS to satisfy them, not by which reader they serve.** A judgment
 call ("would a cold reader follow this?") can be satisfied by thinking about it; a mechanical check
@@ -653,6 +660,52 @@ Don't Tell)** and **11 (argument order — Start With the Problem)** carry it: n
 standing to say "this should be a figure," so without 9 a deck ships as an essay in twelve parts; no
 other role reads the sequence, so without 11 it ships in the order it was written rather than the
 order it argues.
+
+### What each role must be able to reach
+
+A role that cannot perform its check still returns prose, and prose describing a check is
+indistinguishable in the report from the check. *DOI or Die* with no way to reach a DOI reports on
+citations it never resolved; *Ship It* with no way to open a render reports on a figure it never
+saw. That is this document's own **"can the alarm ring?"** rule turned on the reviewers themselves,
+so what a role may reach is part of the role's definition and belongs here, beside its checklist —
+not in whichever harness happens to spawn it.
+
+**No reviewer may edit the artifact.** Findings go to the main thread, which adjudicates and applies
+them (steps 3 and 5). A reviewer able to repair what it finds can also make a finding *disappear*
+before it reaches the record, and the record is the only thing a reader can check. Every role's
+grant is read-and-verify only: no `Edit`, no `Write`, no `NotebookEdit`.
+
+**Bash goes to the roles that must RUN something to answer.** 1 recomputes quantities and counts
+what is missing; 4 walks a constructed failure through the metric to see whether the number moves;
+7 locates the canonical implementation and compares it line for line; 9 measures a rendered
+bounding box; 10 renders, crops and zooms. **Web access goes to 2 and 6** — the only two roles whose
+sources live outside the repository, and the two this document forbids from reasoning from memory.
+The remaining roles (3, 5, 8, 11) are judgment roles reading the artifact and its companions;
+handing them a shell would not make their answers more checkable, and a role that could have gone
+looking for evidence but reasoned instead is worse than one that plainly could not.
+
+`model` is `inherit` for every role: which model to spend on which reviewer is a property of the
+consumer's environment, not of the process, and this document declines to guess. Tune it here if you
+have a reason — that keeps the grant and the checklist in the same place, which is the point.
+
+| # | role | may reach | model |
+|---|---|---|---|
+| 1 | Prove It | Read, Grep, Glob, Bash | inherit |
+| 2 | DOI or Die | Read, Grep, Glob, Bash, WebSearch, WebFetch | inherit |
+| 3 | Cross-Examiner | Read, Grep, Glob | inherit |
+| 4 | Reviewer 2 | Read, Grep, Glob, Bash | inherit |
+| 5 | Kill Your Darlings | Read, Grep, Glob | inherit |
+| 6 | RTFM | Read, Grep, Glob, Bash, WebSearch, WebFetch | inherit |
+| 7 | Reinventing the Wheel | Read, Grep, Glob, Bash | inherit |
+| 8 | You Lost Me | Read, Grep, Glob | inherit |
+| 9 | Show, Don't Tell | Read, Grep, Glob, Bash | inherit |
+| 10 | Ship It | Read, Grep, Glob, Bash | inherit |
+| 11 | Start With the Problem | Read, Grep, Glob | inherit |
+
+`murderboard_agents.py` compiles this table together with the role blocks above into one agent file
+per role, under `agents/`. **The table and the blocks are the authority; the agent files are their
+output** — edit a role here and regenerate, never the other way round. A hand-edited agent file is a
+second copy of a rule, which is how a roster stops describing the review that actually ran.
 
 ### The team is not optional
 

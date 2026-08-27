@@ -75,6 +75,17 @@ jobs:
       - name: no-heredoc hook, both modes
         run: bash tests/no_heredoc_hook_test.sh
 
+      # agents/ is COMPILED from doc_review_process.md. A hand-edited agent file is a
+      # second copy of a rule: the reviewer that actually runs checks one thing while
+      # the document every consumer reads, vendors and cites says another, and nothing
+      # in the report shows it. Regenerate and diff. Run on BOTH platforms with the
+      # other gates -- the compiler parses the same headings the BSD/GNU-sensitive
+      # roster parses, and the two must not disagree about who is on the team.
+      - name: agent files are generated, and agree with the process file
+        run: |
+          python3 murderboard_agents.py --selftest
+          python3 tests/agents_generated_test.py
+
       - name: portable prompt generator --selftest
         run: bash murderboard_prompt.sh --selftest
 

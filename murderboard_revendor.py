@@ -83,6 +83,11 @@ EXAMPLE_CONFIG = {
                 "tools/murderboard_freshness.sh",
                 "tools/murderboard_roster.sh",
                 "tools/murderboard_revendor.py",
+                # The COMPILER, not the eleven agent files it produces. Vendoring the output
+                # would freeze the team at whatever size it is today: upstream adds role 12,
+                # your config still lists eleven filenames, and the twelfth arrives nowhere.
+                # Re-vendor the process file, run `murderboard_agents.py write`, get role 12.
+                "tools/murderboard_agents.py",
                 "tools/fetch_paper.py",
                 ".claude/skills/murderboard/SKILL.md",
             ],
@@ -95,6 +100,7 @@ EXAMPLE_CONFIG = {
                 "tools/murderboard_freshness.sh": "murderboard_freshness.sh",
                 "tools/murderboard_roster.sh": "murderboard_roster.sh",
                 "tools/murderboard_revendor.py": "murderboard_revendor.py",
+                "tools/murderboard_agents.py": "murderboard_agents.py",
                 "tools/fetch_paper.py": "fetch_paper.py",
                 ".claude/skills/murderboard/SKILL.md": "skills/murderboard/SKILL.md",
             },
