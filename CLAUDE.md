@@ -93,7 +93,10 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one. The reviewers themselves live in `.claude/agents/`, **compiled** from the
+> pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a run
+> where the reviewers had none of their tools cannot pass as one where they did. The two ask
+> different questions: *did every role run* and *was every role equipped*. The reviewers live in
+> `.claude/agents/`, **compiled** from the
 > process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run
 > `murderboard_agents.py --dir .claude/agents write` after every re-vendor, or your reviewers
 > keep running the checklists they had before while the freshness gate reports current.

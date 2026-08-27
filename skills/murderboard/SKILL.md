@@ -153,10 +153,16 @@ may have vendored the process file without the compiler — fall back to spawnin
 subagent whose prompt is **the contents of that role's agent file**, and if there is no agent
 file either, the role's block from `$PROCESS`. All three paths run the same eleven roles.
 
-**Say which path you used in the run record.** The fallback loses the tool grant — a role that
-should hold `WebSearch` gets whatever the generic subagent has — and a review whose citation
-validator could not reach a DOI is not the same review as one whose could. `roles:` in the
+**Say which path you used in the run record.** The fallback does not merely lose a grant — a
+generic subagent inherits whatever the harness hands it, which is sometimes *more* than the
+process file allows, including the editing tools no reviewer may have. So `roles:` in the
 header takes a suffix: `11 of 11 run (named agents)` or `11 of 11 run (inline fallback)`.
+
+**You do not have to take that on trust, and neither does the reader.** Every agent file tells
+its role to open with `GRANT <n> ok — <tools held>` or `GRANT <n> MISMATCH — …`. Carry those
+lines into the role ledger verbatim; step 7 gates the header against them. A `MISMATCH` is not
+a failed run — a fallback review is a real review — it just may not be written up as something
+else.
 
 Scale to stakes in *how* you run them, never in *which* ones:
 
@@ -209,12 +215,21 @@ adjudications, and any residual `⚠` the human must resolve.
 Finally, gate your own output:
 
 ```bash
-bash "$ROSTER" check docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md ; echo "exit=$?"
+REPORT=docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md
+bash "$ROSTER" check "$REPORT" ; echo "roster=$?"
+[ -n "${COMPILER:-}" ] && python3 "$COMPILER" --process "$PROCESS" verify "$REPORT" ; echo "grants=$?"
 ```
 
-**exit 1 means a role is missing from the ledger — the run is not finished.** Either that role
-never ran (run it) or it ran and left no trace (record it). Do not deliver past a failing
+**roster exit 1 means a role is missing from the ledger — the run is not finished.** Either that
+role never ran (run it) or it ran and left no trace (record it). Do not deliver past a failing
 check; a report that cannot show all its roles is the failure mode this skill was built for.
+
+**grants exit 1 means the report does not account for what its reviewers could actually do** —
+a role never declared its grant, or the header claims `named agents` while a role reported
+`MISMATCH`. The two gates ask different questions and neither substitutes for the other: the
+roster asks *did every role run*, this asks *was every role equipped*, and a review that ran all
+eleven roles with none of their tools passes the first and fails the second. Fix the header or
+re-run with the grants in place; do not delete the `GRANT` lines to make it green.
 
 ## What to hand the human
 

@@ -23,11 +23,21 @@ USAGE
   murderboard_agents.py write            regenerate agents/ from the process file
   murderboard_agents.py check            regenerate in memory; exit 1 if agents/ disagrees
   murderboard_agents.py list             print "N<TAB>agent-name<TAB>path" per role
+  murderboard_agents.py verify REPORT.md did the run record account for the grants its
+                                         reviewers actually held?
   murderboard_agents.py --process PATH   use this process file (default: autodetect)
   murderboard_agents.py --dir PATH       write/read agent files here (default: <root>/agents)
   murderboard_agents.py --selftest       prove every branch can still fire
 
-EXIT CODES   0 = ok   1 = agents/ is out of date (check)   2 = could not determine
+`verify` is the other half of the grant. Compiling a tool list into an agent file says what a
+role SHOULD hold; it cannot say what the role WAS handed, and a fallback spawn -- an unregistered
+agent, a harness that never loaded the plugin -- quietly substitutes a different tool set. So
+every role opens its output with `GRANT <n> ok` or `GRANT <n> MISMATCH`, and `verify` refuses a
+report claiming `named agents` while its own reviewers said otherwise. A MISMATCH is not a failed
+run: a fallback review is a real review, it just may not be written up as something else.
+
+EXIT CODES   0 = ok   1 = agents/ is out of date (check) / the report does not account for its
+             grants (verify)   2 = could not determine
 
 Stdlib only, project-neutral: no hardcoded consumer paths, no third-party imports. A consumer
 vendors THIS FILE, not the eleven it produces — so when upstream adds role 12, re-vendoring
@@ -54,6 +64,7 @@ OPTIONAL_HEADING = "### The team is not optional"
 SHARED_BLOCKS = (
     ("output contract", "**Each role returns a structured finding list**"),
     ("no-edit rule", "**No reviewer may edit the artifact.**"),
+    ("grant declaration", "**Every reviewer declares its grant before it reviews.**"),
     ("silence is not a result", "A role with genuinely nothing to check returns"),
 )
 
@@ -190,9 +201,11 @@ def parse_grants(team):
 def parse_shared(text, team):
     """The paragraphs every agent file carries, sliced out of the process file."""
     optional = text.split(OPTIONAL_HEADING, 1)
+    in_team = "\n".join(team)
     haystacks = {
-        "output contract": "\n".join(team),
-        "no-edit rule": "\n".join(team),
+        "output contract": in_team,
+        "no-edit rule": in_team,
+        "grant declaration": in_team,
         "silence is not a result": optional[1] if len(optional) > 1 else "",
     }
     blocks = {}
@@ -284,6 +297,27 @@ def render_agent(role, grant, shared, preamble, total):
     out.append("")
     out.extend(preamble)
     out.append("")
+    out.append("## Before you review — declare your grant")
+    out.append("")
+    out.append(shared["grant declaration"])
+    out.append("")
+    # The two forms go in a literal block, NOT into the wrapped prose above them. A reviewer
+    # copying a line that textwrap split across two lines produces something `verify` cannot
+    # match, and the gate then reports a role that never declared a grant it did declare.
+    out.extend(textwrap.wrap(
+        "**The process file grants you `%s`, and nothing else.** Compare that against the tools "
+        "you were actually given, then open your output with exactly one of these two lines:"
+        % grant["tools"], width=98))
+    out.append("")
+    out.append("    GRANT %d ok — %s" % (num, grant["tools"]))
+    out.append("    GRANT %d MISMATCH — missing <tools>; holds <forbidden tools>" % num)
+    out.append("")
+    out.extend(textwrap.wrap(
+        "Use the second whenever they differ — you are missing one of your tools, or you hold an "
+        "editing tool no reviewer may have. Do not adjust your review to hide the gap and do not "
+        "skip the line: a reviewer that cannot do its check is a finding, and an undeclared one "
+        "is the exact failure this team exists to catch.", width=98))
+    out.append("")
     out.append("## Your checklist")
     out.append("")
     out.extend(role["body"])
@@ -333,6 +367,16 @@ def preamble_notes(team):
 
 
 def compile_agents(process_path):
+    return compile_all(process_path)["files"]
+
+
+def compile_all(process_path):
+    """{"files": {name: body}, "grants": {n: {...}}} — everything parsed out of the process file.
+
+    `verify` needs the grants without the rendered files; everything else needs the files. Both
+    come from one parse so the two can never be answering from different readings of the same
+    document.
+    """
     text = process_path.read_text(encoding="utf-8")
     team = team_section(text)
     roles = parse_roles(team)
@@ -361,7 +405,7 @@ def compile_agents(process_path):
         grant = grants[role["num"]]
         name = "%02d-%s.md" % (role["num"], slug_of(grant["nickname"]))
         out[name] = render_agent(role, grant, shared, preamble, total)
-    return out
+    return {"files": out, "grants": grants}
 
 
 # --- commands -----------------------------------------------------------------
@@ -414,6 +458,75 @@ def cmd_check(agents, target):
     return 0
 
 
+# Deliberately generous about FORMAT and strict about PRESENCE, the same stance
+# murderboard_roster.sh takes: the line may sit in a table cell, a bullet or a paragraph. What
+# it may not do is be absent.
+GRANT_LINE_RE = re.compile(r"GRANT\s+(\d+)\s+(ok|MISMATCH)\b", re.I)
+ROLES_LINE_RE = re.compile(r"roles:\s*(\d+)\s+of\s+(\d+)\s+run\s*\(([^)]*)\)", re.I)
+NAMED_MODES = ("named agent",)
+
+
+def cmd_verify(report_path, grants):
+    """Does the report's claim about HOW its reviewers were spawned survive their own evidence?
+
+    Two failures, both silent without this:
+
+      1. A role never declared what it held. Then "11 of 11 run (named agents)" is a claim about
+         eleven tool grants backed by nothing, and a review whose citation validator could not
+         reach a DOI is indistinguishable from one whose could.
+      2. A role declared MISMATCH and the header still says named agents. That is the report
+         claiming a capability its own reviewer said it did not have -- which is worse than the
+         missing grant, because it is the part a reader would rely on.
+
+    A MISMATCH is NOT itself a failure. A fallback run is a legitimate run; it just may not be
+    described as something else. Making the mismatch fatal would only teach people to stop
+    declaring it.
+    """
+    path = pathlib.Path(report_path)
+    if not path.is_file():
+        print("murderboard_agents: cannot read report %s" % path, file=sys.stderr)
+        return 2
+    text = path.read_text(encoding="utf-8")
+
+    declared = {}
+    for m in GRANT_LINE_RE.finditer(text):
+        declared[int(m.group(1))] = m.group(2).lower()
+
+    problems = []
+    for num in sorted(grants):
+        if num not in declared:
+            problems.append(
+                "role %d never declared its grant — no `GRANT %d ok` or `GRANT %d MISMATCH` "
+                "line in the report" % (num, num, num))
+
+    header = ROLES_LINE_RE.search(text)
+    mode = header.group(3).strip().lower() if header else None
+    if header is None:
+        problems.append(
+            "the run record has no `roles: <n> of <n> run (<how>)` line, so it does not say "
+            "how its reviewers were spawned")
+    else:
+        mismatched = sorted(n for n, v in declared.items() if v == "mismatch")
+        if mismatched and any(k in mode for k in NAMED_MODES):
+            problems.append(
+                "the header claims %r while role%s %s reported MISMATCH — say the run took a "
+                "fallback path, or re-run it with the grants in place"
+                % (header.group(3).strip(), "" if len(mismatched) == 1 else "s",
+                   ", ".join(str(n) for n in mismatched)))
+
+    if problems:
+        for p in problems:
+            print("  %s" % p, file=sys.stderr)
+        print("murderboard_agents: %s does not account for the grants its reviewers held"
+              % path, file=sys.stderr)
+        return 1
+
+    mism = sum(1 for v in declared.values() if v == "mismatch")
+    print("murderboard_agents: all %d roles declared a grant in %s (%d ok, %d mismatch), and the "
+          "header agrees" % (len(grants), path, len(declared) - mism, mism))
+    return 0
+
+
 def cmd_list(agents, target):
     for name, body in sorted(agents.items()):
         num = int(name.split("-", 1)[0])
@@ -444,6 +557,9 @@ Harness-facing trivia that must not reach an agent file.
 ### What each role must be able to reach
 
 **No reviewer may edit the artifact.** Findings go to the main thread.
+
+**Every reviewer declares its grant before it reviews.** First output line, `GRANT <n> ok` or
+`GRANT <n> MISMATCH`.
 
 | # | role | may reach | model |
 |---|---|---|---|
@@ -529,6 +645,36 @@ def cmd_selftest():
         cmd_write(agents, target)
         ok("write removes the orphan", not (target / "99-ghost.md").exists())
 
+        # --- verify: does the report account for the grants its reviewers held? -------
+        grants = compile_all(p)["grants"]
+
+        def report(name, body):
+            r = d / name
+            r.write_text(body, encoding="utf-8")
+            return cmd_verify(str(r), grants)
+
+        clean = ("- roles: 2 of 2 run (named agents)\n"
+                 "| 1 | Prove It | GRANT 1 ok — Read, Bash |\n"
+                 "| 2 | Kill Your Darlings | GRANT 2 ok — Read |\n")
+        ok("a report where every role declared its grant passes", report("clean.md", clean) == 0)
+
+        ok("a role that never declared its grant FAILS",
+           report("silent.md", clean.replace("| 2 | Kill Your Darlings | GRANT 2 ok — Read |\n",
+                                             "| 2 | Kill Your Darlings | no findings |\n")) == 1)
+
+        # The whole point of the gate: the header may not claim a capability the reviewer denied.
+        ok("MISMATCH under a 'named agents' header FAILS",
+           report("lying.md", clean.replace("GRANT 2 ok — Read",
+                                            "GRANT 2 MISMATCH — holds Write")) == 1)
+        ok("the same MISMATCH under a 'fallback' header PASSES",
+           report("honest.md",
+                  clean.replace("GRANT 2 ok — Read", "GRANT 2 MISMATCH — holds Write")
+                       .replace("(named agents)", "(inline fallback)")) == 0)
+
+        ok("a report with no `roles:` mode line FAILS",
+           report("nomode.md", clean.replace("- roles: 2 of 2 run (named agents)\n", "")) == 1)
+        ok("an unreadable report is exit 2", cmd_verify(str(d / "nope.md"), grants) == 2)
+
     raises("a process file with no team section is an ERROR", "# nothing\n")
     raises("a team section with no roles is an ERROR",
            "## The review team\n\nprose only\n\n## Next\n")
@@ -549,7 +695,8 @@ def cmd_selftest():
 
 def main(argv):
     ap = argparse.ArgumentParser(add_help=True, description=__doc__.splitlines()[0])
-    ap.add_argument("command", nargs="?", choices=("write", "check", "list"))
+    ap.add_argument("command", nargs="?", choices=("write", "check", "list", "verify"))
+    ap.add_argument("report", nargs="?", help="the run record, for `verify`")
     ap.add_argument("--process", help="path to doc_review_process.md")
     ap.add_argument("--dir", help="where the agent files live (default: <repo root>/agents)")
     ap.add_argument("--selftest", action="store_true")
@@ -558,17 +705,23 @@ def main(argv):
     if args.selftest:
         return cmd_selftest()
     if not args.command:
-        ap.error("one of write / check / list is required (or --selftest)")
+        ap.error("one of write / check / list / verify is required (or --selftest)")
+    if args.command == "verify" and not args.report:
+        ap.error("usage: murderboard_agents.py verify REPORT.md")
 
     try:
         process = resolve_process(args.process)
-        agents = compile_agents(process)
+        compiled = compile_all(process)
     except ProcessError as e:
         print("murderboard_agents: %s" % e, file=sys.stderr)
         return 2
 
+    if args.command == "verify":
+        return cmd_verify(args.report, compiled["grants"])
+
     target = pathlib.Path(args.dir) if args.dir else repo_root() / "agents"
-    return {"write": cmd_write, "check": cmd_check, "list": cmd_list}[args.command](agents, target)
+    return {"write": cmd_write, "check": cmd_check, "list": cmd_list}[args.command](
+        compiled["files"], target)
 
 
 if __name__ == "__main__":

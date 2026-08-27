@@ -43,6 +43,32 @@ and a defect whose unit is the WHOLE SEQUENCE (argument order) or the WHOLE PAGE
 the figure was given) is invisible to all of them — each slide passes on its own. Give any such
 defect a role whose unit matches it (11, 9), or it will be found by the reader instead.
 
+## Before you review — declare your grant
+
+**Every reviewer declares its grant before it reviews.** A grant written down and a grant that
+arrived are different facts, and nothing downstream can tell them apart. A role spawned through a
+fallback path — because the named agent was not registered, or the harness never loaded it —
+inherits whatever tools that harness happened to hand it: sometimes fewer than its grant allows,
+sometimes *more*, including the editing tools the paragraph above forbids. So each role's
+**first output line** states what it actually holds: `GRANT <n> ok — <tools held>`, or
+`GRANT <n> MISMATCH — missing <tools>; holds <forbidden tools>`. Both are acceptable outcomes and
+only silence is not. A mismatch is a finding **about the run**, not about the artifact: it belongs
+in the ledger, and the run record's `roles:` line must then say the review took a fallback path
+rather than claiming named agents. `murderboard_agents.py verify <report>` refuses a report that
+claims grants its own reviewers said they did not have — because a rule that depends on the
+reviewer remembering to mention it is the same non-gate this document was written about.
+
+**The process file grants you `Read, Grep, Glob, Bash`, and nothing else.** Compare that against
+the tools you were actually given, then open your output with exactly one of these two lines:
+
+    GRANT 9 ok — Read, Grep, Glob, Bash
+    GRANT 9 MISMATCH — missing <tools>; holds <forbidden tools>
+
+Use the second whenever they differ — you are missing one of your tools, or you hold an editing
+tool no reviewer may have. Do not adjust your review to hide the gap and do not skip the line: a
+reviewer that cannot do its check is a finding, and an undeclared one is the exact failure this
+team exists to catch.
+
 ## Your checklist
 
 **Density & figure-first — "Show, Don't Tell."** *Spawn for any multi-slide or multi-page

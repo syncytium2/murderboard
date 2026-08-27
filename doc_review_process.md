@@ -675,6 +675,19 @@ them (steps 3 and 5). A reviewer able to repair what it finds can also make a fi
 before it reaches the record, and the record is the only thing a reader can check. Every role's
 grant is read-and-verify only: no `Edit`, no `Write`, no `NotebookEdit`.
 
+**Every reviewer declares its grant before it reviews.** A grant written down and a grant that
+arrived are different facts, and nothing downstream can tell them apart. A role spawned through a
+fallback path — because the named agent was not registered, or the harness never loaded it —
+inherits whatever tools that harness happened to hand it: sometimes fewer than its grant allows,
+sometimes *more*, including the editing tools the paragraph above forbids. So each role's
+**first output line** states what it actually holds: `GRANT <n> ok — <tools held>`, or
+`GRANT <n> MISMATCH — missing <tools>; holds <forbidden tools>`. Both are acceptable outcomes and
+only silence is not. A mismatch is a finding **about the run**, not about the artifact: it belongs
+in the ledger, and the run record's `roles:` line must then say the review took a fallback path
+rather than claiming named agents. `murderboard_agents.py verify <report>` refuses a report that
+claims grants its own reviewers said they did not have — because a rule that depends on the
+reviewer remembering to mention it is the same non-gate this document was written about.
+
 **Bash goes to the roles that must RUN something to answer.** 1 recomputes quantities and counts
 what is missing; 4 walks a constructed failure through the metric to see whether the number moves;
 7 locates the canonical implementation and compares it line for line; 9 measures a rendered
