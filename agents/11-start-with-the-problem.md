@@ -27,8 +27,8 @@ running leaves none, and is indistinguishable in the report from running clean.
 
 **No reviewer may edit the artifact.** Findings go to the main thread, which adjudicates and applies
 them (steps 3 and 5). A reviewer able to repair what it finds can also make a finding *disappear*
-before it reaches the record, and the record is the only thing a reader can check. Every role's
-grant is read-and-verify only: no `Edit`, no `Write`, no `NotebookEdit`.
+before it reaches the record, and the record is the only thing a reader can check. No role is
+granted `Edit`, `Write` or `NotebookEdit`.
 
 **Roles are split by what it COSTS to satisfy them, not by which reader they serve.** A judgment
 call ("would a cold reader follow this?") can be satisfied by thinking about it; a mechanical check

@@ -686,8 +686,24 @@ not in whichever harness happens to spawn it.
 
 **No reviewer may edit the artifact.** Findings go to the main thread, which adjudicates and applies
 them (steps 3 and 5). A reviewer able to repair what it finds can also make a finding *disappear*
-before it reaches the record, and the record is the only thing a reader can check. Every role's
-grant is read-and-verify only: no `Edit`, no `Write`, no `NotebookEdit`.
+before it reaches the record, and the record is the only thing a reader can check. No role is
+granted `Edit`, `Write` or `NotebookEdit`.
+
+**For some roles that is a boundary; for the rest it is a request, and the difference is `Bash`.**
+Withholding the three editing tools confines a role that holds none of them — the judgment roles,
+granted only `Read`, `Grep` and `Glob`, genuinely cannot alter anything. Every role granted a shell
+can: `rm`, `>` and `sed -i` are writes, and a shell subsumes all three withheld tools. For those
+roles the no-edit rule is a **discipline the reviewer is asked to keep**, not a boundary the grant
+imposes. This document will not pretend otherwise. A review harness whose own documentation
+overstates what it confines is worse than one that says nothing, because a consumer vendors on the
+strength of the sentence — and overstating a guarantee is the exact defect this document sends
+eleven roles to look for.
+
+⚠ **Open gap, stated as one.** The shell is not removable: role 1 must recompute, role 10 must
+render, and both must write intermediates somewhere. The repair is a declared writable scratch
+path plus a harness-level restriction on everything outside it, and **it is not built yet**. Until
+it is: run the murderboard on a checkout you would let a colleague run a script in, and treat a
+reviewer that reports touching anything outside the scratch path as a finding about the run.
 
 **Every reviewer declares its grant before it reviews.** A grant written down and a grant that
 arrived are different facts, and nothing downstream can tell them apart. A role spawned through a
@@ -705,11 +721,13 @@ reviewer remembering to mention it is the same non-gate this document was writte
 **Bash goes to the roles that must RUN something to answer.** 1 recomputes quantities and counts
 what is missing; 4 walks a constructed failure through the metric to see whether the number moves;
 7 locates the canonical implementation and compares it line for line; 9 measures a rendered
-bounding box; 10 renders, crops and zooms. **Web access goes to 2 and 6** — the only two roles whose
-sources live outside the repository, and the two this document forbids from reasoning from memory.
-The remaining roles (3, 5, 8, 11) are judgment roles reading the artifact and its companions;
-handing them a shell would not make their answers more checkable, and a role that could have gone
-looking for evidence but reasoned instead is worse than one that plainly could not.
+bounding box; 10 renders, crops and zooms; and **2 and 6 run the lit tool** to fetch the papers
+this document forbids them to remember. **Web access also goes to 2 and 6** — the only two roles
+whose sources live outside the repository. The rest are judgment roles reading the artifact and its
+companions; handing them a shell would not make their answers more checkable, and a role that could
+have gone looking for evidence but reasoned instead is worse than one that plainly could not.
+**The table below is the authority and this paragraph is a gloss on it** — where they disagree the
+table is right, because the table is what the compiler reads and this paragraph is what drifted.
 
 `model` is `inherit` for every role: which model to spend on which reviewer is a property of the
 consumer's environment, not of the process, and this document declines to guess. Tune it here if you
