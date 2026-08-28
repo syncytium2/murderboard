@@ -72,7 +72,12 @@ of the word the reviewer chose. Until then, soften the claims in `CLAUDE.md`, `S
 PR body to what the gate does: *a report that does not carry a grant declaration for every role
 cannot pass as one that does.*
 
-**B2 · `write` destroys a consumer's own subagents.** Every consumer-facing instruction points
+**B2 · `write` destroys a consumer's own subagents.** — **REPAIRED 2026-08-28 in `869fc23`.**
+Ownership is now read from the file's content (a generated banner), never from its name or its
+directory; `check` no longer counts a foreign file as an orphan, so the unattended `check || write`
+has nothing left to trigger. Two selftest assertions had to be **flipped** — they had been green
+since the tool was written and were describing the deletion as correct. That is now a rule in
+role 4's checklist and an incident in the appendix. Original finding, unedited: Every consumer-facing instruction points
 `--dir` at `.claude/agents`, the *shared* project agents directory. The orphan sweep unlinks every
 `*.md` it did not generate, and `SKILL.md` step 4a runs `check || write` unattended on every
 review. Reproduced:

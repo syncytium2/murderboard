@@ -388,6 +388,20 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      agreement on every recording. Both sides were the raw recording period; the defect was
      that the analysis should have used a *different* column — the producer's analysis window
      — and the check had no visibility of it at all.)
+   - **A PASSING check can be asserting the defect. When a defect is found, read the tests that
+     did not fail.** The two rules above are about a check with no power; this is about a check
+     with full power, aimed at the wrong outcome. A test written beside a bug encodes the bug as
+     the specification, goes green, and then *defends* it: the next person to fix the behaviour
+     sees a red suite and reads it as their own mistake. So for any defect, ask which assertion
+     should have caught it and did not — and if an assertion covered that exact behaviour and
+     passed, **the fix must flip it, not add a sibling beside it.** A repair that leaves the old
+     assertion standing has written the defect down twice. State in the record which assertions
+     flipped; that count is evidence about how the defect survived, and it is the one number a
+     reader cannot reconstruct afterwards. (Incident: a compiler that wrote into a *shared*
+     directory deleted every file it had not itself produced. Two selftest assertions — "an
+     orphaned agent file FAILS check" and "write removes the orphan" — had been green since the
+     tool was written, and both were describing a consumer's own subagent on its way to being
+     unlinked. The suite was not silent about the behaviour; it was vouching for it.)
    - **"Can the alarm ring?" — a null result needs a test with the power to fail.** The most
      dangerous sentence in an analysis deliverable is *"we checked for X and it did not happen"*: it
      reads as evidence while resting on nothing if the check could never have registered X. For
@@ -1174,3 +1188,19 @@ seriously than a rule stated in the abstract.
   fresh from upstream rather than resolve toward either side, because both sides are stamps and
   neither is the content. Lesson: **the thing that makes a check trustworthy is that it can say
   "I cannot tell"**, and a stamp is metadata about a file, not evidence the file is intact.
+- **Adversarial reviewer / a passing test defending the defect** (2026-08-28, `murderboard_agents.py`)
+  — the tool that compiles this file's roles into agent files writes them into `.claude/agents`,
+  which is the harness's **shared** project agent directory, not the tool's own. Its refresh deleted
+  every `*.md` there it had not itself produced, and its `check` reported those files as *orphans* —
+  which is what made the skill's unattended `check || write` fire the delete. A consumer with their
+  own subagents lost them on their first review. **Two selftest assertions had been green since the
+  tool was written** — "an orphaned agent file FAILS check" and "write removes the orphan" — and
+  both described a consumer's own agent on its way to being unlinked. The suite was not silent about
+  the behaviour; it was **vouching** for it, and a later maintainer fixing this would have met a red
+  suite and read it as their own error. The repair had to **flip** those two assertions rather than
+  add safe ones beside them. Three lessons, and the second is the one that generalises: a tool
+  writing into a directory it does not own may remove **only what it can prove it wrote** (here, a
+  generated banner in the file's own content — not its name, not its location); when a defect is
+  found, the tests that *passed* are evidence and must be read; and an unreadable file is never
+  evidence that it is yours to delete. Reported by the review team's own role 6 and role 3 running
+  against the branch that introduced it, and reproduced before repair: two files in, zero out.

@@ -123,6 +123,20 @@ caveats, and vague hand-waving. Demand the caveat wherever one is due. Also atta
   agreement on every recording. Both sides were the raw recording period; the defect was
   that the analysis should have used a *different* column — the producer's analysis window
   — and the check had no visibility of it at all.)
+- **A PASSING check can be asserting the defect. When a defect is found, read the tests that
+  did not fail.** The two rules above are about a check with no power; this is about a check
+  with full power, aimed at the wrong outcome. A test written beside a bug encodes the bug as
+  the specification, goes green, and then *defends* it: the next person to fix the behaviour
+  sees a red suite and reads it as their own mistake. So for any defect, ask which assertion
+  should have caught it and did not — and if an assertion covered that exact behaviour and
+  passed, **the fix must flip it, not add a sibling beside it.** A repair that leaves the old
+  assertion standing has written the defect down twice. State in the record which assertions
+  flipped; that count is evidence about how the defect survived, and it is the one number a
+  reader cannot reconstruct afterwards. (Incident: a compiler that wrote into a *shared*
+  directory deleted every file it had not itself produced. Two selftest assertions — "an
+  orphaned agent file FAILS check" and "write removes the orphan" — had been green since the
+  tool was written, and both were describing a consumer's own subagent on its way to being
+  unlinked. The suite was not silent about the behaviour; it was vouching for it.)
 - **"Can the alarm ring?" — a null result needs a test with the power to fail.** The most
   dangerous sentence in an analysis deliverable is *"we checked for X and it did not happen"*: it
   reads as evidence while resting on nothing if the check could never have registered X. For

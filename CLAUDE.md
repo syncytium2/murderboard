@@ -22,6 +22,15 @@ that would otherwise be skipped goes in the skill. Putting a rule in the skill h
 consumers who read the process directly; putting call-up mechanics in the process file is how
 they ended up as prose in the first place.
 
+**Anything here that writes into a directory it does not own may remove only what it can prove
+it wrote.** `.claude/agents/` and `.claude/skills/` belong to the consumer's repo, not to us;
+`murderboard_agents.py` may only unlink files carrying its own generated banner, and a file it
+cannot read is never a file it may delete. This is not hypothetical — the first version of that
+sweep deleted a consumer's own subagents, and two green selftest assertions were describing the
+deletion as correct (`doc_review_process.md` appendix, 2026-08-28). Any future tool that writes
+outside this repo inherits the rule: prove ownership from the file's **content**, never from its
+name or its location.
+
 **`agents/` is compiled output — never edit a file in it.** `murderboard_agents.py` slices the
 process file's role blocks and its *"what each role must be able to reach"* table into one agent
 file per role. Change a role's checklist, its nickname, or the tools it may reach **in
