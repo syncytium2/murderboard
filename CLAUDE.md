@@ -105,9 +105,10 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a run
 > where the reviewers had none of their tools cannot pass as one where they did. The two ask
 > different questions: *did every role run* and *was every role equipped*. The reviewers live in
-> `.claude/agents/`, **compiled** from the
+> `.claude/agents/murderboard/` — a directory the compiler owns, so it can never remove a
+> subagent of yours — **compiled** from the
 > process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run
-> `murderboard_agents.py --dir .claude/agents write` after every re-vendor, or your reviewers
+> `python3 tools/murderboard_agents.py write` after every re-vendor, or your reviewers
 > keep running the checklists they had before while the freshness gate reports current.
 > **Every artifact this produces is ours and stays here** — the
 > corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where

@@ -45,9 +45,13 @@ done
 for p in tools/murderboard_agents.py murderboard_agents.py; do
   [ -r "$root/$p" ] && COMPILER="$root/$p" && break
 done
-# Where the compiled agent files belong in THIS repo. Claude Code loads `.claude/agents/`;
-# the murderboard's own checkout is a plugin, so its copies live at `agents/` and ship.
-AGENTDIR="$root/.claude/agents"; [ -d "$root/.claude-plugin" ] && AGENTDIR="$root/agents"
+# Where the compiled agent files belong in the repo BEING REVIEWED. Claude Code scans
+# `.claude/agents/` recursively, so the eleven go in a subdirectory this tool owns — writing
+# them loose into the shared directory is how an earlier version deleted a consumer's own
+# subagents. Ask the compiler rather than reproducing its rule here; it detects the
+# murderboard's own checkout by plugin NAME, since any consumer may publish a plugin too.
+AGENTDIR=$(python3 "$COMPILER" --print-dir 2>/dev/null) \
+  || AGENTDIR="$root/.claude/agents/murderboard"
 
 # Nothing vendored here — fall back to the plugin install. $CLAUDE_PLUGIN_ROOT is set when
 # this skill came from a plugin, but do not rely on it reaching the shell: glob the install
@@ -148,10 +152,20 @@ fi
 ```
 
 Then spawn each row's `agent-name` as the subagent type. **If the named agent does not
-resolve** — freshly written files are not picked up until Claude Code rescans, and a consumer
-may have vendored the process file without the compiler — fall back to spawning a generic
-subagent whose prompt is **the contents of that role's agent file**, and if there is no agent
-file either, the role's block from `$PROCESS`. All three paths run the same eleven roles.
+resolve**, fall back to spawning a generic subagent whose prompt is **the contents of that
+role's agent file**, and if there is no agent file either, the role's block from `$PROCESS`.
+
+**Expect the fallback on a repo's FIRST run, always.** Claude Code watches the agent
+directories and picks up edits within seconds with no restart — but only for directories that
+existed when the session started. Compiling the first time creates that directory, so nothing
+watches it yet and the named agents cannot resolve until the session restarts. That is not a
+failure; it is the first run. Say so in the record, and tell the human a restart converts
+subsequent runs to named agents.
+
+⚠ **Path 3 cannot satisfy the grants gate.** A role's block in `$PROCESS` carries its checklist
+but not the grant-declaration instruction, which the compiler injects. A role spawned that way
+emits no `GRANT` line and step 7's `verify` will report it as undeclared — correctly. Prefer
+path 2 whenever an agent file exists.
 
 **Say which path you used in the run record.** The fallback does not merely lose a grant — a
 generic subagent inherits whatever the harness hands it, which is sometimes *more* than the

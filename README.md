@@ -176,8 +176,19 @@ all.
 **After every re-vendor, recompile the review team:**
 
 ```
-python3 tools/murderboard_agents.py --dir .claude/agents write   # then `check` in CI
+python3 tools/murderboard_agents.py write          # -> .claude/agents/murderboard/
+python3 tools/murderboard_agents.py check          # the same line, wired into CI
 ```
+
+No `--dir` needed: the tool resolves its own directory (`--print-dir` shows it) and writes into
+`.claude/agents/murderboard/`, a subdirectory it owns. Claude Code scans `.claude/agents/`
+recursively and a subagent's identity comes from its `name` field rather than its path, so the
+nesting costs nothing and means the tool is never in a position to remove a file of yours.
+
+**Your first run after this will take the fallback path, and that is expected.** The agent
+directories are watched, but only those that existed when the session started — compiling
+creates one, so the named agents resolve from the *next* session onward. The run record says
+which path it took.
 
 The agent files are **output**, not vendored input — which is why the config above lists the
 compiler and not the eleven files it produces. A re-vendor that updates the process file and
