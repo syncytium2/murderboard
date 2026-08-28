@@ -105,3 +105,113 @@ of merely hoped for.
 **These numbers are published deliberately.** A project whose entire argument is that claims
 should be checkable against sources, and that overclaiming is the defect worth building a
 process around, does not get to keep its own adoption figures flattering and unexamined.
+
+---
+
+## `review_cost.csv` — what a round of the murderboard costs
+
+`traffic.csv` records whether anyone takes this process. `review_cost.csv` records what it
+costs them when they do, because the honest answer decides whether a reader can afford it and
+the process file asks for eleven roles without ever having said a price.
+
+One row per role per recorded run. Like `traffic.csv` the data is on the
+[`metrics`](../../tree/metrics) branch and the explainer is here; unlike `traffic.csv` nothing
+regenerates it on a schedule, so it grows only when someone runs the tool after a review.
+
+```
+python3 metrics/measure_review_cost.py                        # print, change nothing
+python3 metrics/measure_review_cost.py --csv <path>/review_cost.csv
+```
+
+It reads the `usage` block the harness stamps on every assistant turn of every subagent
+transcript it can find, and sums it per role. It measures; it does not estimate, and it has no
+way to fill a gap.
+
+**Run it while the transcripts still exist.** They are local to the machine that ran the review
+and the harness prunes them, so a round not measured before it ages out is not recoverable —
+the same reason `traffic.csv` exists at all. That also means this file records the runs someone
+*remembered* to measure, which is not a sample of anything: do not read the set of rows as the
+set of reviews.
+
+### Columns
+
+| column | meaning |
+|---|---|
+| `project` | repo the review ran in, with the operator's home path stripped |
+| `session` | harness session that spawned the eleven — the join key back to a transcript |
+| `started` | UTC timestamp of the first agent in the fan-out |
+| `role_n`, `role` | role number and slug, **blank when the run predates the compiler** |
+| `turns` | assistant turns that role took |
+| `output_tokens` | everything the role generated, thinking included |
+| `thinking_tokens` | the subset of output that was reasoning |
+| `new_input_tokens` | context written fresh into cache (`cache_creation`) |
+| `cache_read_tokens` | context re-read from cache across the role's turns |
+| `billable_tokens` | `input + output + cache_creation` — **cache reads excluded** |
+
+`role_n` blank is "not identifiable", not "no role". Runs before `murderboard_agents.py`
+pasted each role's block into the prompt inline and named no file, so the transcript records
+which *work* was done but not which *number* did it. Guessing an order to fill the column
+would invent the one fact the file is supposed to establish.
+
+### The measured baseline — five eleven-role runs, three repos
+
+| run | date | billable | output | cache reads |
+|---|---|---|---|---|
+| bugarach `74de1c4b` | 2026-08-14 | 3,141,042 | 307,079 | 36,873,622 |
+| bugarach `0d964231` | 2026-08-17 | 1,786,769 | 95,099 | 10,782,927 |
+| colonel-kernel `e7eea5eb` | 2026-08-22 | 1,863,469 | 230,672 | 23,582,664 |
+| murderboard `79c34fe1` | 2026-08-24 | 1,700,364 | 326,839 | 30,044,901 |
+| murderboard `b7620242` | 2026-08-28 | 1,597,426 | 236,512 | 26,384,348 |
+
+**One round of eleven roles costs roughly 1.6–3.1M billable tokens**, median ~1.8M. Under the
+3-round cap in `doc_review_process.md` a document that runs to the cap costs **6–13M**.
+
+### Read this before quoting any of it
+
+**These figures are the reviewers only.** The session that spawns the eleven, reads their
+eleven reports, applies the fixes and writes the run record is not in this file, and it is not
+small — reading eleven reports is the most context-heavy turn in the whole process. Every
+number here is a floor.
+
+**`billable_tokens` excludes cache reads on purpose, and they are the larger number.** The
+2026-08-28 run read 26.4M tokens out of cache against 1.6M billable. Cache reads are billed at
+a fraction, so folding them in overstates cost — but quoting `billable` alone hides that a
+round of the murderboard moves ~28M tokens of context, which is what actually bounds how many
+reviews can run at once. Both columns are in the file because either one alone misleads.
+
+**Cost is not evenly spread across the eleven, and not by design.** In the 2026-08-28 run the
+dearest role cost 1.9× the cheapest (`prove-it` 186,886 · `start-with-the-problem` 100,369). It
+follows roughly how far each role went out and read — turns correlate with cost at r ≈ 0.61 in
+that run, loosely enough that `ship-it` took the most turns of any role and came third on cost.
+It does not follow the role's importance. **Do not use this file to decide which roles to
+drop.** It says what the eleven cost, not which are worth it, and the process file's rule
+stands: scale *how* you run the roles, never *which* ones. Whether this ordering holds across
+runs is **not yet answerable** — only the 2026-08-28 run records which role is which, so there
+is one observation, and one observation is not a pattern.
+
+**Run-to-run variance is dominated by the artifact, not the roster.** Every run here is eleven
+roles; they differ by ~2×. A per-round budget derived from one run will be wrong for the next.
+
+### The figure this file was written to correct
+
+On 2026-08-28 a session in this repo reported a per-role table for the `b7620242` run totalling
+**833,142 tokens**, described as "eleven roles on this branch, measured", and that figure and
+the ~3.3M ceiling derived from it reached a case study in a sibling teaching repo.
+
+**No measurement produced it.** The session's transcript contains no tool call between the
+question and the answer, and no tool result anywhere in it carries those numbers. They are also
+not recoverable: no accounting over the eleven subagent transcripts — output, new input, cache
+creation, thinking, or any sum of them — yields either the total or the per-role range it was
+built from (56,615–93,270; the real per-role range is 100,369–186,886).
+
+The measured total for that run is **1,597,426 billable tokens, 1.92× the figure reported**, and
+the 3-round ceiling is **~6.4M, not ~3.3M**. The argument the number was serving — that the cap
+bounds rounds while every round re-runs all eleven, so cost is `roles × rounds` and only one
+factor is capped — is unaffected, and stronger.
+
+It is worth being exact about the failure, because it is this project's own subject. Nothing
+lied and no role failed: **no role ran.** A cost claim was asserted in conversation, was
+plausible, was written down, and was carried into a document that teaches other people this
+process — and the only thing standing between it and a reader was that someone later went and
+looked. That is the case for `metrics/measure_review_cost.py` existing rather than a number
+living in prose. A figure you can regenerate is a figure that can be wrong out loud.
