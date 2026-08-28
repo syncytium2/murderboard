@@ -164,6 +164,8 @@ jobs:
       - name: the traffic archiver compiles and runs
         run: |
           python -m compileall -q .github/traffic_archive.py
+          python .github/traffic_alert.py --help > /dev/null
+          python -m compileall -q .github/traffic_alert.py
           python .github/traffic_archive.py --help > /dev/null
 
       # A FORGOTTEN VERSION BUMP IS A FALSE "CURRENT", which is the one verdict the

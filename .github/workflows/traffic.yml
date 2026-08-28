@@ -46,6 +46,7 @@ on:
 permissions:
   contents: write             # to commit the archive back
   actions: read               # to count this repo's OWN CI checkouts, see below
+  issues: write               # to raise an issue when something actually changes
 
 concurrency:
   group: traffic-archive
@@ -74,17 +75,46 @@ jobs:
           GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
         run: python3 .github/traffic_archive.py --repo "${{ github.repository }}" --out ../metrics/traffic.csv
 
+      # A FILE IS A RECORD, NOT A NOTIFICATION. Nobody opens a CSV on a branch every
+      # morning, so the archive answers "what happened?" and never "did anything happen?".
+      # This step answers the second question and is SILENT unless something fired -- a
+      # check that speaks daily gets filtered into a folder and stops being read.
+      - name: has anything actually changed?
+        id: alert
+        env:
+          GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
+          ALERT_BODY_FILE: ${{ runner.temp }}/alert.md
+        run: python3 .github/traffic_alert.py --repo "${{ github.repository }}" --dir ../metrics
+
       - name: commit if anything changed
         working-directory: ../metrics
         run: |
-          if git diff --quiet -- traffic.csv; then
+          if git diff --quiet && git diff --quiet --cached && [ -z "$(git status --porcelain)" ]; then
             echo "no change today"
             exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add traffic.csv
+          git add traffic.csv signals.json
           git commit -m "traffic: $(date -u +%Y-%m-%d)"
           # Not --force. A rejected push means something else wrote to this branch and the
           # run should fail so a human looks, rather than quietly discarding whatever it was.
           git push origin metrics
+
+      # The issue is the delivery mechanism: GitHub emails the repo owner about it, so no
+      # third-party mail service and no extra secret. Raised only when the step above
+      # actually found something.
+      #
+      # --body-file, NOT --body with an interpolated output. The body contains backticks,
+      # and `--body "${{ ... }}"` puts them inside double quotes where bash runs them as
+      # command substitution -- with text partly sourced from referrer strings that anyone
+      # linking to this repo can influence. The file never touches the shell.
+      - name: say so, out loud
+        if: steps.alert.outputs.fired == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "Traffic: something changed ($(date -u +%Y-%m-%d))" \
+            --body-file "${{ runner.temp }}/alert.md"
