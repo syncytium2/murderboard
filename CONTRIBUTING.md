@@ -102,6 +102,43 @@ So, for any gate you add or change:
 3. Assert your preconditions. If a test depends on something being absent, check that it is
    actually absent before trusting the result.
 
+### Anything that writes into a directory it does not own will eventually delete something
+
+`murderboard_agents.py` compiled eleven agent files into `.claude/agents/` — the harness's
+**shared** project agent directory, which belongs to the consumer's repo and not to the tool. It
+then tidied up: it removed every `*.md` there it had not itself produced. Every consumer-facing
+instruction pointed it at that directory, and the review skill ran the destructive branch
+unattended on every run. A consumer with their own subagents would have lost them on their first
+review, and would have had no way to know it was us — one line of output that scrolls past,
+nothing in the report, no undo.
+
+It never reached anyone. It was caught on the branch, one merge from shipping.
+
+The first repair was a **guard**: prove ownership before unlinking. That leaves the capability in
+place and depends on a check staying correct forever. The repair that held was **structural** —
+write into `.claude/agents/murderboard/`, a directory the tool owns outright, so "remove anything
+here that is not mine" is true by construction rather than by inspection.
+
+**And two selftest assertions had been green since the day the tool was written**, both
+describing the deletion as correct behaviour. Fixing the bug turned them red. A maintainer who
+trusted the suite would have read that red as their own mistake and put the bug back.
+
+The diagnosis is older than any of this tooling and comes from handling raw recordings: *never
+alter the raw data*. It generalises — read from source, write to derived, never the reverse.
+
+So, for anything you add here that touches a filesystem:
+
+1. **Answer three questions before the first line of code:** what does this create, what does it
+   modify, what does it remove? If the answer to the third is *anything it did not create*,
+   change the design rather than adding a guard.
+2. **Write derived output to an address you own.** A subdirectory inside somebody's shared
+   directory is fine; the shared directory itself is not.
+3. **Prove ownership from a file's content, not from its name or location.** A generated file
+   carries a banner. A file you cannot read is never a file you may delete.
+4. **When you fix a defect, read the tests that did not fail.** If an assertion covered the
+   broken behaviour and passed, flip it — do not add a correct one beside it and leave both
+   standing.
+
 ### Know which file your change belongs in
 
 - **`doc_review_process.md`** is the authority on *what* gets reviewed and by whom. **A new
