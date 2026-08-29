@@ -102,9 +102,11 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a run
-> where the reviewers had none of their tools cannot pass as one where they did. The two ask
-> different questions: *did every role run* and *was every role equipped*. The reviewers live in
+> pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a report
+> that does not carry a grant declaration for every role cannot pass as one that does. The two
+> ask different questions: *did every role leave a trace* and *did every role state what it
+> held*. ⚠ **Neither yet asks whether the grant was real** — `verify` reads the `ok`/`MISMATCH`
+> token and not the tool list beside it, so a fabricated declaration passes. The reviewers live in
 > `.claude/agents/murderboard/` — a directory the compiler owns, so it can never remove a
 > subagent of yours — **compiled** from the
 > process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run
