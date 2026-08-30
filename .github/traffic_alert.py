@@ -68,6 +68,70 @@ def api(repo, path, token):
         return json.load(r)
 
 
+def write_digest(args, rows, now, lines, num):
+    """The daily heartbeat, which is a different job from the alert.
+
+    IT EXISTS BECAUSE OF A FLAW IN THE ALERT. A check that speaks only on change is
+    indistinguishable from a check that has died: if nobody ever shows up, silence is the
+    correct output AND the symptom of a revoked token, a deleted branch, or a workflow
+    somebody switched off. Worse, the reader forgets it exists. As the maintainer put it --
+    "if it is silent until someone shows up, it will be silent forever if no one shows up."
+
+    The freshness gate can afford silent-when-current because a human RUNS it and watches it
+    not complain; that is the moment this job does not have. So it says something every day.
+
+    Deliberately NOT a second alert. Same few numbers, no urgency, nothing to act on. Its
+    value is being a heartbeat you stop reading closely and would notice the absence of.
+    """
+    digest_file = os.environ.get("DIGEST_FILE")
+    if not digest_file:
+        return
+
+    latest = rows[-1] if rows else {}
+    tot_c = sum(num(r, "clones") for r in rows)
+    tot_j = sum(num(r, "ci_jobs") for r in rows)
+    lat_c, lat_j = num(latest, "clones"), num(latest, "ci_jobs")
+
+    d = [f"### Traffic — {os.environ.get('TODAY', 'today')}",
+         "",
+         f"**{len(rows)} days on record.** Series: **{tot_c}** clones, **{tot_j}** of them "
+         f"this repo's own CI jobs → **{tot_c - tot_j} non-CI**."]
+
+    if latest.get("date"):
+        # GitHub publishes traffic a day or two behind. Saying so every time stops an
+        # ordinary lag being read as a stuck job -- which is the exact misreading a
+        # heartbeat exists to prevent.
+        d += ["", f"Latest day GitHub has published is **{latest['date']}**. It runs a day "
+                  f"or two behind, so trailing today's date is normal."]
+
+    d += ["",
+          f"| | latest day ({latest.get('date', '—')}) | series |",
+          "|---|---|---|",
+          f"| clones | {lat_c} | {tot_c} |",
+          f"| of which this repo's CI | {lat_j} | {tot_j} |",
+          f"| **non-CI** | **{lat_c - lat_j}** | **{tot_c - tot_j}** |",
+          f"| unique page viewers | {num(latest, 'view_uniques')} | high of {now['max_view_uniques']} |",
+          "",
+          f"Stars **{now['stars']}** · forks **{now['forks']}** · watchers "
+          f"**{now['watchers']}** · referrers: "
+          f"{', '.join('`' + r + '`' for r in now['referrers']) or '—'}",
+          ""]
+
+    if lines:
+        d += ["**Something changed today** — it also opened its own issue:", ""] + lines + [""]
+    else:
+        d += ["Nothing changed today. This is the heartbeat, not an alarm — a real change "
+              "opens its own issue.", ""]
+
+    d += ["<sub>Non-CI is not a count of people: it excludes only this repo's own Actions "
+          "jobs, and still counts the maintainer's clones, mirrors and scanners. "
+          "`clone_uniques` cannot have CI removed from it at all — see "
+          "[`metrics/README.md`](../../blob/main/metrics/README.md).</sub>"]
+
+    with open(digest_file, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(d) + "\n")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo", required=True)
@@ -154,6 +218,8 @@ def main():
         json.dump(now, fh, indent=2, sort_keys=True)
         fh.write("\n")
 
+    write_digest(args, rows, now, lines, num)
+
     if not lines:
         return 0
 
@@ -168,6 +234,18 @@ def main():
               "event: the thresholds are high-water marks stored in `signals.json`.\n")
     print(body)
 
+    # THE DAILY HEARTBEAT, which is a different job from the alert above and exists because
+    # of a flaw in it: a check that speaks only on change is indistinguishable from a check
+    # that has died. If nobody ever shows up, the alert is silent forever -- and so is a
+    # broken token, a deleted branch, or a workflow somebody disabled. Worse, the reader
+    # eventually forgets the thing exists at all, which is the failure the maintainer named:
+    # "if it is silent until someone shows up, it will be silent forever if no one shows up."
+    #
+    # The freshness gate gets away with silent-when-current because a human RUNS it and sees
+    # it not complain. A once-a-day background job has no such moment, so it has to say
+    # something. This is deliberately NOT a second alert: it carries no urgency, it is the
+    # same few numbers every day, and its whole purpose is to be a heartbeat you stop
+    # reading closely and would notice the absence of.
     # THE BODY GOES TO A FILE, NEVER THROUGH THE SHELL. It contains backticks -- `metrics`,
     # `clone_uniques`, `signals.json` -- and a workflow doing
     #     gh issue create --body "${{ steps.alert.outputs.body }}"
