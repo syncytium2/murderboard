@@ -433,6 +433,19 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      ___"*. Report each hit with its location. A hit is a defect unless the author states why it
      stays. **This list is a house convention, not a finding about English** — a consuming
      project should edit it, and a role that cites it must say which list it ran.
+   - **The passage test — what does this block assert that its last sentence does not?** A block
+     can be true, correctly placed, and clean line by line, and still spend four hundred words
+     arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11
+     finds the section in its right position, role 8 finds a stranger able to follow it, role 9
+     wants a picture rather than a cut. Nobody is left holding the question *did this need to be
+     this long* — which is why it reaches a reader as the first thing they say about the draft.
+     So, per block: write the one sentence it exists to deliver, then name what the remaining
+     words buy — evidence a sceptic would actually demand, or the author's satisfaction at having
+     been thorough. Cut the second kind. **The payload is usually at the end**, because the block
+     was written in the order it was thought; promoting it is the fix more often than trimming is.
+     (Boundary with Start With the Problem: role 11 owns the order of the sections and may not
+     reach inside one; this owns the paragraph — a block in exactly the right place, three times
+     longer than its point.)
    - **Why this role gets a list where the others get judgement.** An instruction to write with
      more wit, or in the voice of some admired author, cannot fail: nothing in the draft can
      contradict it, so it yields a different voice on every run and no reviewer can dispute the

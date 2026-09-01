@@ -90,6 +90,13 @@ jobs:
           fi
           echo "ok — PROMPT.md matches murderboard_prompt.sh"
 
+      # DRAFTING-PROMPT.md restates role 5's banned list forwards, for pasting before a
+      # draft exists. Two copies of one list, so it drifts -- and it drifts silently in
+      # the worst direction: the prompt goes on permitting a construction the review
+      # still fails, and a writer who followed the prompt gets marked down for it.
+      - name: the drafting prompt still agrees with role 5
+        run: python3 tests/drafting_prompt_test.py
+
   python:
     name: fetch_paper.py
     runs-on: ubuntu-latest
