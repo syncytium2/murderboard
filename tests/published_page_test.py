@@ -54,8 +54,9 @@ NON_FETCHING_REL = {"canonical", "alternate"}
 
 
 def check(src):
-    """Full check for the explainer: structure, plus its stamp and its form."""
-    return check_document(src) + check_stamp(src) + check_form(src)
+    """Full check for the explainer: structure, stamp, form, and findability."""
+    return (check_document(src) + check_stamp(src) + check_form(src)
+            + check_findability(src))
 
 
 def check_document(src):
@@ -244,6 +245,131 @@ def check_stamp(src):
     return bad
 
 
+# ---------------------------------------------------------------------------
+# FINDABILITY. Everything below fails silently and invisibly-to-the-author, which
+# is this file's whole remit. A page with no description still renders. A sitemap
+# with a stale lastmod still validates. A canonical pointing at the wrong host
+# still looks right in the source. The failure appears months later as "nobody can
+# find it", by which time nobody remembers what changed.
+#
+# The one hard cross-check: docs/CNAME is the single source of truth for the
+# domain, and canonical, og:url, robots.txt and sitemap.xml must all agree with it.
+# Moving the site would otherwise leave four stale absolute URLs in four files, each
+# of which looks fine on its own.
+
+
+def site_origin():
+    """https://<domain>/ — from CNAME, which is what Pages actually serves."""
+    return "https://%s/" % (DOCS / "CNAME").read_text(encoding="utf-8").strip()
+
+
+META_RE = re.compile(
+    r'<meta\s+(?:name|property)\s*=\s*["\']([^"\']+)["\']\s+content\s*=\s*["\']([^"\']*)',
+    re.I)
+
+
+def check_findability(src):
+    """Title, description, canonical and og: must exist, be specific, and agree."""
+    bad = []
+    origin = site_origin()
+    metas = dict(META_RE.findall(src))
+
+    t = re.search(r"<title>([^<]*)</title>", src)
+    title = t.group(1).strip() if t else ""
+    if not title:
+        bad.append("no <title>")
+    elif len(title) < 25:
+        # "The Murderboard" alone loses to a Wikipedia article, two other GitHub
+        # repos and a Roblox script pack. A bare product name is not a title.
+        bad.append("<title> is %d chars (%r) — too generic to distinguish this "
+                   "page from everything else called murderboard" % (len(title), title))
+
+    desc = metas.get("description", "").strip()
+    if not desc:
+        bad.append("no <meta name=description>")
+    elif not 120 <= len(desc) <= 320:
+        bad.append("meta description is %d chars — want 120-320" % len(desc))
+
+    # The subject of this page is AI-assisted review. If the two fields a search
+    # engine reads do not contain the word, the page cannot be found by anyone
+    # searching for the problem rather than for its name.
+    if "ai" not in re.findall(r"[a-z]+", (title + " " + desc).lower()):
+        bad.append("neither <title> nor the meta description contains the word "
+                   "'AI' — the one term someone searching for this would use")
+
+    can = re.search(r'<link\s+rel=["\']canonical["\']\s+href=["\']([^"\']+)', src, re.I)
+    if not can:
+        bad.append("no <link rel=canonical>")
+    elif can.group(1) != origin:
+        bad.append("canonical is %s but CNAME says %s" % (can.group(1), origin))
+
+    for key in ("og:type", "og:title", "og:description", "og:url"):
+        if key not in metas:
+            bad.append("missing <meta property=%s> — link previews fall back to "
+                       "a bare URL" % key)
+    if metas.get("og:url") and metas["og:url"] != origin:
+        bad.append("og:url is %s but CNAME says %s" % (metas["og:url"], origin))
+    if metas.get("og:title") and t and metas["og:title"] != title:
+        bad.append("og:title disagrees with <title>")
+    if metas.get("og:description") and desc and metas["og:description"] != desc:
+        bad.append("og:description disagrees with the meta description")
+
+    return bad
+
+
+def check_crawl_files(page_src):
+    """robots.txt and sitemap.xml: present, pointing here, and not stale."""
+    bad = []
+    origin = site_origin()
+
+    robots = DOCS / "robots.txt"
+    if not robots.exists():
+        bad.append("docs/robots.txt is missing")
+    else:
+        r = robots.read_text(encoding="utf-8")
+        if re.search(r"^\s*Disallow:\s*/\s*$", r, re.M):
+            bad.append("robots.txt disallows the whole site")
+        sm = re.search(r"^\s*Sitemap:\s*(\S+)", r, re.M)
+        if not sm:
+            bad.append("robots.txt names no Sitemap")
+        elif sm.group(1) != origin + "sitemap.xml":
+            bad.append("robots.txt points at %s, not %ssitemap.xml"
+                       % (sm.group(1), origin))
+
+    sitemap = DOCS / "sitemap.xml"
+    if not sitemap.exists():
+        bad.append("docs/sitemap.xml is missing")
+        return bad
+
+    s = sitemap.read_text(encoding="utf-8")
+    loc = re.search(r"<loc>([^<]+)</loc>", s)
+    if not loc:
+        bad.append("sitemap.xml lists no <loc>")
+    elif loc.group(1) != origin:
+        bad.append("sitemap <loc> is %s but CNAME says %s" % (loc.group(1), origin))
+
+    # lastmod must equal the page's own Updated stamp. A sitemap that says
+    # "unchanged since <wrong date>" is the only line in that file that can
+    # actively cost something, and nothing else would ever notice.
+    lm = re.search(r"<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>", s)
+    u = UPDATED_RE.search(page_src)
+    if not lm:
+        bad.append("sitemap.xml has no well-formed <lastmod>")
+    elif u and lm.group(1) != u.group(1):
+        bad.append("sitemap lastmod is %s but the page stamp says Updated %s"
+                   % (lm.group(1), u.group(1)))
+
+    # noindex and "please index this" are contradictory instructions about the
+    # same URL, and a crawler resolves the contradiction by trusting neither.
+    # Checked against the <loc> entries, not the file text: the first version of
+    # this grepped the whole file and fired on the COMMENT explaining why
+    # thanks.html is deliberately absent — a check that failed on being documented.
+    if any("thanks" in u for u in re.findall(r"<loc>([^<]+)</loc>", s)):
+        bad.append("sitemap.xml lists thanks.html, which is marked noindex")
+
+    return bad
+
+
 # The markers murderboard_prompt.sh --sync-page splices between. Each must close
 # its own HTML comment on its own line: the splice keeps the marker line and drops
 # everything up to the end marker, so a begin comment that wrapped would lose its
@@ -328,6 +454,41 @@ def main():
         failures.append("unexpected page in docs/: %s" % s.relative_to(DOCS))
 
     failures += check(src)
+    failures += check_crawl_files(src)
+
+    # The crawl files live outside the page, so their controls mutate the FILES,
+    # not the HTML. Each is written to a temp copy, checked, and put back.
+    crawl_controls = [
+        ("robots.txt missing", "robots.txt", None),
+        ("robots.txt disallows everything", "robots.txt",
+         "User-agent: *\nDisallow: /\n\nSitemap: %ssitemap.xml\n" % site_origin()),
+        ("robots.txt names no sitemap", "robots.txt", "User-agent: *\nAllow: /\n"),
+        ("sitemap.xml missing", "sitemap.xml", None),
+        ("sitemap lastmod left stale after a page update", "sitemap.xml",
+         '<?xml version="1.0" encoding="UTF-8"?>\n<urlset>\n<url>\n'
+         '<loc>%s</loc>\n<lastmod>2001-01-01</lastmod>\n</url>\n</urlset>\n'
+         % site_origin()),
+        ("sitemap points at a different host", "sitemap.xml",
+         '<?xml version="1.0" encoding="UTF-8"?>\n<urlset>\n<url>\n'
+         '<loc>https://example.com/</loc>\n<lastmod>2026-09-01</lastmod>\n'
+         '</url>\n</urlset>\n'),
+    ]
+    for name, fname, content in crawl_controls:
+        target = DOCS / fname
+        original = target.read_text(encoding="utf-8") if target.exists() else None
+        try:
+            if content is None:
+                target.unlink()
+            else:
+                target.write_text(content, encoding="utf-8")
+            if not check_crawl_files(src):
+                failures.append("NEGATIVE CONTROL NOT CAUGHT: %s" % name)
+        finally:
+            if original is None:
+                if target.exists():
+                    target.unlink()
+            else:
+                target.write_text(original, encoding="utf-8")
 
     # The landing page is not the explainer — no stamp, no jump nav, no form — but
     # it is served to the public from the same directory, so the properties that
@@ -403,6 +564,28 @@ def main():
         # control would "pass" by doing nothing at all.
         ("page drops the send-only wording while keeping the form",
          lambda s: re.sub(r"only\s+if\s+you\s+send\s+the\s+form", "never", s)),
+        # FINDABILITY. Every one of these renders a perfect-looking page.
+        ("title reverted to the bare product name",
+         lambda s: re.sub(r"<title>[^<]*</title>",
+                          "<title>The Murderboard</title>", s, count=1)),
+        ("meta description removed",
+         lambda s: re.sub(r'<meta name="description"[^>]*>', "", s, count=1)),
+        ("description stops mentioning AI at all",
+         lambda s: re.sub(r'(<meta name="description" content=")[^"]*',
+                          r"\1A review process for catching unchecked claims in "
+                          r"documents, with eleven roles and a fixed output format "
+                          r"that says what was checked.", s, count=1)),
+        ("canonical points at another host",
+         lambda s: s.replace('rel="canonical" href="https://murderboard.tonydefazio.com/"',
+                             'rel="canonical" href="https://example.com/"', 1)),
+        ("og:url drifts from the canonical",
+         lambda s: s.replace('<meta property="og:url" content="https://murderboard.tonydefazio.com/">',
+                             '<meta property="og:url" content="https://old.example/">', 1)),
+        ("og:title drifts from <title>",
+         lambda s: re.sub(r'(<meta property="og:title" content=")[^"]*',
+                          r"\1Something Else", s, count=1)),
+        ("og tags removed entirely",
+         lambda s: re.sub(r'<meta property="og:[^>]*>', "", s)),
     ]
     for name, mutate in controls:
         if not check(mutate(src)):
@@ -468,7 +651,7 @@ def main():
     print("ok — the prompt printed on the page is byte-identical to "
           "murderboard_prompt.sh --html")
     print("ok — %d negative controls all caught"
-          % (len(controls) + len(prompt_controls)))
+          % (len(controls) + len(prompt_controls) + len(crawl_controls)))
     return 0
 
 

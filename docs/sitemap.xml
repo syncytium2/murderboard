@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Gated by tests/published_page_test.py, which requires <lastmod> to equal the
+  Updated date in the page's own footer stamp, and <loc> to agree with docs/CNAME.
+
+  A sitemap whose lastmod has silently drifted is worse than no sitemap: it tells
+  a crawler the page has not changed since a date that is wrong, which is the one
+  claim in this file that can actively cost something. Bump the stamp, bump this.
+
+  thanks.html is deliberately absent. It carries <meta name="robots" content=
+  "noindex"> — it is the form's landing page, not a document, and listing a page
+  here that asks not to be indexed is a contradiction a crawler resolves by
+  trusting neither.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://murderboard.tonydefazio.com/</loc>
+    <lastmod>2026-09-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

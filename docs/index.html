@@ -3,9 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Murderboard</title>
-<meta name="description" content="A review process for catching unchecked claims. Eleven reviewer roles, three scripts, and a fixed format for what comes back. Open source, Apache-2.0.">
+<!-- FINDABILITY. These five fields are the only thing a search engine reads before
+     deciding what this page is about, and until 2026-09-01 they never said "AI" —
+     for a tool whose entire subject is AI-assisted review. Nobody searching for the
+     problem could match the page that solves it, and "murderboard" alone collides
+     with an unrelated Wikipedia concept, two other GitHub repositories and a game
+     script pack. So the title and description now carry the words a person actually
+     types when they do not already know this exists.
+
+     og: tags are text only — no og:image — because an image URL would be the first
+     external reference on a page whose zero-fetch property is load-bearing. A
+     crawler never renders it; a link preview simply shows the title and text.
+
+     All three URLs must agree with docs/CNAME, and tests/published_page_test.py
+     fails if any of them drifts from it or from robots.txt and sitemap.xml. -->
+<title>The Murderboard — adversarial AI review for documents</title>
+<meta name="description" content="Stop AI slop in documents. An adversarial review process: any AI chat works through eleven fixed reviewer roles, checks each claim against its sources, and flags what it could not verify.">
 <link rel="canonical" href="https://murderboard.tonydefazio.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Murderboard">
+<meta property="og:title" content="The Murderboard — adversarial AI review for documents">
+<meta property="og:description" content="Stop AI slop in documents. An adversarial review process: any AI chat works through eleven fixed reviewer roles, checks each claim against its sources, and flags what it could not verify.">
+<meta property="og:url" content="https://murderboard.tonydefazio.com/">
+<meta name="twitter:card" content="summary">
 <!-- Nothing is requested on load. Every font stack ends in a generic family, so nothing here
      waits on a network: the page renders the same opened from disk, air-gapped, or behind a
      captive portal. A webfont link would make "opens from disk" false in the one case that
