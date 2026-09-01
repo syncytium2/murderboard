@@ -14,7 +14,9 @@ Pick the level that matches you. Level 1 takes two minutes and needs nothing but
 
 ## Level 1 — Any AI chat. Two minutes. No install.
 
-1. Open **[PROMPT.md](PROMPT.md)** and copy the whole block inside the ``` fence.
+1. Open **[PROMPT.md](PROMPT.md)** and copy the whole block inside the ``` fence — or
+   copy it off **[the website](https://murderboard.tonydefazio.com/#prompt)**, which prints
+   the same block in full. Both are generated from the process document; neither is typed.
 2. Paste it into ChatGPT, Claude, Gemini, Copilot, a local model — whatever you use.
 3. It will reply with one line and wait. **Now paste your document.**
 4. Read what comes back. Fix what's real. Ignore what isn't — it is a reviewer, not a boss.

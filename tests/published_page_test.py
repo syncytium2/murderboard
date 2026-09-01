@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pin the invariants of the published page, because breaking them fails SILENTLY.
 
-`docs/index.html` is served to the public by GitHub Pages. Three of its properties
+`docs/index.html` is served to the public by GitHub Pages. Four of its properties
 are load-bearing and none of them announce themselves when broken:
 
 1. **It is a complete document.** The page was authored for a publisher that supplies
@@ -19,15 +19,27 @@ are load-bearing and none of them announce themselves when broken:
 3. **Jekyll must not touch it.** Pages runs files through Jekyll unless `.nojekyll`
    is present, and Jekyll eats anything resembling Liquid (`{{`, `{%`).
 
+4. **The prompt printed on the page is the prompt the generator emits.** The page
+   carries the whole paste-ready prompt inline, because an assistant sent one hop
+   away to fetch it has been observed searching instead, failing, and offering to
+   reconstruct the review from memory. Inline, it cannot be missed — but it is now
+   a SECOND COPY of a role list whose entire point is that it is derived and cannot
+   drift, and this repo has already had the two-copies failure once. So the block
+   is generated (`murderboard_prompt.sh --sync-page`) and diffed here. A page that
+   listed nine of eleven roles would review with nine of eleven roles, look
+   completely normal, and tell nobody.
+
 `<a href>` is navigation, not a fetch, and is excluded on purpose — as is
 `rel="canonical"`, which is metadata the browser never requests. The distinction is
 the whole point: a check that flagged every URL would be noise, and noise gets
 switched off.
 
-No network. Pure string analysis over the repo's own files.
+No network. String analysis over the repo's own files, plus one subprocess: the
+prompt generator, which reads `doc_review_process.md` and touches nothing else.
 """
 import pathlib
 import re
+import subprocess
 import sys
 from html.parser import HTMLParser
 
@@ -232,6 +244,66 @@ def check_stamp(src):
     return bad
 
 
+# The markers murderboard_prompt.sh --sync-page splices between. Each must close
+# its own HTML comment on its own line: the splice keeps the marker line and drops
+# everything up to the end marker, so a begin comment that wrapped would lose its
+# `-->` and swallow the prompt into a comment. The page would still be balanced,
+# still pass every other check here, and simply stop showing the prompt.
+PROMPT_BEGIN = "BEGIN GENERATED PROMPT"
+PROMPT_END = "END GENERATED PROMPT"
+
+GENERATOR = ["bash", str(ROOT / "murderboard_prompt.sh"), "--html"]
+
+
+def generated_prompt_block():
+    """What the block SHOULD be, straight from the generator. (block, error)."""
+    try:
+        r = subprocess.run(GENERATOR, capture_output=True, text=True, cwd=str(ROOT))
+    except OSError as e:                                     # no bash, no answer
+        return None, "cannot run murderboard_prompt.sh --html: %s" % e
+    if r.returncode != 0:
+        return None, ("murderboard_prompt.sh --html failed (exit %d): %s"
+                      % (r.returncode, r.stderr.strip() or "no message"))
+    if not r.stdout.strip():
+        return None, "murderboard_prompt.sh --html produced nothing"
+    return r.stdout, None
+
+
+def extract_prompt_block(src):
+    """The page's copy: everything between the two marker comment lines."""
+    i = src.find(PROMPT_BEGIN)
+    if i < 0:
+        return None
+    close = src.find("-->", i)
+    if close < 0:
+        return None
+    nl = src.find("\n", close)
+    if nl < 0:
+        return None
+    j = src.find(PROMPT_END, nl)
+    if j < 0:
+        return None
+    return src[nl + 1:src.rfind("\n", nl, j) + 1]
+
+
+def check_prompt_block(src, expected):
+    """The page's copy must be the generator's output, byte for byte.
+
+    Not "contains the roles" or "looks about right": equality. A weaker check is
+    one someone can satisfy by hand, and a hand-satisfied copy is the thing being
+    guarded against.
+    """
+    got = extract_prompt_block(src)
+    if got is None:
+        return ["the generated prompt block is gone, or a marker no longer closes "
+                "its own comment (%s / %s)" % (PROMPT_BEGIN, PROMPT_END)]
+    if got != expected:
+        return ["the prompt block on the page has drifted from its generator — "
+                "regenerate with: bash murderboard_prompt.sh --sync-page  "
+                "(page has %d chars, generator emits %d)" % (len(got), len(expected))]
+    return []
+
+
 def main():
     failures = []
 
@@ -336,6 +408,55 @@ def main():
         if not check(mutate(src)):
             failures.append("NEGATIVE CONTROL NOT CAUGHT: %s" % name)
 
+    # THE PROMPT BLOCK. Kept out of check() on purpose: check() is pure string
+    # analysis and gets run ~20 more times by the mutation loop above, and paying
+    # for a subprocess on each would buy nothing. Its controls are its own.
+    prompt_controls = []
+    expected, err = generated_prompt_block()
+    if err:
+        failures.append(err)
+    else:
+        failures += check_prompt_block(src, expected)
+        # Every mutation below is applied THROUGH `expected`, so it is guaranteed to
+        # land inside the block. Mutating the raw page by substring does not: the
+        # roles are also named in the prose of the panel section further up, and the
+        # first attempt at these controls silently edited that instead and "passed"
+        # while changing nothing the check looks at.
+        def in_block(f):
+            return lambda s: s.replace(expected, f(expected), 1)
+
+        # NAME NO ROLE HERE. The first draft of these mutated the literal string
+        # "Reinventing the Wheel", and renaming that role upstream turned the
+        # mutation into a no-op: the control stopped injecting anything and passed
+        # by doing nothing, on exactly the edit it exists to catch. Same shape as
+        # the "updated older than born" control above, which expired the first time
+        # the page was updated. So these match the SHAPE of a role line -- a number,
+        # a dot, a title -- and survive any rewording of the roster.
+        ROLE_LINE = r"\n *\d+\. [^\n]*"
+
+        prompt_controls = [
+            # The page keeps a stale copy after a role is added or reworded upstream.
+            # This is the whole reason the check exists: it looks like nothing.
+            ("a role reworded on the page but not in the process file",
+             in_block(lambda b: re.sub(r"(\n *\d+\. )", r"\1EDITED ", b, count=1))),
+            ("a role dropped from the page's copy of the list",
+             in_block(lambda b: re.sub(ROLE_LINE, "", b, count=1))),
+            # Someone "tidies" the escaping and a placeholder becomes a live tag.
+            ("escaping undone (a raw < would parse as markup)",
+             in_block(lambda b: b.replace("&lt;", "<", 1))),
+            ("the whole block emptied",
+             lambda s: s.replace(expected, "", 1)),
+            # Lose a marker and the block is unfindable -- which must read as a
+            # failure, not as "no block to check, nothing to report".
+            ("begin marker removed",
+             lambda s: s.replace(PROMPT_BEGIN, "WAS THE BEGIN MARKER", 1)),
+            ("end marker removed",
+             lambda s: s.replace(PROMPT_END, "WAS THE END MARKER", 1)),
+        ]
+        for name, mutate in prompt_controls:
+            if not check_prompt_block(mutate(src), expected):
+                failures.append("NEGATIVE CONTROL NOT CAUGHT: %s" % name)
+
     if failures:
         print("FAIL (%d)" % len(failures))
         for f in failures:
@@ -344,7 +465,10 @@ def main():
 
     print("ok — docs/index.html is a complete document, fetches nothing external, "
           "is Jekyll-safe, balanced, and every internal reference resolves")
-    print("ok — %d negative controls all caught" % len(controls))
+    print("ok — the prompt printed on the page is byte-identical to "
+          "murderboard_prompt.sh --html")
+    print("ok — %d negative controls all caught"
+          % (len(controls) + len(prompt_controls)))
     return 0
 
 
