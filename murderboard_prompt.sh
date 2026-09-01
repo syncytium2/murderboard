@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# instrument: verification
 # murderboard_prompt.sh — print a paste-ready murderboard prompt for ANY chat assistant.
 #
 # WHY THIS EXISTS. The murderboard is a process, not a product. Most of this repo already

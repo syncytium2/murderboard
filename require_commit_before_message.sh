@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# instrument: concurrency
 # require_commit_before_message.sh — a session may tell another session something
 # once that something exists in git.
 #
