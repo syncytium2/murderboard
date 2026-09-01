@@ -97,6 +97,13 @@ jobs:
       - name: the drafting prompt still agrees with role 5
         run: python3 tests/drafting_prompt_test.py
 
+      # The prose gate derives its word list from role 5 at run time, so a reworded role 5
+      # does not silently leave it searching for the old list -- it stops. --selftest proves
+      # every check can still fire, including the ones that must come back EMPTY: a gate
+      # that cannot report clean is as useless as one that cannot report a hit.
+      - name: prose gate --selftest
+        run: bash murderboard_prose.sh --selftest
+
   python:
     name: fetch_paper.py
     runs-on: ubuntu-latest

@@ -1,8 +1,8 @@
 # CLAUDE.md — murderboard
 
 This repo is the canonical source of the **murderboard**: an anti-slop review process
-(`doc_review_process.md`), a literature tool (`fetch_paper.py`), three gates that keep the
-process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`,
+(`doc_review_process.md`), a literature tool (`fetch_paper.py`), four gates that keep the
+process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`, `murderboard_prose.sh`,
 `require_commit_before_message.sh`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
@@ -84,7 +84,9 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one. **Every artifact this produces is ours and stays here** — the
+> pass as a clean one. Run `tools/murderboard_prose.sh <artifact>` and **paste its output into
+> role 5** — that half of the role is a search, and a search nobody ran reads exactly like a
+> search that came back empty. **Every artifact this produces is ours and stays here** — the
 > corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
 > the process comes from, never where our reviews go.
 

@@ -48,17 +48,68 @@ def words_from_prompt(text):
         "(expected a line beginning `delve`) -- if the list moved, update this test")
 
 
+TOOL = ROOT / "murderboard_prose.sh"
+
+
+def forms_from_tool(text):
+    """murderboard_prose.sh carries the phrase patterns as `<label>::<regex>` lines.
+
+    The words are derived from the process file at run time, so they cannot drift. The
+    labels cannot be derived -- a regex is not a word list -- so they are checked here:
+    a form the tool searches for and role 5 never names is a rule enforced by a script
+    that no reviewer can quote and no author can read.
+    """
+    # Bounded by the heredoc, not by "a line containing ::". The opener is `<<'FORMS'` and
+    # the closer is a bare `FORMS`; keying on the bare word alone starts the capture at the
+    # CLOSING delimiter and then scoops up the shell that parses these lines, so the test
+    # reports the parser's own `label=${line%%::*}` as an unnamed construction.
+    inside = False
+    labels = set()
+    for line in text.splitlines():
+        if "<<'FORMS'" in line:
+            inside = True
+            continue
+        if inside and line.strip() == "FORMS":
+            break
+        if inside and "::" in line:
+            labels.add(line.split("::", 1)[0].strip())
+    if not labels:
+        die("no `<label>::<regex>` form lines found in murderboard_prose.sh")
+    return labels
+
+
 def main():
-    for p in (PROCESS, PROMPT):
+    for p in (PROCESS, PROMPT, TOOL):
         if not p.is_file():
             die(f"cannot read {p.name}")
+
+    # Collapse whitespace before matching: the process file wraps at ~95 columns, so
+    # "In today's ___" is split across a line break in role 5 and a naive substring test
+    # reports it missing. Curly apostrophes are folded for the same reason.
+    def flat(s):
+        return " ".join(s.replace("’", "'").split())
+
+    role5 = flat(PROCESS.read_text(encoding="utf-8"))
+    unnamed = sorted(
+        lb for lb in forms_from_tool(TOOL.read_text(encoding="utf-8"))
+        if flat(lb) not in role5
+    )
+    if unnamed:
+        print("FAIL — murderboard_prose.sh searches for constructions role 5 never names:")
+        for lb in unnamed:
+            print(f"  {lb}")
+        print("  A script enforcing a rule the process file does not state is a rule the "
+              "author cannot read and the reviewer cannot quote.")
+        return 1
 
     a = words_from_process(PROCESS.read_text(encoding="utf-8"))
     b = words_from_prompt(PROMPT.read_text(encoding="utf-8"))
 
     if a == b:
+        n_forms = len(forms_from_tool(TOOL.read_text(encoding="utf-8")))
         print(f"ok — the banned list agrees in both copies ({len(a)} words: "
-              f"{', '.join(sorted(a))})")
+              f"{', '.join(sorted(a))}), and role 5 names all {n_forms} forms "
+              f"murderboard_prose.sh searches for")
         return 0
 
     print("FAIL — doc_review_process.md and DRAFTING-PROMPT.md disagree about the "

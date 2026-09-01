@@ -425,6 +425,16 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      document does not know instead of hedging around it. No throat-clearing, no preview of what
      a section is about to say, no closing paragraph that recaps. Dry humour is fine where it is
      also true; cut it where it is decoration.
+   - **Count first, then judge — and run the tool, do not describe it.** Role 5 owns both a
+     judgement (is this block longer than its point?) and a search (does this word appear?). The
+     architecture note above says what happens when one role holds both: *the prose answer covers
+     for the file nobody opened.* So the search is a script and its **output is pasted, not
+     summarised** — `murderboard_prose.sh <artifact>`, one row per hit and one row per block:
+     **line · construction · kind**, then **block · words · sentences**. **"Not run" is a failure,
+     not a clean result.** The tool cannot judge and does not try: it reports that a block is 220
+     words, never that the block is too long. The columns it cannot fill — *which sentence is the
+     payload, where it sits, what the other words buy* — are this role's, and a table returned
+     without them is a tool receipt, not a review.
    - **The banned constructions — check these first, mechanically.** They are forms, not topics,
      so they are searchable and either present or absent: *not just X, but Y* · *it's not about A,
      it's about B* · *it's worth noting* · **delve, leverage, robust, seamless, crucial,
@@ -894,6 +904,12 @@ with the `MURDERBOARD_LIT` environment variable (see the tool's header). Three s
 - **Unverifiable claim** that cannot be checked right now → **flag inline** (`⚠ VERIFY …`),
   never delete-and-hope or guess a plausible number.
 - **Style / clarity** → apply when it improves precision; do not pad.
+- **A named construction or an over-length block** (role 5, with a line number) → **not covered by
+  the line above.** "Apply when it improves precision" is a disposition for taste, and taste is
+  what a style finding usually is. A hit from `murderboard_prose.sh` is not taste: it has a
+  location, it was found by a search that could have come back empty, and waving it off returns
+  the run to the state the search existed to end. Fix it, or record *why it stays* next to its
+  line number. Neither of those is "do not pad".
 - Surface residual `⚠` flags **prominently** in the delivery message.
 
 ## Output contract
