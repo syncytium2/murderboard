@@ -23,6 +23,15 @@ Pick the level that matches you. Level 1 takes two minutes and needs nothing but
 
 That's the whole thing. Everything else on this page is automation for doing this often.
 
+> **What Level 1 does not do.** It runs the review; it does not run the gates. The role
+> tally printed at the end is **self-reported** — nothing checks it, so it is the reviewer's
+> claim of coverage rather than a verification of it. Nothing is written down, so there is no
+> record to re-check later. And it stops after the attack: repairing the draft and
+> re-reviewing the repaired version, **blind**, is the rest of the process and it is yours to
+> run. None of that makes the findings less real — it means a clean Level 1 run is a good
+> review, not a receipt. Level 2 adds the run record and the roster check; Level 3 wires them
+> to run whether or not anyone remembers.
+
 > **The one habit that makes it work.** If your document rests on data, code, or references,
 > **give the assistant those too.** Otherwise it can only check the text against itself, which
 > catches typos and contradictions but not the thing that actually ruins a document: a number
