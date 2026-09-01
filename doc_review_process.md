@@ -420,6 +420,26 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
 5. **Line editor — "Kill Your Darlings."** Clarity and precision: undefined jargon, ambiguous sentences,
    redundancy, grammar, logical flow. Every sentence must earn its place and assert
    exactly one true thing.
+   - **The house voice.** Short sentences, concrete nouns, active verbs. Cut every word that does
+     not change the meaning. Prefer the specific example to the general claim. Name what the
+     document does not know instead of hedging around it. No throat-clearing, no preview of what
+     a section is about to say, no closing paragraph that recaps. Dry humour is fine where it is
+     also true; cut it where it is decoration.
+   - **The banned constructions — check these first, mechanically.** They are forms, not topics,
+     so they are searchable and either present or absent: *not just X, but Y* · *it's not about A,
+     it's about B* · *it's worth noting* · **delve, leverage, robust, seamless, crucial,
+     landscape, tapestry** · a three-item list built for rhythm rather than because there are
+     three things · an em-dash pivot into an uplifting close · an opener of the form *"In today's
+     ___"*. Report each hit with its location. A hit is a defect unless the author states why it
+     stays. **This list is a house convention, not a finding about English** — a consuming
+     project should edit it, and a role that cites it must say which list it ran.
+   - **Why this role gets a list where the others get judgement.** An instruction to write with
+     more wit, or in the voice of some admired author, cannot fail: nothing in the draft can
+     contradict it, so it yields a different voice on every run and no reviewer can dispute the
+     result. Worse, a long stack of such instructions averages out — the traits blend instead of
+     stacking, and the output lands on the same neutral register the instruction was meant to
+     escape. A named construction is either in the text or it is not. Prefer the check that can
+     fail; this is *"Can the alarm ring?"* (role 4) applied to prose.
 6. **Methods / domain expert — "RTFM."** *Spawn whenever the deliverable rests on a specific
    method, tool, or library* (a statistical model, a signal-processing routine, an
    inference algorithm, a numerical library). **Before** reviewing, ground in the actual
