@@ -148,39 +148,107 @@ jobs:
       - name: revendor --example-config is valid JSON
         run: python murderboard_revendor.py --example-config | python -c "import json,sys; json.load(sys.stdin)"
 
-      # The plugin manifests are exercised ONLY on a stranger's machine, at install
-      # time, after a push to main -- nothing here loads them, because a contributor
-      # working in the checkout uses the files directly. Same invisible-locally shape
-      # as docs/index.html below, so it gets the same treatment. Three of the failures
-      # it catches (the two manifests disagreeing on the version, a hook naming a
-      # script that moved, the freshness gate losing the --plugin flag its own hook
-      # passes it) produce a plugin that installs, reports success, and does nothing.
-      - name: the plugin is still installable
-        run: python tests/plugin_manifest_test.py
-
       # Runs daily in a scheduled workflow against a 14-day window that GitHub then
       # discards. A break is unrecoverable rather than merely annoying, so it is
       # checked here on every PR instead of being discovered a fortnight later.
       - name: the traffic archiver compiles and runs
         run: |
           python -m compileall -q .github/traffic_archive.py
+          python .github/traffic_alert.py --help > /dev/null
+          python -m compileall -q .github/traffic_alert.py
           python .github/traffic_archive.py --help > /dev/null
+
+      # docs/index.html is served to the public by GitHub Pages. Its three
+      # load-bearing properties all fail SILENTLY: drop the doctype and every
+      # browser renders it in quirks mode (the gates table changes typeface, and
+      # only in a browser); add a webfont and "renders the same air-gapped" --
+      # which the page claims at its own top -- quietly becomes false; lose
+      # docs/.nojekyll and Jekyll eats anything Liquid-shaped. None of that shows
+      # up in a diff, so it gets a gate rather than a habit. The test carries its
+      # own negative controls: eight mutations it must catch, checked every run.
+      - name: the published page is still publishable
+        run: python tests/published_page_test.py
+
+  # ITS OWN JOB, AND THE NAME MATTERS. These steps used to live in the job called
+  # `fetch_paper.py`, which has nothing to do with either of them: when the version gate
+  # failed, the check a maintainer saw go red in the PR list was named after an unrelated
+  # tool, and the first thing they had to work out was that the name was lying. A status
+  # check that misdirects the person reading it is most of the way to being switched off.
+  plugin:
+    name: plugin
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0, DELIBERATELY. The version gate below compares against the base
+      # commit, and a shallow checkout has no ancestry, so `git diff base...HEAD` cannot
+      # find the merge base it requires and dies with `no merge base` / exit 128 -- before
+      # comparing any versions at all. That was issue #48: it blocked a PR with an error
+      # naming neither the plugin nor a version. It reproduced only in CI, because a local
+      # clone has the full history, which is exactly why it survived review.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # The plugin manifests are exercised ONLY on a stranger's machine, at install time,
+      # after a push to main -- nothing here loads them, because a contributor working in
+      # the checkout uses the files directly. Same invisible-locally shape as
+      # docs/index.html, so it gets the same treatment. Three of the failures it catches
+      # (the two manifests disagreeing on the version, a hook naming a script that moved,
+      # the freshness gate losing the --plugin flag its own hook passes it) produce a
+      # plugin that installs, reports success, and does nothing.
+      - name: the plugin is still installable
+        run: python tests/plugin_manifest_test.py
 
       # A FORGOTTEN VERSION BUMP IS A FALSE "CURRENT", which is the one verdict the
       # freshness gate promises never to produce. `claude plugin update` keys on the
-      # version string: ship changed files under an unchanged version and nobody's
-      # update does anything, while murderboard_freshness.sh --plugin compares the two
-      # equal numbers and reports current. Both failures are silent and both land on
-      # strangers, so the bump is checked here rather than remembered.
+      # version string: ship changed files under an unchanged version and nobody's update
+      # does anything, while murderboard_freshness.sh --plugin compares the two equal
+      # numbers and reports current. Both failures are silent and both land on strangers.
       #
-      # Scoped to the files that actually change plugin BEHAVIOUR. A README fix or a
-      # traffic-bot commit ships in the tree too (source is "./") but changes nothing a
-      # user runs, and demanding a release for it would train people to bump blindly.
+      # IT RUNS ON PUSH TO MAIN AS WELL AS ON PRs. PR-only was itself a hole, and the
+      # author fell straight through it: murderboard_freshness.sh was changed and merged
+      # directly to main under an unchanged 0.1.0, so the gate built to prevent exactly
+      # that never applied to the person who wrote it. On a push the base is the previous
+      # tip, which for a merge commit covers everything the merge brought in.
+      #
+      # Scoped to the files that change plugin BEHAVIOUR. A README fix or a traffic-bot
+      # commit ships in the tree too (source is "./") but changes nothing a user runs, and
+      # demanding a release for those would train people to bump blindly.
       - name: the plugin version was bumped if the plugin changed
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: |
-          base='${{ github.event.pull_request.base.sha }}'
-          git fetch --no-tags --depth=1 origin "$base" 2>/dev/null || true
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base='${{ github.event.pull_request.base.sha }}'
+          else
+            base='${{ github.event.before }}'
+          fi
+
+          # A first push to a new branch reports an all-zero "before" and there is nothing
+          # to compare against.
+          case "$base" in
+            ''|0000000000000000000000000000000000000000)
+              echo "no base commit to compare against — nothing to check"; exit 0 ;;
+          esac
+
+          # REPORT, DO NOT CRASH. Without this the step dies inside `git diff` under
+          # `bash -e` and the maintainer is told "no merge base", which says nothing about
+          # plugin versions. The other gates in this repo all have a distinct
+          # could-not-determine state; this is that state, and it fails CLOSED, because
+          # the alternative is silently shipping an unbumped plugin.
+          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "::error::cannot see base commit $base, so the version check could not run."
+            echo "::error::This is a CI history problem, not a plugin problem — the job needs"
+            echo "::error::fetch-depth: 0. Nothing is known about whether a bump was needed."
+            exit 1
+          fi
+          if ! git merge-base "$base" HEAD >/dev/null 2>&1; then
+            echo "::error::no merge base between $base and HEAD, so the version check could"
+            echo "::error::not run. This is a CI history problem, not a plugin problem."
+            exit 1
+          fi
+
           changed=$(git diff --name-only "$base"...HEAD -- \
                       skills hooks commands agents .claude-plugin \
                       doc_review_process.md fetch_paper.py \
@@ -206,17 +274,6 @@ jobs:
             exit 1
           fi
           echo "version bumped $was -> $now"
-
-      # docs/index.html is served to the public by GitHub Pages. Its three
-      # load-bearing properties all fail SILENTLY: drop the doctype and every
-      # browser renders it in quirks mode (the gates table changes typeface, and
-      # only in a browser); add a webfont and "renders the same air-gapped" --
-      # which the page claims at its own top -- quietly becomes false; lose
-      # docs/.nojekyll and Jekyll eats anything Liquid-shaped. None of that shows
-      # up in a diff, so it gets a gate rather than a habit. The test carries its
-      # own negative controls: eight mutations it must catch, checked every run.
-      - name: the published page is still publishable
-        run: python tests/published_page_test.py
 
   lint:
     name: shell lint

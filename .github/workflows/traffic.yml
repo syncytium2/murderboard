@@ -46,6 +46,7 @@ on:
 permissions:
   contents: write             # to commit the archive back
   actions: read               # to count this repo's OWN CI checkouts, see below
+  issues: write               # to raise an issue when something actually changes
 
 concurrency:
   group: traffic-archive
@@ -74,17 +75,87 @@ jobs:
           GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
         run: python3 .github/traffic_archive.py --repo "${{ github.repository }}" --out ../metrics/traffic.csv
 
+      # A FILE IS A RECORD, NOT A NOTIFICATION. Nobody opens a CSV on a branch every
+      # morning, so the archive answers "what happened?" and never "did anything happen?".
+      # This step answers the second, and writes TWO things:
+      #
+      #   alert.md   only when something fired -> raises its own issue below
+      #   digest.md  every day -> posted as a comment on one long-lived thread
+      #
+      # The digest exists because silence is ambiguous. An alert that speaks only on change
+      # reads identically whether nothing happened, the token was revoked, or the workflow
+      # was switched off -- and if nobody ever shows up it is silent forever, which is also
+      # how the reader forgets it exists.
+      - name: has anything actually changed?
+        id: alert
+        env:
+          GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
+          ALERT_BODY_FILE: ${{ runner.temp }}/alert.md
+          DIGEST_FILE: ${{ runner.temp }}/digest.md
+        run: |
+          export TODAY=$(date -u +%Y-%m-%d)
+          python3 .github/traffic_alert.py --repo "${{ github.repository }}" --dir ../metrics
+
       - name: commit if anything changed
         working-directory: ../metrics
         run: |
-          if git diff --quiet -- traffic.csv; then
+          if git diff --quiet && git diff --quiet --cached && [ -z "$(git status --porcelain)" ]; then
             echo "no change today"
             exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add traffic.csv
+          git add traffic.csv signals.json
           git commit -m "traffic: $(date -u +%Y-%m-%d)"
           # Not --force. A rejected push means something else wrote to this branch and the
           # run should fail so a human looks, rather than quietly discarding whatever it was.
           git push origin metrics
+
+      # The issue is the delivery mechanism: GitHub emails the repo owner about it, so no
+      # third-party mail service and no extra secret. Raised only when the step above
+      # actually found something.
+      #
+      # --body-file, NOT --body with an interpolated output. The body contains backticks,
+      # and `--body "${{ ... }}"` puts them inside double quotes where bash runs them as
+      # command substitution -- with text partly sourced from referrer strings that anyone
+      # linking to this repo can influence. The file never touches the shell.
+      - name: say so, out loud
+        if: steps.alert.outputs.fired == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "Traffic: something changed ($(date -u +%Y-%m-%d))" \
+            --body-file "${{ runner.temp }}/alert.md"
+
+      # THE DAILY HEARTBEAT. One long-lived thread, commented on daily -- NOT an issue per
+      # day, which would be 365 a year and unreadable. GitHub emails the owner for each
+      # comment, which is the point: proof the job ran, and a standing reminder that any of
+      # this exists.
+      #
+      # The thread is found by LABEL, not by a stored number, so nothing has to be kept in
+      # sync. --state all deliberately: closing it does not spawn a replacement tomorrow, it
+      # just gets commented on again. To stop the heartbeat, remove this step -- do not
+      # close the issue and expect that to mean anything.
+      - name: the daily heartbeat
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          n=$(gh issue list --repo "$REPO" --label traffic-watch --state all \
+                --limit 1 --json number --jq '.[0].number // empty')
+          if [ -z "$n" ]; then
+            gh label create traffic-watch --repo "$REPO" \
+              --description "Daily traffic heartbeat" --color ededed 2>/dev/null || true
+            n=$(gh issue create --repo "$REPO" --label traffic-watch \
+                  --title "Traffic watch" \
+                  --body-file "${{ runner.temp }}/digest.md" --json number --jq .number 2>/dev/null) \
+              || n=$(gh issue create --repo "$REPO" --label traffic-watch \
+                       --title "Traffic watch" \
+                       --body-file "${{ runner.temp }}/digest.md" | grep -o '[0-9]*$')
+            echo "opened the traffic-watch thread as #$n"
+            exit 0
+          fi
+          gh issue comment "$n" --repo "$REPO" --body-file "${{ runner.temp }}/digest.md"
+          echo "posted today's digest to #$n"
