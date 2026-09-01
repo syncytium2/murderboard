@@ -564,15 +564,37 @@ def cmd_check(agents, target):
 # Deliberately generous about FORMAT and strict about PRESENCE, the same stance
 # murderboard_roster.sh takes: the line may sit in a table cell, a bullet or a paragraph. What
 # it may not do is be absent.
-GRANT_LINE_RE = re.compile(r"GRANT\s+(\d+)\s+(ok|MISMATCH)\b", re.I)
+#
+# The trailing group is the tool list after the dash, and capturing it is the whole of the fix
+# for a gate that used to read the verdict token and nothing else. `[^\n|]*` stops at a table
+# cell wall, so `| 1 | Prove It | GRANT 1 ok — Read, Bash |` yields `Read, Bash `, not the rest
+# of the row. All three dashes people actually type are accepted. The list is OPTIONAL in the
+# pattern on purpose: a declaration missing it must be a reported problem, and a pattern that
+# required it would simply fail to match and report "never declared", which blames the wrong
+# thing and tells the author to add a line that is already there.
+GRANT_LINE_RE = re.compile(
+    r"GRANT\s+(\d+)\s+(ok|MISMATCH)\b[ \t]*(?:[—–-]+[ \t]*([^\n|]*))?", re.I)
 ROLES_LINE_RE = re.compile(r"roles:\s*(\d+)\s+of\s+(\d+)\s+run\s*\(([^)]*)\)", re.I)
 NAMED_MODES = ("named agent",)
+
+# `GRANT n MISMATCH — missing <tools>; holds <forbidden tools>` is the INSTRUCTION every compiled
+# agent file carries, not a verdict any reviewer reached. A run record that documents how its
+# reviewers were spawned quotes that file, so without this the quotation reads as eleven
+# mismatches and the gate fails the most thorough reports it will ever see. An angle-bracket
+# placeholder is not a tool name: a declaration built out of them declares nothing and is
+# skipped, which leaves the role UNDECLARED and failing, never passing.
+PLACEHOLDER_RE = re.compile(r"<[^>]*>")
+
+
+def tool_set(raw):
+    """A comma-separated tool list, normalised for set comparison."""
+    return frozenset(t.strip().lower() for t in raw.split(",") if t.strip())
 
 
 def cmd_verify(report_path, grants):
     """Does the report's claim about HOW its reviewers were spawned survive their own evidence?
 
-    Two failures, both silent without this:
+    Four failures, all silent without this:
 
       1. A role never declared what it held. Then "11 of 11 run (named agents)" is a claim about
          eleven tool grants backed by nothing, and a review whose citation validator could not
@@ -580,10 +602,23 @@ def cmd_verify(report_path, grants):
       2. A role declared MISMATCH and the header still says named agents. That is the report
          claiming a capability its own reviewer said it did not have -- which is worse than the
          missing grant, because it is the part a reader would rely on.
+      3. A role declared `ok` and named tools that are not the ones the process file grants it --
+         including naming none at all. Until this check existed a report of eleven rows reading
+         `GRANT n ok — nothing whatsoever` exited 0, because the match read the verdict token and
+         never the list beside it. The gate could not fail in the direction it was built to fail
+         in, and two public documents said it could.
+      4. A role declared BOTH verdicts. The old loop kept the last match, so a real MISMATCH
+         became `ok` as soon as anything later in the file said so -- and every compiled agent
+         file contains the literal string `GRANT n ok — <its tools>`, which means the report that
+         quotes its own agent files, the most thorough report anyone would write, is the one that
+         laundered its reviewers' verdicts. No adversary required.
 
     A MISMATCH is NOT itself a failure. A fallback run is a legitimate run; it just may not be
     described as something else. Making the mismatch fatal would only teach people to stop
-    declaring it.
+    declaring it. A CONTRADICTION is a failure, and deliberately not resolved in either
+    direction: last-wins is how (4) happened, and any-mismatch-wins fails the honest quotation in
+    (4)'s second half. A report that says both cannot be read mechanically, and saying so is the
+    only answer that does not silently pick a verdict on the author's behalf.
     """
     path = pathlib.Path(report_path)
     if not path.is_file():
@@ -591,16 +626,60 @@ def cmd_verify(report_path, grants):
         return 2
     text = path.read_text(encoding="utf-8")
 
+    # EVERY declaration is kept, not the last one. What is done with a role that made more than
+    # one is decided below, where it can be reported instead of resolved.
     declared = {}
     for m in GRANT_LINE_RE.finditer(text):
-        declared[int(m.group(1))] = m.group(2).lower()
+        raw = (m.group(3) or "").strip().rstrip("|").strip()
+        if PLACEHOLDER_RE.search(raw):
+            continue
+        declared.setdefault(int(m.group(1)), []).append((m.group(2).lower(), raw))
 
     problems = []
+    verdicts = {}
     for num in sorted(grants):
-        if num not in declared:
+        rows = declared.get(num)
+        if not rows:
             problems.append(
                 "role %d never declared its grant — no `GRANT %d ok` or `GRANT %d MISMATCH` "
                 "line in the report" % (num, num, num))
+            continue
+
+        seen = {v for v, _ in rows}
+        if len(seen) > 1:
+            problems.append(
+                "role %d declared BOTH `ok` and `MISMATCH` — the report cannot be read "
+                "mechanically, and this tool will not pick one. If a quoted agent file supplied "
+                "the second, break the quotation; otherwise state the verdict the reviewer "
+                "actually reached, once" % num)
+            continue
+
+        verdict = seen.pop()
+        verdicts[num] = verdict
+        if verdict != "ok":
+            # `missing X; holds Y` is prose, not a tool list, and comparing it against the table
+            # would only punish the reviewer who told the truth.
+            continue
+
+        lists = {tool_set(raw) for _, raw in rows}
+        if len(lists) > 1:
+            problems.append(
+                "role %d declared `ok` more than once with different tool lists (%s) — the "
+                "report cannot be read mechanically"
+                % (num, "; ".join(sorted(", ".join(sorted(l)) or "nothing" for l in lists))))
+            continue
+
+        held = lists.pop()
+        granted = tool_set(grants[num]["tools"])
+        if not held:
+            problems.append(
+                "role %d declared `ok` but named no tools — `ok` is a claim that the reviewer "
+                "held exactly `%s`, so it has to say so" % (num, grants[num]["tools"]))
+        elif held != granted:
+            problems.append(
+                "role %d declared `ok` while naming %s — the process file grants it %s. Either "
+                "the declaration is wrong, or the run was a MISMATCH and should say so"
+                % (num, ", ".join(sorted(held)), grants[num]["tools"]))
 
     header = ROLES_LINE_RE.search(text)
     mode = header.group(3).strip().lower() if header else None
@@ -609,7 +688,7 @@ def cmd_verify(report_path, grants):
             "the run record has no `roles: <n> of <n> run (<how>)` line, so it does not say "
             "how its reviewers were spawned")
     else:
-        mismatched = sorted(n for n, v in declared.items() if v == "mismatch")
+        mismatched = sorted(n for n, v in verdicts.items() if v == "mismatch")
         if mismatched and any(k in mode for k in NAMED_MODES):
             problems.append(
                 "the header claims %r while role%s %s reported MISMATCH — say the run took a "
@@ -624,9 +703,10 @@ def cmd_verify(report_path, grants):
               % path, file=sys.stderr)
         return 1
 
-    mism = sum(1 for v in declared.values() if v == "mismatch")
-    print("murderboard_agents: all %d roles declared a grant in %s (%d ok, %d mismatch), and the "
-          "header agrees" % (len(grants), path, len(declared) - mism, mism))
+    mism = sum(1 for v in verdicts.values() if v == "mismatch")
+    print("murderboard_agents: all %d roles declared a grant in %s (%d ok, %d mismatch), the "
+          "tools each `ok` named are the ones the process file grants it, and the header agrees"
+          % (len(grants), path, len(verdicts) - mism, mism))
     return 0
 
 
@@ -838,6 +918,42 @@ def cmd_selftest():
         ok("a report with no `roles:` mode line FAILS",
            report("nomode.md", clean.replace("- roles: 2 of 2 run (named agents)\n", "")) == 1)
         ok("an unreadable report is exit 2", cmd_verify(str(d / "nope.md"), grants) == 2)
+
+        # --- the tool list after the dash is READ. Every assertion below returned 0 from the
+        # --- day this tool was written until the day these were added.
+        ok("`ok` naming no tools at all FAILS — the shape that used to pass eleven times over",
+           report("empty.md", clean.replace("GRANT 1 ok — Read, Bash",
+                                            "GRANT 1 ok — nothing whatsoever")) == 1)
+        ok("`ok` with the dash and nothing after it FAILS",
+           report("bare.md", clean.replace("GRANT 1 ok — Read, Bash", "GRANT 1 ok")) == 1)
+        ok("`ok` naming FEWER tools than the process file grants FAILS",
+           report("short.md", clean.replace("GRANT 1 ok — Read, Bash", "GRANT 1 ok — Read")) == 1)
+        ok("`ok` naming a tool the process file does NOT grant FAILS",
+           report("extra.md", clean.replace("GRANT 1 ok — Read, Bash",
+                                            "GRANT 1 ok — Read, Bash, Write")) == 1)
+        # Generous about format, strict about substance: a reviewer typing its own tools back is
+        # not required to reproduce the table's order or capitalisation.
+        ok("the same tools in another order and case PASS",
+           report("order.md", clean.replace("GRANT 1 ok — Read, Bash",
+                                            "GRANT 1 ok — bash,  READ")) == 0)
+
+        # --- last-match-wins: the laundering, and the honest report it must not punish --------
+        mismatch2 = clean.replace("GRANT 2 ok — Read", "GRANT 2 MISMATCH — missing Read")
+        ok("a MISMATCH that a LATER `ok` would have overwritten FAILS as a contradiction",
+           report("laundered.md",
+                  mismatch2 + "\nAppendix, the agent file role 2 was spawned from:\n\n"
+                              "    GRANT 2 ok — Read\n") == 1)
+        # The bait is instruction text, not a verdict. A run record that quotes its own agent
+        # files -- the most thorough one anyone would write -- must not read as a mismatch.
+        ok("quoting the agent file's MISMATCH TEMPLATE does not fabricate a mismatch",
+           report("quoted.md",
+                  clean + "\nThe form each agent is told to use:\n\n"
+                          "    GRANT 2 MISMATCH — missing <tools>; holds <forbidden tools>\n") == 0)
+        ok("a declaration made only of placeholders declares nothing, so the role is UNDECLARED",
+           report("placeholder.md", clean.replace("GRANT 2 ok — Read",
+                                                  "GRANT 2 ok — <tools>")) == 1)
+        ok("`ok` twice with different tool lists FAILS rather than picking one",
+           report("twice.md", clean + "\n| 1 | Prove It | GRANT 1 ok — Read |\n") == 1)
 
     raises("a process file with no team section is an ERROR", "# nothing\n")
     raises("a team section with no roles is an ERROR",

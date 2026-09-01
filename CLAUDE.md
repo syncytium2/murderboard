@@ -103,10 +103,13 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
 > pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a report
-> that does not carry a grant declaration for every role cannot pass as one that does. The two
-> ask different questions: *did every role leave a trace* and *did every role state what it
-> held*. ⚠ **Neither yet asks whether the grant was real** — `verify` reads the `ok`/`MISMATCH`
-> token and not the tool list beside it, so a fabricated declaration passes. The reviewers live in
+> that does not carry a grant declaration for every role, naming the tools that role was granted,
+> cannot pass as one that does. The two ask different questions: *did every role leave a trace*
+> and *did every role state what it held*. `verify` set-compares each `ok` against the grants
+> table, so `GRANT n ok — nothing whatsoever` fails; and it refuses a report that declares both
+> verdicts for one role rather than picking one. ⚠ **It still cannot tell you a declaration is
+> honest** — a reviewer that types its granted tools back without holding them passes, and no
+> report-reading gate can catch that. The reviewers live in
 > `.claude/agents/murderboard/` — a directory the compiler owns, so it can never remove a
 > subagent of yours — **compiled** from the
 > process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run

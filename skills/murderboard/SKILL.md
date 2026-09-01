@@ -238,18 +238,27 @@ bash "$ROSTER" check "$REPORT" ; echo "roster=$?"
 role never ran (run it) or it ran and left no trace (record it). Do not deliver past a failing
 check; a report that cannot show all its roles is the failure mode this skill was built for.
 
-**grants exit 1 means the report does not account for what its reviewers said they held** —
-a role never declared its grant, or the header claims `named agents` while a role reported
-`MISMATCH`. The two gates ask different questions and neither substitutes for the other: the
-roster asks *did every role leave a trace*, this asks *did every role state what it held*. Fix
-the header or re-run with the grants in place; do not delete the `GRANT` lines to make it green.
+**grants exit 1 means the report does not account for what its reviewers said they held.** Four
+shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are
+not the ones the process file grants it (naming none at all is this case, not a lesser one); a
+role declared **both** `ok` and `MISMATCH`; or the header claims `named agents` while a role
+reported `MISMATCH`. The two gates ask different questions and neither substitutes for the
+other: the roster asks *did every role leave a trace*, this asks *did every role state what it
+held*. Fix the header or re-run with the grants in place; do not delete the `GRANT` lines to
+make it green.
 
-⚠ **What this gate does NOT do, stated because the earlier wording here claimed otherwise.** It
-reads the `ok`/`MISMATCH` token and **not the tool list beside it**, so a report of eleven
-`GRANT n ok — nothing whatsoever` exits 0. It has power against a role that forgot to declare.
-It has none against a declaration that is wrong, a reviewer that could not check, or a
-transcription that says what the report needs it to say. Until it set-compares the declared
-tools against the grants table, do not describe it as proving reviewers were equipped.
+**A contradiction is reported, never resolved.** If one role declared both verdicts the gate
+will not pick one — last-wins is how an honest `MISMATCH` used to launder into `ok`, since every
+agent file carries the literal string `GRANT n ok — <its tools>` and a report that quotes its own
+agent files is the most thorough one anyone would write. If a quotation supplied the second
+verdict, break the quotation. Otherwise state, once, what the reviewer actually reached.
+
+⚠ **What this gate still does NOT do, stated because the wording here has twice claimed more
+than was true.** It reads a report. It cannot tell you a declaration is *honest*: a reviewer
+that types its granted tools back without ever holding them passes, and so does one that could
+not perform its check. It proves that every role said what it held and that what it said matches
+the grant it was issued — not that the tools were there. Containment and equipment are enforced
+where the agent is spawned, not here.
 
 ## What to hand the human
 
