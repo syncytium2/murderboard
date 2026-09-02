@@ -1,9 +1,10 @@
 {
   "forks": 0,
   "max_non_ci": 53,
-  "max_view_uniques": 1,
+  "max_view_uniques": 2,
   "referrers": [
-    "github.com"
+    "github.com",
+    "murderboard.tonydefazio.com"
   ],
   "stars": 0,
   "watchers": 0
