@@ -33,6 +33,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "SendUserFile",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/send-goes-nowhere.py",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }
