@@ -16,6 +16,20 @@ the moment one of them re-baselined, the gate compared `now=0.2.0` against `was=
 them unequal, printed **"version bumped 0.3.0 -> 0.2.0"**, and went green. PR #55 was in
 exactly that state when this was found.
 
+IT IS NOT ONLY BRANCHES CUT TOO EARLY, and reading it that way is how a reviewer talks
+themselves out of checking. What arms this is not which side of `main` a branch sits on, it is
+that **the number is stale relative to a queue that keeps moving**. A branch ABOVE `main` today
+is below it after two merges. Worked example, live on 2026-09-03: #49 held 0.4.0 against a
+0.3.0 `main` — a genuine bump. #51 then also took 0.4.0 and merged, making `main` 0.4.0, at
+which point #49 was merely *equal* and correctly blocked. #52 then took 0.5.0 and merged, and
+#49's untouched, once-correct 0.4.0 became a downgrade the old gate would have reported as
+`version bumped 0.5.0 -> 0.4.0`. Nobody edited #49; the queue moved underneath it. The session
+that owned it had checked an hour earlier and concluded it was unexposed, which it was, then.
+
+So the rule the humans need alongside this gate is **a deferred version is only valid against
+the `main` it was chosen for** — not "watch out if you are below main". Reported by
+murderboard-7a, who found it by re-checking a branch they had already declared safe.
+
 A downgrade is worse than the unchanged version this gate was built to catch. `claude plugin
 update` keys on the number: shipping changed files under a LOWER one means no install ever
 takes them, and `murderboard_freshness.sh --plugin` compares the two numbers and reports a
@@ -151,6 +165,18 @@ def selftest():
 
     # The defect, as it actually occurred on 2026-09-03.
     check("THE BUG: 0.3.0 -> 0.2.0 is rejected", verdict("0.3.0", "0.2.0")[0], "backwards")
+
+    # The ABOVE-MAIN case, which reads as safe by inspection and is not. #49 held 0.4.0
+    # against a 0.3.0 main (a real bump), was overtaken twice, and its untouched number
+    # became a downgrade without anyone editing it. Staleness, not direction, is what arms
+    # this — so the same number must be a bump, then blocked, then rejected, as main moves.
+    check("0.4.0 is a real bump against a 0.3.0 main", verdict("0.3.0", "0.4.0")[0], "ok")
+    check("...the SAME 0.4.0 is blocked once main reaches 0.4.0",
+          verdict("0.4.0", "0.4.0")[0], "unchanged")
+    check("...and is a DOWNGRADE once main reaches 0.5.0, untouched",
+          verdict("0.5.0", "0.4.0")[0], "backwards")
+    check("the old comparison called that last one a bump (the false green)",
+          changed_only("0.5.0", "0.4.0"), "ok")
     check("a minor downgrade is rejected", verdict("0.4.0", "0.3.9")[0], "backwards")
     check("a patch downgrade is rejected", verdict("0.3.1", "0.3.0")[0], "backwards")
     check("a major downgrade is rejected", verdict("1.0.0", "0.9.9")[0], "backwards")
