@@ -122,6 +122,8 @@ fetch_paper.py
 tools/murderboard_freshness.sh
 tools/murderboard_roster.sh
 murderboard_roster.sh
+tools/murderboard_prose.sh
+murderboard_prose.sh
 tools/murderboard_revendor.py
 murderboard_revendor.py
 .claude/hooks/require-commit-before-message.sh

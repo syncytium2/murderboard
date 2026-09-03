@@ -272,21 +272,19 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      as hard as the claim it replaces**: a correction is a new claim, and the first fix is often a
      different unsound mechanism that the same figure's own numbers refute.
 2. **Citation & reference validator — "DOI or Die."** For every reference or named attribution, confirm
-   the work **exists** and is **correctly attributed** (web search / DOI where needed).
+   the work **exists**, **says what is quoted**, and **is the origin** — traced back until the
+   citations stop, and forward to what the same authors did next (web search / DOI where needed).
+   Existence and correct attribution are half the check.
    **Zero tolerance** for fabricated or guessed bibliographic metadata. Flag any
    "representative / placeholder / finalize-later" reference as not-yet-verified. When you
    need the paper itself, follow the **lit-cache protocol** below — check the library
    first, fetch the OA copy, flag what you can't get. Do **not** verify a claim against a
    paper you only half-remember: get the text or flag the paper.
-   - **A verified citation can still be the WRONG citation — check the ORIGIN, not the earliest
-     source you happened to reach.** When the deliverable attributes a method, term, or result to
-     a source, establishing that the source *exists* and *says what is quoted* is only half the
-     check. Ask whether it is the **origin**: open the cited work's own references for that claim
-     and follow them backwards until they stop. Then **report where you stopped and why** — "the
-     root is paywalled, verified to one step short" is a finding; silence is not. Prefer the root
-     and cite later work as the modern restatement. Verifying everything *present* while never
-     asking what is *absent* is how a reference list can be entirely correct and still credit the
-     wrong paper.
+   - **How to establish the origin.** Open the cited work's own references for the claim and follow
+     them backwards until they stop. **Report where you stopped and why** — "the root is paywalled,
+     verified to one step short" is a finding; silence is not. Prefer the root and cite later work
+     as the modern restatement. Verifying everything *present* while never asking what is *absent*
+     is how a reference list can be entirely correct and still credit the wrong paper.
      - **A shared author is not a shared laboratory.** "Which lab" is the **last author plus the
        affiliation**, not name overlap — a first author is often a trainee in someone else's
        group, and the same person appearing on both papers is exactly what a method being
@@ -420,6 +418,49 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
 5. **Line editor — "Kill Your Darlings."** Clarity and precision: undefined jargon, ambiguous sentences,
    redundancy, grammar, logical flow. Every sentence must earn its place and assert
    exactly one true thing.
+   - **The house voice.** Short sentences, concrete nouns, active verbs. Cut every word that does
+     not change the meaning. Prefer the specific example to the general claim. Name what the
+     document does not know instead of hedging around it. No throat-clearing, no preview of what
+     a section is about to say, no closing paragraph that recaps. Dry humour is fine where it is
+     also true; cut it where it is decoration.
+   - **Count first, then judge — and run the tool, do not describe it.** Role 5 owns both a
+     judgement (is this block longer than its point?) and a search (does this word appear?). The
+     architecture note above says what happens when one role holds both: *the prose answer covers
+     for the file nobody opened.* So the search is a script and its **output is pasted, not
+     summarised** — `murderboard_prose.sh <artifact>`, one row per hit and one row per block:
+     **line · construction · kind**, then **block · words · sentences**. **"Not run" is a failure,
+     not a clean result.** The tool cannot judge and does not try: it reports that a block is 220
+     words, never that the block is too long. The columns it cannot fill — *which sentence is the
+     payload, where it sits, what the other words buy* — are this role's, and a table returned
+     without them is a tool receipt, not a review.
+   - **The banned constructions — check these first, mechanically.** They are forms, not topics,
+     so they are searchable and either present or absent: *not just X, but Y* · *it's not about A,
+     it's about B* · *it's worth noting* · **delve, leverage, robust, seamless, crucial,
+     landscape, tapestry** · a three-item list built for rhythm rather than because there are
+     three things · an em-dash pivot into an uplifting close · an opener of the form *"In today's
+     ___"*. Report each hit with its location. A hit is a defect unless the author states why it
+     stays. **This list is a house convention, not a finding about English** — a consuming
+     project should edit it, and a role that cites it must say which list it ran.
+   - **The passage test — what does this block assert that its last sentence does not?** A block
+     can be true, correctly placed, and clean line by line, and still spend four hundred words
+     arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11
+     finds the section in its right position, role 8 finds a stranger able to follow it, role 9
+     wants a picture rather than a cut. Nobody is left holding the question *did this need to be
+     this long* — which is why it reaches a reader as the first thing they say about the draft.
+     So, per block: write the one sentence it exists to deliver, then name what the remaining
+     words buy — evidence a sceptic would actually demand, or the author's satisfaction at having
+     been thorough. Cut the second kind. **The payload is usually at the end**, because the block
+     was written in the order it was thought; promoting it is the fix more often than trimming is.
+     (Boundary with Start With the Problem: role 11 owns the order of the sections and may not
+     reach inside one; this owns the paragraph — a block in exactly the right place, three times
+     longer than its point.)
+   - **Why this role gets a list where the others get judgement.** An instruction to write with
+     more wit, or in the voice of some admired author, cannot fail: nothing in the draft can
+     contradict it, so it yields a different voice on every run and no reviewer can dispute the
+     result. Worse, a long stack of such instructions averages out — the traits blend instead of
+     stacking, and the output lands on the same neutral register the instruction was meant to
+     escape. A named construction is either in the text or it is not. Prefer the check that can
+     fail; this is *"Can the alarm ring?"* (role 4) applied to prose.
 6. **Methods / domain expert — "RTFM."** *Spawn whenever the deliverable rests on a specific
    method, tool, or library* (a statistical model, a signal-processing routine, an
    inference algorithm, a numerical library). **Before** reviewing, ground in the actual
@@ -861,6 +902,12 @@ with the `MURDERBOARD_LIT` environment variable (see the tool's header). Three s
 - **Unverifiable claim** that cannot be checked right now → **flag inline** (`⚠ VERIFY …`),
   never delete-and-hope or guess a plausible number.
 - **Style / clarity** → apply when it improves precision; do not pad.
+- **A named construction or an over-length block** (role 5, with a line number) → **not covered by
+  the line above.** "Apply when it improves precision" is a disposition for taste, and taste is
+  what a style finding usually is. A hit from `murderboard_prose.sh` is not taste: it has a
+  location, it was found by a search that could have come back empty, and waving it off returns
+  the run to the state the search existed to end. Fix it, or record *why it stays* next to its
+  line number. Neither of those is "do not pad".
 - Surface residual `⚠` flags **prominently** in the delivery message.
 
 ## Output contract
@@ -1054,6 +1101,12 @@ seriously than a rule stated in the abstract.
   laboratory is a research-integrity problem. The PI caught it from the delivered summary in one
   sentence. Every citation in the document resolved — nine PMIDs and a DataCite DOI — and an
   author-list error in the same reference had been caught and fixed by role 2 on an earlier pass.
+  **Sequel, 2026-08-25.** The fix was filed as a sub-bullet under role 2 and the role's opening
+  sentence still read "confirm the work exists and is correctly attributed". Every summary written
+  from that sentence — including this project's own briefing document and its public explainer —
+  reproduced the pre-fix rule, because a summariser reads the headline and stops. A rule filed
+  below the line a reader actually reads has not been filed. **When a role gains a check, the
+  role's first sentence is part of the change.**
   The reviewer verified everything present and never asked what was absent; one backward step,
   named in a single line of the 2003 paper's own Methods, would have found it. In the same run a
   suite of detectors was cleared against the spike-train literature and reported as "ours as far as
