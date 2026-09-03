@@ -365,7 +365,15 @@ def pdf_to_text(path):
         pass
     import subprocess
     try:
-        out = subprocess.run(["pdftotext", path, "-"], capture_output=True, text=True, timeout=120)
+        # `pdftotext` emits UTF-8; `text=True` alone would decode it with the machine's
+        # LOCALE codec (cp1252 on a default Windows install), turning every em-dash, curly
+        # quote and accented author name into mojibake. Worse than in murderboard_revendor,
+        # because the `except` below swallows a decode error and returns "" — a paper that
+        # extracts fine on macOS yields NO TEXT AT ALL on Windows, and the caller sees an
+        # empty PDF rather than a failure. `errors="replace"` for the same reason: one bad
+        # byte should cost a character, not the whole paper.
+        out = subprocess.run(["pdftotext", path, "-"], capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=120)
         if out.returncode == 0:
             return out.stdout
     except Exception:
