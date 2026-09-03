@@ -12,9 +12,16 @@ version strings for INEQUALITY:
 
 which passes a DOWNGRADE and reports it as a bump. That is not hypothetical: on 2026-09-03,
 #38 merged and `main` went 0.2.0 -> 0.3.0. Every branch cut before that still said 0.2.0, so
-the moment one of them re-baselined, the gate compared `now=0.2.0` against `was=0.3.0`, found
-them unequal, printed **"version bumped 0.3.0 -> 0.2.0"**, and went green. PR #55 was in
-exactly that state when this was found.
+the moment one of them re-baselined, the gate would compare `now=0.2.0` against `was=0.3.0`,
+find them unequal, print **"version bumped 0.3.0 -> 0.2.0"**, and go green. PR #55 was sitting
+in that state, unmerged, when this was found.
+
+(**#55 never went on to fail that way, and the first version of this paragraph said it did.**
+It merged four hours later against a `main` that had reached 0.5.0, and by then a different
+thing had happened to it — see the acquired-on-merge paragraph below. A worked example that
+describes a state its own subject never reached is precisely the defect this repo exists to
+name, so it is corrected here rather than quietly dropped. Caught by murderboard-7a, reading
+the shipped file against the record.)
 
 IT IS NOT ONLY BRANCHES CUT TOO EARLY, and reading it that way is how a reviewer talks
 themselves out of checking. What arms this is not which side of `main` a branch sits on, it is
@@ -26,9 +33,37 @@ which point #49 was merely *equal* and correctly blocked. #52 then took 0.5.0 an
 `version bumped 0.5.0 -> 0.4.0`. Nobody edited #49; the queue moved underneath it. The session
 that owned it had checked an hour earlier and concluded it was unexposed, which it was, then.
 
+A NUMBER CAN ALSO BE STALE WITHOUT EVER HAVING BEEN CHOSEN. Both examples above are numbers
+somebody *picked* and the queue then overtook. #55 is the other mechanism, and it is the one
+that actually happened at merge time: that branch had **never touched the manifests**, so
+merging `main` in resolved them cleanly to main's side and the branch *acquired* 0.5.0 against
+a 0.5.0 base — caught as **equal**, not as backwards. Nobody edited a version. The merge
+handed it one that was already wrong.
+
+    chosen against an older main   ->  decays as the queue advances     (#49)
+    acquired from a newer main     ->  arrives already equal            (#55)
+
+AND ONE HONEST QUALIFICATION, because the alternative is this file overstating its own worth:
+**#55 does not prove this gate.** The state it actually reached at merge — equal — is the one
+case the old `!=` comparison always got right, so #55 would have been stopped either way. What
+this file would have caught is the state #55 sat in *before* the merge, `0.2.0` against a
+`0.5.0` base, and that state was never exercised because the re-baseline and the number were
+done in one commit. Two sessions said "the gate earned itself on its first live run" on
+2026-09-03; it did not, and the claim is retracted here rather than left standing. The gate is
+justified by the defect being real and reachable, not by having caught it in production yet.
+
 So the rule the humans need alongside this gate is **a deferred version is only valid against
-the `main` it was chosen for** — not "watch out if you are below main". Reported by
-murderboard-7a, who found it by re-checking a branch they had already declared safe.
+the `main` it was chosen for** — not "watch out if you are below main".
+
+**And that rule, stated alone, does not reach #55**, because #55's number was never chosen and
+there was no deferral to invalidate: a reader applying it concludes the case does not apply to
+them. The self-check has to be **"is this number right against the base I am merging into
+now"**, asked regardless of where the number came from — which no branch can answer about
+itself, which is why the gate fails closed instead of advising.
+
+The direction-based reading was reported by murderboard-7a, who found it by re-checking a
+branch they had already declared safe; the acquired-on-merge half by the same session, reading
+this file against what #55 actually did.
 
 A downgrade is worse than the unchanged version this gate was built to catch. `claude plugin
 update` keys on the number: shipping changed files under a LOWER one means no install ever
@@ -177,6 +212,27 @@ def selftest():
           verdict("0.5.0", "0.4.0")[0], "backwards")
     check("the old comparison called that last one a bump (the false green)",
           changed_only("0.5.0", "0.4.0"), "ok")
+
+    # The ACQUIRED case: what #55 actually did at merge time, and a mechanism none of the
+    # fixtures above can express, because every one of them is a number somebody CHOSE. #55
+    # had never touched the manifests, so merging main resolved them to main's side and the
+    # branch arrived holding 0.5.0 against a 0.5.0 base.
+    check("a version ACQUIRED from a newer main arrives already equal (#55 at merge)",
+          verdict("0.5.0", "0.5.0")[0], "unchanged")
+
+    # AND THE HONEST PART, asserted so it cannot quietly stop being true: the OLD comparison
+    # rejects that state too. #55's actual merge was NOT saved by this file — equal is the one
+    # case the `!=` test always got right. What this file would have caught is the state #55
+    # sat in BEFORE the merge (0.2.0 against a 0.5.0 base), and that state was never exercised,
+    # because the re-baseline and the number were done in one step.
+    #
+    # Recorded because "the gate earned itself on its first live run" was said out loud by two
+    # sessions on 2026-09-03 and is an overclaim. A tool that overstates its own provenance is
+    # the exact defect the review process around it is for, and this one is about itself.
+    check("the OLD comparison rejects the acquired case too (so #55 does not prove this file)",
+          changed_only("0.5.0", "0.5.0"), "unchanged")
+    check("...what would have proved it is the state #55 never reached",
+          (changed_only("0.5.0", "0.2.0"), verdict("0.5.0", "0.2.0")[0]), ("ok", "backwards"))
     check("a minor downgrade is rejected", verdict("0.4.0", "0.3.9")[0], "backwards")
     check("a patch downgrade is rejected", verdict("0.3.1", "0.3.0")[0], "backwards")
     check("a major downgrade is rejected", verdict("1.0.0", "0.9.9")[0], "backwards")
