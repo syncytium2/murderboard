@@ -90,6 +90,20 @@ jobs:
           fi
           echo "ok — PROMPT.md matches murderboard_prompt.sh"
 
+      # DRAFTING-PROMPT.md restates role 5's banned list forwards, for pasting before a
+      # draft exists. Two copies of one list, so it drifts -- and it drifts silently in
+      # the worst direction: the prompt goes on permitting a construction the review
+      # still fails, and a writer who followed the prompt gets marked down for it.
+      - name: the drafting prompt still agrees with role 5
+        run: python3 tests/drafting_prompt_test.py
+
+      # The prose gate derives its word list from role 5 at run time, so a reworded role 5
+      # does not silently leave it searching for the old list -- it stops. --selftest proves
+      # every check can still fire, including the ones that must come back EMPTY: a gate
+      # that cannot report clean is as useless as one that cannot report a hit.
+      - name: prose gate --selftest
+        run: bash murderboard_prose.sh --selftest
+
   python:
     name: fetch_paper.py
     runs-on: ubuntu-latest
@@ -126,6 +140,16 @@ jobs:
 
       - name: revendor compiles
         run: python -m compileall -q murderboard_revendor.py
+
+      # `subprocess.run(..., text=True)` with no `encoding=` decodes with the machine's
+      # LOCALE codec -- UTF-8 here, cp1252 on a default Windows install. _git() is how
+      # upstream FILE CONTENT arrives, and these files are full of em-dashes: cp1252
+      # turns one into 'â€”' with no exception, so a Windows re-vendor lost the body
+      # comparison, reported every file as drifted even under --check, and wrote the
+      # mojibake back. Reported 2026-08-24. It cannot reproduce on any runner we have,
+      # so the test FORCES a non-UTF-8 locale rather than hoping for one.
+      - name: subprocess output decodes as UTF-8 on any locale
+        run: python tests/subprocess_encoding_test.py
 
       # murderboard_revendor.py --example-config tells consumers what to vendor;
       # murderboard_freshness.sh's STAMPED_FILES is what the gate walks to notice drift.

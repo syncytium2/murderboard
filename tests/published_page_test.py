@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pin the invariants of the published page, because breaking them fails SILENTLY.
 
-`docs/index.html` is served to the public by GitHub Pages. Three of its properties
+`docs/index.html` is served to the public by GitHub Pages. Four of its properties
 are load-bearing and none of them announce themselves when broken:
 
 1. **It is a complete document.** The page was authored for a publisher that supplies
@@ -19,15 +19,27 @@ are load-bearing and none of them announce themselves when broken:
 3. **Jekyll must not touch it.** Pages runs files through Jekyll unless `.nojekyll`
    is present, and Jekyll eats anything resembling Liquid (`{{`, `{%`).
 
+4. **The prompt printed on the page is the prompt the generator emits.** The page
+   carries the whole paste-ready prompt inline, because an assistant sent one hop
+   away to fetch it has been observed searching instead, failing, and offering to
+   reconstruct the review from memory. Inline, it cannot be missed — but it is now
+   a SECOND COPY of a role list whose entire point is that it is derived and cannot
+   drift, and this repo has already had the two-copies failure once. So the block
+   is generated (`murderboard_prompt.sh --sync-page`) and diffed here. A page that
+   listed nine of eleven roles would review with nine of eleven roles, look
+   completely normal, and tell nobody.
+
 `<a href>` is navigation, not a fetch, and is excluded on purpose — as is
 `rel="canonical"`, which is metadata the browser never requests. The distinction is
 the whole point: a check that flagged every URL would be noise, and noise gets
 switched off.
 
-No network. Pure string analysis over the repo's own files.
+No network. String analysis over the repo's own files, plus one subprocess: the
+prompt generator, which reads `doc_review_process.md` and touches nothing else.
 """
 import pathlib
 import re
+import subprocess
 import sys
 from html.parser import HTMLParser
 
@@ -42,8 +54,9 @@ NON_FETCHING_REL = {"canonical", "alternate"}
 
 
 def check(src):
-    """Full check for the explainer: structure, plus its stamp and its form."""
-    return check_document(src) + check_stamp(src) + check_form(src)
+    """Full check for the explainer: structure, stamp, form, and findability."""
+    return (check_document(src) + check_stamp(src) + check_form(src)
+            + check_findability(src))
 
 
 def check_document(src):
@@ -180,11 +193,28 @@ def check_form(src):
     return bad
 
 
-# The day the site first served to the public. A LITERAL on purpose: a born-on
-# date that can be quietly edited is not a born-on date, it is just another
-# mutable field. If it ever legitimately changes, changing it here is the
+# The date of this repository's FIRST COMMIT, 4a92748. A LITERAL on purpose: a
+# born-on date that can be quietly edited is not a born-on date, it is just
+# another mutable field. If it ever legitimately changes, changing it here is the
 # deliberate act that should be.
-BORN = "2026-08-25"
+#
+# IT HAS CHANGED ONCE, AND THIS IS THAT DELIBERATE ACT. Until 2026-09-03 this read
+# 2026-08-25 and the comment above it said "the day the site first served to the
+# public" -- which was a true description of the value and an answer to the wrong
+# question. Across this author's published repositories two conventions are in
+# use and both are used correctly: colonel_kernel (2026-06-21) and no_peak
+# (2026-08-07) say "Born" and mean their first commit -- no_peak's src/version.ts
+# states that definition in its own prose -- while bugarach and short-course say
+# "First published" and mean page birth. This page said "Born" against a
+# page-birth value, so it was the only stamp of the five agreeing with neither
+# convention. The word stays; the date moves to match the word.
+#
+# KNOWN AND ACCEPTED: 4a92748 is "murderboard v1 -- generalized from interface2",
+# so this is the day the repo was split out, not the day the work began. It is a
+# proxy, and so is every other "Born" in the estate -- each is its repo's first
+# commit regardless of what preceded it, which is the property that makes them
+# comparable at all.
+BORN = "2026-07-20"
 
 BORN_RE = re.compile(
     r'Born\s*<time datetime="(\d{4}-\d{2}-\d{2})">(\d{4}-\d{2}-\d{2})</time>')
@@ -232,6 +262,191 @@ def check_stamp(src):
     return bad
 
 
+# ---------------------------------------------------------------------------
+# FINDABILITY. Everything below fails silently and invisibly-to-the-author, which
+# is this file's whole remit. A page with no description still renders. A sitemap
+# with a stale lastmod still validates. A canonical pointing at the wrong host
+# still looks right in the source. The failure appears months later as "nobody can
+# find it", by which time nobody remembers what changed.
+#
+# The one hard cross-check: docs/CNAME is the single source of truth for the
+# domain, and canonical, og:url, robots.txt and sitemap.xml must all agree with it.
+# Moving the site would otherwise leave four stale absolute URLs in four files, each
+# of which looks fine on its own.
+
+
+def site_origin():
+    """https://<domain>/ — from CNAME, which is what Pages actually serves."""
+    return "https://%s/" % (DOCS / "CNAME").read_text(encoding="utf-8").strip()
+
+
+META_RE = re.compile(
+    r'<meta\s+(?:name|property)\s*=\s*["\']([^"\']+)["\']\s+content\s*=\s*["\']([^"\']*)',
+    re.I)
+
+
+def check_findability(src):
+    """Title, description, canonical and og: must exist, be specific, and agree."""
+    bad = []
+    origin = site_origin()
+    metas = dict(META_RE.findall(src))
+
+    t = re.search(r"<title>([^<]*)</title>", src)
+    title = t.group(1).strip() if t else ""
+    if not title:
+        bad.append("no <title>")
+    elif len(title) < 25:
+        # "The Murderboard" alone loses to a Wikipedia article, two other GitHub
+        # repos and a Roblox script pack. A bare product name is not a title.
+        bad.append("<title> is %d chars (%r) — too generic to distinguish this "
+                   "page from everything else called murderboard" % (len(title), title))
+
+    desc = metas.get("description", "").strip()
+    if not desc:
+        bad.append("no <meta name=description>")
+    elif not 120 <= len(desc) <= 320:
+        bad.append("meta description is %d chars — want 120-320" % len(desc))
+
+    # The subject of this page is AI-assisted review. If the two fields a search
+    # engine reads do not contain the word, the page cannot be found by anyone
+    # searching for the problem rather than for its name.
+    if "ai" not in re.findall(r"[a-z]+", (title + " " + desc).lower()):
+        bad.append("neither <title> nor the meta description contains the word "
+                   "'AI' — the one term someone searching for this would use")
+
+    can = re.search(r'<link\s+rel=["\']canonical["\']\s+href=["\']([^"\']+)', src, re.I)
+    if not can:
+        bad.append("no <link rel=canonical>")
+    elif can.group(1) != origin:
+        bad.append("canonical is %s but CNAME says %s" % (can.group(1), origin))
+
+    for key in ("og:type", "og:title", "og:description", "og:url"):
+        if key not in metas:
+            bad.append("missing <meta property=%s> — link previews fall back to "
+                       "a bare URL" % key)
+    if metas.get("og:url") and metas["og:url"] != origin:
+        bad.append("og:url is %s but CNAME says %s" % (metas["og:url"], origin))
+    if metas.get("og:title") and t and metas["og:title"] != title:
+        bad.append("og:title disagrees with <title>")
+    if metas.get("og:description") and desc and metas["og:description"] != desc:
+        bad.append("og:description disagrees with the meta description")
+
+    return bad
+
+
+def check_crawl_files(page_src):
+    """robots.txt and sitemap.xml: present, pointing here, and not stale."""
+    bad = []
+    origin = site_origin()
+
+    robots = DOCS / "robots.txt"
+    if not robots.exists():
+        bad.append("docs/robots.txt is missing")
+    else:
+        r = robots.read_text(encoding="utf-8")
+        if re.search(r"^\s*Disallow:\s*/\s*$", r, re.M):
+            bad.append("robots.txt disallows the whole site")
+        sm = re.search(r"^\s*Sitemap:\s*(\S+)", r, re.M)
+        if not sm:
+            bad.append("robots.txt names no Sitemap")
+        elif sm.group(1) != origin + "sitemap.xml":
+            bad.append("robots.txt points at %s, not %ssitemap.xml"
+                       % (sm.group(1), origin))
+
+    sitemap = DOCS / "sitemap.xml"
+    if not sitemap.exists():
+        bad.append("docs/sitemap.xml is missing")
+        return bad
+
+    s = sitemap.read_text(encoding="utf-8")
+    loc = re.search(r"<loc>([^<]+)</loc>", s)
+    if not loc:
+        bad.append("sitemap.xml lists no <loc>")
+    elif loc.group(1) != origin:
+        bad.append("sitemap <loc> is %s but CNAME says %s" % (loc.group(1), origin))
+
+    # lastmod must equal the page's own Updated stamp. A sitemap that says
+    # "unchanged since <wrong date>" is the only line in that file that can
+    # actively cost something, and nothing else would ever notice.
+    lm = re.search(r"<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>", s)
+    u = UPDATED_RE.search(page_src)
+    if not lm:
+        bad.append("sitemap.xml has no well-formed <lastmod>")
+    elif u and lm.group(1) != u.group(1):
+        bad.append("sitemap lastmod is %s but the page stamp says Updated %s"
+                   % (lm.group(1), u.group(1)))
+
+    # noindex and "please index this" are contradictory instructions about the
+    # same URL, and a crawler resolves the contradiction by trusting neither.
+    # Checked against the <loc> entries, not the file text: the first version of
+    # this grepped the whole file and fired on the COMMENT explaining why
+    # thanks.html is deliberately absent — a check that failed on being documented.
+    if any("thanks" in u for u in re.findall(r"<loc>([^<]+)</loc>", s)):
+        bad.append("sitemap.xml lists thanks.html, which is marked noindex")
+
+    return bad
+
+
+# The markers murderboard_prompt.sh --sync-page splices between. Each must close
+# its own HTML comment on its own line: the splice keeps the marker line and drops
+# everything up to the end marker, so a begin comment that wrapped would lose its
+# `-->` and swallow the prompt into a comment. The page would still be balanced,
+# still pass every other check here, and simply stop showing the prompt.
+PROMPT_BEGIN = "BEGIN GENERATED PROMPT"
+PROMPT_END = "END GENERATED PROMPT"
+
+GENERATOR = ["bash", str(ROOT / "murderboard_prompt.sh"), "--html"]
+
+
+def generated_prompt_block():
+    """What the block SHOULD be, straight from the generator. (block, error)."""
+    try:
+        r = subprocess.run(GENERATOR, capture_output=True, text=True, cwd=str(ROOT))
+    except OSError as e:                                     # no bash, no answer
+        return None, "cannot run murderboard_prompt.sh --html: %s" % e
+    if r.returncode != 0:
+        return None, ("murderboard_prompt.sh --html failed (exit %d): %s"
+                      % (r.returncode, r.stderr.strip() or "no message"))
+    if not r.stdout.strip():
+        return None, "murderboard_prompt.sh --html produced nothing"
+    return r.stdout, None
+
+
+def extract_prompt_block(src):
+    """The page's copy: everything between the two marker comment lines."""
+    i = src.find(PROMPT_BEGIN)
+    if i < 0:
+        return None
+    close = src.find("-->", i)
+    if close < 0:
+        return None
+    nl = src.find("\n", close)
+    if nl < 0:
+        return None
+    j = src.find(PROMPT_END, nl)
+    if j < 0:
+        return None
+    return src[nl + 1:src.rfind("\n", nl, j) + 1]
+
+
+def check_prompt_block(src, expected):
+    """The page's copy must be the generator's output, byte for byte.
+
+    Not "contains the roles" or "looks about right": equality. A weaker check is
+    one someone can satisfy by hand, and a hand-satisfied copy is the thing being
+    guarded against.
+    """
+    got = extract_prompt_block(src)
+    if got is None:
+        return ["the generated prompt block is gone, or a marker no longer closes "
+                "its own comment (%s / %s)" % (PROMPT_BEGIN, PROMPT_END)]
+    if got != expected:
+        return ["the prompt block on the page has drifted from its generator — "
+                "regenerate with: bash murderboard_prompt.sh --sync-page  "
+                "(page has %d chars, generator emits %d)" % (len(got), len(expected))]
+    return []
+
+
 def main():
     failures = []
 
@@ -256,6 +471,41 @@ def main():
         failures.append("unexpected page in docs/: %s" % s.relative_to(DOCS))
 
     failures += check(src)
+    failures += check_crawl_files(src)
+
+    # The crawl files live outside the page, so their controls mutate the FILES,
+    # not the HTML. Each is written to a temp copy, checked, and put back.
+    crawl_controls = [
+        ("robots.txt missing", "robots.txt", None),
+        ("robots.txt disallows everything", "robots.txt",
+         "User-agent: *\nDisallow: /\n\nSitemap: %ssitemap.xml\n" % site_origin()),
+        ("robots.txt names no sitemap", "robots.txt", "User-agent: *\nAllow: /\n"),
+        ("sitemap.xml missing", "sitemap.xml", None),
+        ("sitemap lastmod left stale after a page update", "sitemap.xml",
+         '<?xml version="1.0" encoding="UTF-8"?>\n<urlset>\n<url>\n'
+         '<loc>%s</loc>\n<lastmod>2001-01-01</lastmod>\n</url>\n</urlset>\n'
+         % site_origin()),
+        ("sitemap points at a different host", "sitemap.xml",
+         '<?xml version="1.0" encoding="UTF-8"?>\n<urlset>\n<url>\n'
+         '<loc>https://example.com/</loc>\n<lastmod>2026-09-01</lastmod>\n'
+         '</url>\n</urlset>\n'),
+    ]
+    for name, fname, content in crawl_controls:
+        target = DOCS / fname
+        original = target.read_text(encoding="utf-8") if target.exists() else None
+        try:
+            if content is None:
+                target.unlink()
+            else:
+                target.write_text(content, encoding="utf-8")
+            if not check_crawl_files(src):
+                failures.append("NEGATIVE CONTROL NOT CAUGHT: %s" % name)
+        finally:
+            if original is None:
+                if target.exists():
+                    target.unlink()
+            else:
+                target.write_text(original, encoding="utf-8")
 
     # The landing page is not the explainer — no stamp, no jump nav, no form — but
     # it is served to the public from the same directory, so the properties that
@@ -331,10 +581,81 @@ def main():
         # control would "pass" by doing nothing at all.
         ("page drops the send-only wording while keeping the form",
          lambda s: re.sub(r"only\s+if\s+you\s+send\s+the\s+form", "never", s)),
+        # FINDABILITY. Every one of these renders a perfect-looking page.
+        ("title reverted to the bare product name",
+         lambda s: re.sub(r"<title>[^<]*</title>",
+                          "<title>The Murderboard</title>", s, count=1)),
+        ("meta description removed",
+         lambda s: re.sub(r'<meta name="description"[^>]*>', "", s, count=1)),
+        ("description stops mentioning AI at all",
+         lambda s: re.sub(r'(<meta name="description" content=")[^"]*',
+                          r"\1A review process for catching unchecked claims in "
+                          r"documents, with eleven roles and a fixed output format "
+                          r"that says what was checked.", s, count=1)),
+        ("canonical points at another host",
+         lambda s: s.replace('rel="canonical" href="https://murderboard.tonydefazio.com/"',
+                             'rel="canonical" href="https://example.com/"', 1)),
+        ("og:url drifts from the canonical",
+         lambda s: s.replace('<meta property="og:url" content="https://murderboard.tonydefazio.com/">',
+                             '<meta property="og:url" content="https://old.example/">', 1)),
+        ("og:title drifts from <title>",
+         lambda s: re.sub(r'(<meta property="og:title" content=")[^"]*',
+                          r"\1Something Else", s, count=1)),
+        ("og tags removed entirely",
+         lambda s: re.sub(r'<meta property="og:[^>]*>', "", s)),
     ]
     for name, mutate in controls:
         if not check(mutate(src)):
             failures.append("NEGATIVE CONTROL NOT CAUGHT: %s" % name)
+
+    # THE PROMPT BLOCK. Kept out of check() on purpose: check() is pure string
+    # analysis and gets run ~20 more times by the mutation loop above, and paying
+    # for a subprocess on each would buy nothing. Its controls are its own.
+    prompt_controls = []
+    expected, err = generated_prompt_block()
+    if err:
+        failures.append(err)
+    else:
+        failures += check_prompt_block(src, expected)
+        # Every mutation below is applied THROUGH `expected`, so it is guaranteed to
+        # land inside the block. Mutating the raw page by substring does not: the
+        # roles are also named in the prose of the panel section further up, and the
+        # first attempt at these controls silently edited that instead and "passed"
+        # while changing nothing the check looks at.
+        def in_block(f):
+            return lambda s: s.replace(expected, f(expected), 1)
+
+        # NAME NO ROLE HERE. The first draft of these mutated the literal string
+        # "Reinventing the Wheel", and renaming that role upstream turned the
+        # mutation into a no-op: the control stopped injecting anything and passed
+        # by doing nothing, on exactly the edit it exists to catch. Same shape as
+        # the "updated older than born" control above, which expired the first time
+        # the page was updated. So these match the SHAPE of a role line -- a number,
+        # a dot, a title -- and survive any rewording of the roster.
+        ROLE_LINE = r"\n *\d+\. [^\n]*"
+
+        prompt_controls = [
+            # The page keeps a stale copy after a role is added or reworded upstream.
+            # This is the whole reason the check exists: it looks like nothing.
+            ("a role reworded on the page but not in the process file",
+             in_block(lambda b: re.sub(r"(\n *\d+\. )", r"\1EDITED ", b, count=1))),
+            ("a role dropped from the page's copy of the list",
+             in_block(lambda b: re.sub(ROLE_LINE, "", b, count=1))),
+            # Someone "tidies" the escaping and a placeholder becomes a live tag.
+            ("escaping undone (a raw < would parse as markup)",
+             in_block(lambda b: b.replace("&lt;", "<", 1))),
+            ("the whole block emptied",
+             lambda s: s.replace(expected, "", 1)),
+            # Lose a marker and the block is unfindable -- which must read as a
+            # failure, not as "no block to check, nothing to report".
+            ("begin marker removed",
+             lambda s: s.replace(PROMPT_BEGIN, "WAS THE BEGIN MARKER", 1)),
+            ("end marker removed",
+             lambda s: s.replace(PROMPT_END, "WAS THE END MARKER", 1)),
+        ]
+        for name, mutate in prompt_controls:
+            if not check_prompt_block(mutate(src), expected):
+                failures.append("NEGATIVE CONTROL NOT CAUGHT: %s" % name)
 
     if failures:
         print("FAIL (%d)" % len(failures))
@@ -344,7 +665,10 @@ def main():
 
     print("ok — docs/index.html is a complete document, fetches nothing external, "
           "is Jekyll-safe, balanced, and every internal reference resolves")
-    print("ok — %d negative controls all caught" % len(controls))
+    print("ok — the prompt printed on the page is byte-identical to "
+          "murderboard_prompt.sh --html")
+    print("ok — %d negative controls all caught"
+          % (len(controls) + len(prompt_controls) + len(crawl_controls)))
     return 0
 
 

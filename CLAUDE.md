@@ -1,8 +1,8 @@
 # CLAUDE.md — murderboard
 
 This repo is the canonical source of the **murderboard**: an anti-slop review process
-(`doc_review_process.md`), a literature tool (`fetch_paper.py`), three gates that keep the
-process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`,
+(`doc_review_process.md`), a literature tool (`fetch_paper.py`), four gates that keep the
+process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`, `murderboard_prose.sh`,
 `require_commit_before_message.sh`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
@@ -46,11 +46,21 @@ they ended up as prose in the first place.
   invisible on the machine of whoever breaks it, so `tests/published_page_test.py` gates it.
   If analytics is ever wanted, that is a decision to raise, not a change to slip in.
 - **The page footer carries a stamp: `Born · Version · Updated`.** When you change
-  `docs/index.html`, bump **Version** and set **Updated** to the date you publish. **Born never
-  changes** — `tests/published_page_test.py` pins it to a literal and fails if it moves, because
-  a born-on date that can be quietly edited is just another mutable field. Versions are
+  `docs/index.html`, bump **Version** and set **Updated** to the date you publish. **Born is
+  `2026-07-20`, the date of this repo's first commit (`4a92748`), and it does not drift** —
+  `tests/published_page_test.py` pins it to a literal and fails if it moves, because a born-on
+  date that can be quietly edited is just another mutable field. Versions are
   `MAJOR.MINOR.PATCH`; the site started at `0.1.0` on 2026-08-25. (This stamp is the *page's*
   version and is unrelated to the vendoring stamps below, which track upstream commits.)
+  **Born has been corrected exactly once, on 2026-09-03**, from `2026-08-25` (the day the page
+  first served) to the first-commit date. The rule this line used to state — "Born never
+  changes" — was aimed at *silent* drift, and it does not oblige anyone to keep an
+  acknowledged error: colonel_kernel and no_peak both say "Born" and both mean their first
+  commit, so this page was the only stamp of the five that agreed with neither convention in
+  use. A correction made deliberately, in one commit, with the reason written into
+  `published_page_test.py` beside the constant, is the act the pin exists to force. A second
+  correction is not a precedent this sets — **if you think Born should move again, that is a
+  decision to raise, not a change to make.**
 - After any change, bump nothing automatically — consumers re-vendor deliberately and stamp
   the commit they took (see README "Vendoring"). Just commit and push here.
 - **This repo is PUBLIC (Apache-2.0).** Two rules follow, and neither is optional:
@@ -84,7 +94,9 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one. **Every artifact this produces is ours and stays here** — the
+> pass as a clean one. Run `tools/murderboard_prose.sh <artifact>` and **paste its output into
+> role 5** — that half of the role is a search, and a search nobody ran reads exactly like a
+> search that came back empty. **Every artifact this produces is ours and stays here** — the
 > corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
 > the process comes from, never where our reviews go.
 

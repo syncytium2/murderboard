@@ -82,6 +82,7 @@ EXAMPLE_CONFIG = {
                 "docs/doc_review_process.md",
                 "tools/murderboard_freshness.sh",
                 "tools/murderboard_roster.sh",
+                "tools/murderboard_prose.sh",
                 "tools/murderboard_revendor.py",
                 "tools/fetch_paper.py",
                 ".claude/skills/murderboard/SKILL.md",
@@ -94,6 +95,7 @@ EXAMPLE_CONFIG = {
                 "docs/doc_review_process.md": "doc_review_process.md",
                 "tools/murderboard_freshness.sh": "murderboard_freshness.sh",
                 "tools/murderboard_roster.sh": "murderboard_roster.sh",
+                "tools/murderboard_prose.sh": "murderboard_prose.sh",
                 "tools/murderboard_revendor.py": "murderboard_revendor.py",
                 "tools/fetch_paper.py": "fetch_paper.py",
                 ".claude/skills/murderboard/SKILL.md": "skills/murderboard/SKILL.md",
@@ -279,7 +281,30 @@ def hook_scope(hook_path, label):
 
 
 def _git(clone, *args):
-    return subprocess.run(["git", "-C", str(clone), *args], capture_output=True, text=True)
+    """Run git in `clone`, decoding output as UTF-8 REGARDLESS of the machine's locale.
+
+    `encoding` is not optional here and omitting it is not a style lapse. `text=True` alone
+    decodes with the LOCALE codec — UTF-8 on macOS/Linux, cp1252 on a default Windows
+    install. This helper is how upstream FILE CONTENT arrives (the `git show` in `run`), and
+    every core murderboard file carries em-dashes. The three UTF-8 bytes of an em dash
+    decode under cp1252 to three perfectly legal characters — `â€”` — so the mojibake RAISES
+    NOTHING. (Written out as bytes rather than as `\\x` escapes on purpose: this is a plain
+    docstring, so Python eats those escapes before anyone reads them, and the first draft of
+    this very paragraph rendered as mojibake while explaining mojibake.) It silently fails
+    the body comparison against a local file read as UTF-8, which reported every file as
+    drifted even under `--check`, and on a real run wrote the corrupted text back. Total on
+    Windows, invisible everywhere else — so no amount of testing on the maintainer's machine
+    would have found it.
+
+    Fixed at the source rather than with `PYTHONUTF8=1`, which works only where someone
+    remembered to set it — the failure mode this repo's gates exist to remove — and which
+    would have to be set by every consumer, in every environment, forever.
+
+    Strict errors deliberately: upstream is UTF-8 by construction, so a decode error means
+    something is wrong that should stop the run, not be papered over.
+    """
+    return subprocess.run(["git", "-C", str(clone), *args],
+                          capture_output=True, text=True, encoding="utf-8")
 
 
 def run(root, cfg, cfg_path, check_only):
