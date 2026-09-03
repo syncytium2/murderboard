@@ -193,11 +193,28 @@ def check_form(src):
     return bad
 
 
-# The day the site first served to the public. A LITERAL on purpose: a born-on
-# date that can be quietly edited is not a born-on date, it is just another
-# mutable field. If it ever legitimately changes, changing it here is the
+# The date of this repository's FIRST COMMIT, 4a92748. A LITERAL on purpose: a
+# born-on date that can be quietly edited is not a born-on date, it is just
+# another mutable field. If it ever legitimately changes, changing it here is the
 # deliberate act that should be.
-BORN = "2026-08-25"
+#
+# IT HAS CHANGED ONCE, AND THIS IS THAT DELIBERATE ACT. Until 2026-09-03 this read
+# 2026-08-25 and the comment above it said "the day the site first served to the
+# public" -- which was a true description of the value and an answer to the wrong
+# question. Across this author's published repositories two conventions are in
+# use and both are used correctly: colonel_kernel (2026-06-21) and no_peak
+# (2026-08-07) say "Born" and mean their first commit -- no_peak's src/version.ts
+# states that definition in its own prose -- while bugarach and short-course say
+# "First published" and mean page birth. This page said "Born" against a
+# page-birth value, so it was the only stamp of the five agreeing with neither
+# convention. The word stays; the date moves to match the word.
+#
+# KNOWN AND ACCEPTED: 4a92748 is "murderboard v1 -- generalized from interface2",
+# so this is the day the repo was split out, not the day the work began. It is a
+# proxy, and so is every other "Born" in the estate -- each is its repo's first
+# commit regardless of what preceded it, which is the property that makes them
+# comparable at all.
+BORN = "2026-07-20"
 
 BORN_RE = re.compile(
     r'Born\s*<time datetime="(\d{4}-\d{2}-\d{2})">(\d{4}-\d{2}-\d{2})</time>')
