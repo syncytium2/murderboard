@@ -1,0 +1,15 @@
+# The murderboard — https://murderboard.tonydefazio.com/
+#
+# Nothing here is disallowed, on purpose. thanks.html is kept out of results by
+# <meta name="robots" content="noindex"> in the page itself rather than by a
+# Disallow line here: a crawler has to FETCH a page to read a noindex, so blocking
+# it in this file would leave it indexable-by-inbound-link and unreadable-by-crawler
+# — the one combination that produces a bare URL in results with no title under it.
+#
+# Kept in sync by tests/published_page_test.py, which fails if the Sitemap line
+# below stops agreeing with docs/CNAME.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://murderboard.tonydefazio.com/sitemap.xml
