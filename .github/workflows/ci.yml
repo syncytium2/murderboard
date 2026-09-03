@@ -259,13 +259,28 @@ jobs:
             exit 0
           fi
           echo "plugin payload changed:"; printf '  %s\n' $changed
-          now=$(python -c "import json;print(json.load(open('.claude-plugin/plugin.json'))['version'])")
-          was=$(git show "$base:.claude-plugin/plugin.json" 2>/dev/null \
-                | python -c "import json,sys;print(json.load(sys.stdin)['version'])" 2>/dev/null || echo "")
-          if [ -z "$was" ]; then
-            echo "no plugin.json on the base commit — first introduction, nothing to bump against"
-            exit 0
-          fi
+          # BOTH VERSIONS ARE NOW READ INSIDE THE GATE, not extracted here. Two defects
+          # lived in the shell that used to do it, and both were failures of the pipeline
+          # rather than of the comparison:
+          #
+          #   now=$(python -c "...['version']")                      # a broken manifest
+          #                                                          # died with a traceback
+          #   was=$(git show "$base:..." 2>/dev/null \
+          #         | python -c "...['version']" 2>/dev/null || echo "")
+          #   if [ -z "$was" ]; then echo "...first introduction"; exit 0; fi
+          #
+          # That `2>/dev/null || echo ""` collapsed THREE states into one: the file is
+          # absent, the file is not JSON, and the file has no `version` key. Only the
+          # first is a first introduction; the other two are could-not-determine, and the
+          # gate answered them by exiting 0 with a sentence asserting the one thing it had
+          # not checked. Worse than the downgrade below, because "first introduction"
+          # reads as NORMAL and nobody investigates a green check that says the expected
+          # thing. Reported by murderboard-7a, 2026-09-03.
+          #
+          # f62acb3 already gave the merge-base failure in this same step a distinct
+          # could-not-determine state that reports and fails CLOSED. That reasoning
+          # covered this extraction verbatim and had never been applied to it.
+          #
           # WAS: if [ "$now" = "$was" ]; then ...fail... fi; echo "version bumped $was -> $now"
           #
           # That compares for INEQUALITY, so it passed a DOWNGRADE and announced it as a
@@ -279,7 +294,7 @@ jobs:
           # /plugin update never takes the files and nothing reports an error. The check
           # verified a PROXY (the string changed) for the property it meant to enforce
           # (the number went up), and the proxy held for the failure.
-          python .github/plugin_version_gate.py --was "$was" --now "$now"
+          python .github/plugin_version_gate.py --base "$base"
 
       # The comparison above IS the gate, so it gets negative controls like everything
       # else here: the downgrade fixture must FAIL under the old `!=` comparison, which

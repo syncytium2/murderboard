@@ -39,9 +39,64 @@ fetch_paper.py murderboard_*.sh murderboard_*.py require_commit_before_message.s
 changing this gate never itself contends for a version number.
 """
 import argparse
+import json
+import subprocess
 import sys
 
 SEMVER_HELP = "versions are MAJOR.MINOR.PATCH, e.g. 0.3.1"
+MANIFEST = ".claude-plugin/plugin.json"
+
+
+def read_version(text, where):
+    """('ok', v) | ('unreadable', why). Never conflates unreadable with absent."""
+    try:
+        doc = json.loads(text)
+    except Exception as e:
+        return "unreadable", "%s is not valid JSON (%s)" % (where, e)
+    if not isinstance(doc, dict):
+        return "unreadable", "%s is not a JSON object" % where
+    if "version" not in doc:
+        return "unreadable", "%s has no 'version' key" % where
+    v = doc["version"]
+    if not isinstance(v, str):
+        return "unreadable", "%s has a non-string version (%r)" % (where, v)
+    return "ok", v
+
+
+def read_base(base, path=MANIFEST, cwd=None):
+    """('absent'|'ok'|'unreadable', value-or-why) for the manifest at `base`.
+
+    THE THREE STATES THE SHELL COLLAPSED INTO ONE. The version it replaces read `was` as:
+
+        was=$(git show "$base:.claude-plugin/plugin.json" 2>/dev/null \\
+              | python -c "...['version']" 2>/dev/null || echo "")
+        if [ -z "$was" ]; then echo "...first introduction"; exit 0; fi
+
+    Both `2>/dev/null` and the `|| echo ""` are load-bearing in the wrong direction: an
+    ABSENT file, a file that is not JSON, and a file with no `version` key all arrive as
+    the empty string, and all three are answered "no plugin.json on the base commit —
+    first introduction" with exit 0. Only the first is that. The other two are
+    could-not-determine, and the gate was asserting the one thing it had not checked.
+
+    This is the worse direction of the two defects in that block. A downgrade at least
+    printed `version bumped 0.3.0 -> 0.2.0`, which is wrong but visible to anyone reading
+    the log. `first introduction` reads as NORMAL, and nobody investigates a green check
+    that says the expected thing.
+
+    The remedy is already in this step's own history: `f62acb3` gave the merge-base
+    failure a distinct could-not-determine state that reports and fails CLOSED, with a
+    comment saying "the other gates in this repo all have a distinct could-not-determine
+    state ... because the alternative is silently shipping an unbumped plugin." That
+    reasoning covered this extraction verbatim and was never applied to it.
+    """
+    r = subprocess.run(["git", "show", "%s:%s" % (base, path)], cwd=cwd,
+                       capture_output=True, text=True, encoding="utf-8")
+    # encoding is named, not inherited from the locale. Same defect as PR #55 fixed in
+    # murderboard_revendor.py's _git: `text=True` alone decodes with cp1252 on Windows and
+    # mojibakes silently. CI is Linux, but this file is read by people on their own machines.
+    if r.returncode != 0:
+        return "absent", None                     # genuinely not there — first introduction
+    return read_version(r.stdout, "the manifest at %s" % base[:7])
 
 
 def parse(v):
@@ -121,6 +176,84 @@ def selftest():
               verdict("0.3.0", bad)[0], "unparseable")
     check("an unparseable BASE is refused too", verdict("nonsense", "0.4.0")[0], "unparseable")
 
+    # --- the three states the shell collapsed into "first introduction" ------------------
+    #
+    # Built against a REAL git repo, not by stubbing read_base: the bug lived in the
+    # boundary between `git show`, a pipe and `|| echo ""`, and a fixture that mocks the
+    # boundary away cannot see it. Reported by murderboard-7a, 2026-09-03.
+    import tempfile, os
+    with tempfile.TemporaryDirectory() as td:
+        env = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,
+                   GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@e",
+                   GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@e")
+
+        def commit(body):
+            """Commit `body` as the manifest (or remove it when None); return the sha."""
+            d = os.path.join(td, ".claude-plugin")
+            os.makedirs(d, exist_ok=True)
+            p = os.path.join(d, "plugin.json")
+            if body is None:
+                if os.path.exists(p):
+                    os.remove(p)
+            else:
+                with open(p, "w", encoding="utf-8") as fh:
+                    fh.write(body)
+            subprocess.run(["git", "-C", td, "add", "-A"], capture_output=True, env=env)
+            subprocess.run(["git", "-C", td, "commit", "-qm", "x", "--allow-empty"],
+                           capture_output=True, env=env)
+            return subprocess.run(["git", "-C", td, "rev-parse", "HEAD"],
+                                  capture_output=True, text=True, encoding="utf-8",
+                                  env=env).stdout.strip()
+
+        subprocess.run(["git", "-C", td, "init", "-q", "-b", "main"],
+                       capture_output=True, env=env)
+        # Something else must exist, or the "absent manifest" commit has nothing in it.
+        with open(os.path.join(td, "README"), "w") as fh:
+            fh.write("x\n")
+
+        sha_absent = commit(None)
+        sha_corrupt = commit('{"version": 0.3.0 oops')
+        sha_nokey = commit('{"name": "murderboard"}')
+        sha_nonstr = commit('{"version": 30}')
+        sha_good = commit('{"version": "0.3.0"}')
+
+        # The fixture repo is not the cwd, so every read has to be told where to look.
+        def rb(sha):
+            return read_base(sha, ".claude-plugin/plugin.json", td)
+
+        check("an ABSENT base manifest is 'absent' (a real first introduction)",
+              rb(sha_absent)[0], "absent")
+        check("THE FAIL-OPEN: CORRUPT base json is 'unreadable', not 'absent'",
+              rb(sha_corrupt)[0], "unreadable")
+        check("a base with NO version key is 'unreadable', not 'absent'",
+              rb(sha_nokey)[0], "unreadable")
+        check("a base with a NON-STRING version is 'unreadable'",
+              rb(sha_nonstr)[0], "unreadable")
+        check("a good base returns its version", rb(sha_good), ("ok", "0.3.0"))
+
+        # NEGATIVE CONTROL for this defect, matching the one the downgrade fixture gets.
+        # The shell it replaces answered all three of the above identically, and its
+        # answer was exit 0 with "first introduction". If a future version reintroduces
+        # that flattening, these must be what fails.
+        def shell_equivalent(sha):
+            """`git show ... 2>/dev/null | python ... 2>/dev/null || echo ""` then [ -z ]."""
+            r = subprocess.run(["git", "show", "%s:.claude-plugin/plugin.json" % sha],
+                               cwd=td, capture_output=True, text=True, encoding="utf-8")
+            if r.returncode:
+                return ""
+            try:
+                return json.loads(r.stdout)["version"]
+            except Exception:
+                return ""
+        check("the OLD shell reads CORRUPT as empty -> 'first introduction' (the bug)",
+              shell_equivalent(sha_corrupt), "")
+        check("the OLD shell reads NO-KEY as empty -> 'first introduction' (the bug)",
+              shell_equivalent(sha_nokey), "")
+        check("...and it cannot tell either from a genuinely absent file",
+              shell_equivalent(sha_absent), "")
+        check("...so all three were one state to it, and are three to us",
+              len({rb(s)[0] for s in (sha_absent, sha_corrupt, sha_good)}), 3)
+
     print()
     if fails:
         print("FAILED: " + "; ".join(fails))
@@ -129,16 +262,61 @@ def selftest():
     return 0
 
 
+def resolve(base, path=MANIFEST):
+    """(was, now) or ('', reason) — reads both sides itself, so the shell cannot flatten them.
+
+    Doing the reading HERE rather than in `ci.yml` is the point. The three-states-into-one
+    bug existed because the extraction lived in a shell pipeline whose failure modes are
+    invisible (`2>/dev/null || echo ""`) and untestable. In here every state has a name and
+    a fixture.
+    """
+    kind, val = read_base(base, path)
+    if kind == "absent":
+        return "absent", None
+    if kind == "unreadable":
+        return "undeterminable", val
+    was = val
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError as e:
+        return "undeterminable", "cannot read %s in the working tree (%s)" % (path, e)
+    # `now` was read by a bare `python -c` with no error handling, so a manifest broken
+    # enough to make json.load RAISE killed the step with a traceback under `set -e`
+    # instead of the gate's own message. Fail-closed either way, but a step whose house
+    # style is to say what it could not determine should not have one voice that doesn't.
+    kind, val = read_version(text, path)
+    if kind != "ok":
+        return "undeterminable", val
+    return was, val
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--was")
     ap.add_argument("--now")
+    ap.add_argument("--base", help="commit to read the previous manifest from")
+    ap.add_argument("--file", default=MANIFEST)
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
-    if a.was is None or a.now is None:
-        ap.error("--was and --now are both required")
+
+    if a.base:
+        was, now = resolve(a.base, a.file)
+        if was == "absent":
+            print("no %s at %s — first introduction, nothing to bump against" % (a.file, a.base[:7]))
+            return 0
+        if was == "undeterminable":
+            print("::error::" + now)
+            print("::error::The base manifest exists but could not be read, so it is NOT a")
+            print("::error::first introduction and nothing is known about whether a bump was")
+            print("::error::needed. Failing closed — the same rule f62acb3 applied to a")
+            print("::error::missing merge base in this step.")
+            return 1
+        a.was, a.now = was, now
+    elif a.was is None or a.now is None:
+        ap.error("pass --base, or both --was and --now")
 
     kind, msg = verdict(a.was, a.now)
     if kind == "ok":
