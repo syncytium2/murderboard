@@ -25,6 +25,52 @@ conversational answers, throwaway diagnostics, or internal scratch notes.
 script written for this task), the review extends to that code — not just the prose.
 Agents 6–7 (RTFM, Reinventing the Wheel) below cover this.
 
+### Run it before the artifact leaves your hands
+
+The value of a finding and the cost of acting on one move in **opposite** directions, and they
+cross at submission:
+
+| The artifact is | A finding is | Declining to look is |
+|---|---|---|
+| a draft you still control | cheap, and fully actionable | pure loss — there is nothing yet to protect |
+| submitted, under review | expensive, and only partly actionable | reasonable |
+| published | maximally expensive, and unactionable | reasonable |
+
+This is **guidance and cannot be a gate** — nothing can know an artifact's submission state, and
+a rule that depends on being remembered is not a gate. It is written down anyway so that
+declining a late run has a stated basis: the right-hand column is a cost, not a lapse. A reviewer
+who skips a run on something already published is reading the table correctly, and one who skips
+it on a draft is giving up the column where a finding is free.
+
+A murderboard is a **pre-mortem**. The same eleven roles run after the fact produce an autopsy:
+identical findings, no patient.
+
+### When the artifact can no longer change — retrospective mode
+
+The loop below assumes you can repair. *"The deliverable is not done until this pass is clean"*
+is unsatisfiable for a paper already submitted or published, and so is *"a repaired deliverable
+has not been reviewed — re-review it."* Point the process at one anyway — which people do, because
+someone else's published paper is the safest thing to try this on — and it **truncates silently**:
+roles 1–11 run, the ledger comes out complete and correct, rounds 2 and 3 never happen, and
+nothing in the output says so. The role tally is not what was lost. The loop is, and nothing
+counts loops.
+
+So a run against an artifact that cannot change is a **different mode**, and says so:
+
+- **Declare it.** The run record carries `Mode: retrospective` and states the stopping reason —
+  *"round 1 of 3; repair and re-review unavailable, the artifact is published."* A report that
+  does not distinguish itself from a complete run will be read as one.
+- **Point it forward.** Ask *what would the next document's murderboard catch that this one's
+  review did not*, rather than *what is wrong with this one*. Same roles, same findings; the
+  output becomes a checklist for the next artifact instead of a list of regrets, which is the
+  only form in which it is still actionable.
+- **Triage findings by what it now costs to act.** On a submitted artifact some findings stay
+  cheap — a citation that does not say what it is cited for, a typo, a mislabelled panel are all
+  correctable at proof. Others are not: a statistical error, an overstated abstract.
+  **This governs which findings you ACT ON, never which roles you RUN.** Every role still runs;
+  see *The team is not optional*. A reviewer that skips the roles it expects to produce expensive
+  findings has inverted this process into a machine for confirming what it hoped.
+
 ## The core principle
 
 **Every sentence must be EITHER (a) verifiable against a real source — the data, the
@@ -936,6 +982,21 @@ roster out of this file and verifies the report accounts for every role:
 murderboard_roster.sh list            # the roster, derived from this file (never recalled)
 murderboard_roster.sh check REPORT.md # 0 = every role accounted for, 1 = one is missing
 ```
+
+**The record declares its mode**, on a line of its own: `Mode: standard` (the full loop ran, or
+was available to run) or `Mode: retrospective` (the artifact cannot change — see *When the
+artifact can no longer change*, which also requires a stated stopping reason). The gate reports
+the mode it found, and an undeclared mode is reported as **undeclared** rather than assumed
+complete — the same discipline the freshness gate uses, where the one verdict it may never
+produce is a false "current". Undeclared still exits 0, so existing reports keep passing; a
+project that wants the declaration enforced opts in:
+
+```
+murderboard_roster.sh check --require-mode REPORT.md   # undeclared mode is a failure
+```
+
+An eleven-of-eleven ledger says every role ran. It does not say the loop finished, and until the
+mode line existed there was nowhere for that difference to be recorded.
 
 Because the roster is derived, adding a role here propagates to every consumer's check with no
 edit anywhere else. A failing check does not mean "write more" — it means a role either never
