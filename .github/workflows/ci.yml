@@ -266,14 +266,27 @@ jobs:
             echo "no plugin.json on the base commit — first introduction, nothing to bump against"
             exit 0
           fi
-          if [ "$now" = "$was" ]; then
-            echo "::error::the plugin payload changed but .claude-plugin/plugin.json is still $now."
-            echo "::error::Installs key on this number: without a bump, /plugin update is a no-op"
-            echo "::error::and the freshness gate compares two equal versions and says 'current'."
-            echo "::error::Bump it (and marketplace.json, which must match)."
-            exit 1
-          fi
-          echo "version bumped $was -> $now"
+          # WAS: if [ "$now" = "$was" ]; then ...fail... fi; echo "version bumped $was -> $now"
+          #
+          # That compares for INEQUALITY, so it passed a DOWNGRADE and announced it as a
+          # bump. On 2026-09-03 #38 merged and main went 0.2.0 -> 0.3.0; every branch cut
+          # before that still said 0.2.0, so the first one to re-baseline compared
+          # now=0.2.0 against was=0.3.0, found them unequal, printed "version bumped
+          # 0.3.0 -> 0.2.0" and went green. PR #55 was in exactly that state when this
+          # was found.
+          #
+          # A lower number is WORSE than the unchanged one this gate was built to catch:
+          # /plugin update never takes the files and nothing reports an error. The check
+          # verified a PROXY (the string changed) for the property it meant to enforce
+          # (the number went up), and the proxy held for the failure.
+          python .github/plugin_version_gate.py --was "$was" --now "$now"
+
+      # The comparison above IS the gate, so it gets negative controls like everything
+      # else here: the downgrade fixture must FAIL under the old `!=` comparison, which
+      # the file keeps for exactly that purpose, and PASS under the real one. Without
+      # that, a simplification back to `!=` lands quietly and takes the bug with it.
+      - name: version gate --selftest (a downgrade is not a bump)
+        run: python .github/plugin_version_gate.py --selftest
 
   lint:
     name: shell lint
