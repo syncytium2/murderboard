@@ -21,10 +21,13 @@
 #   murderboard_roster.sh list                  print "N<TAB>title" for each role
 #   murderboard_roster.sh count                 print how many roles the process defines
 #   murderboard_roster.sh check REPORT.md       every role accounted for? (0 yes / 1 no)
+#   murderboard_roster.sh check --require-mode REPORT.md
+#                                               ...and the report must declare its Mode:
 #   murderboard_roster.sh --process PATH ...    use this process file (default: autodetect)
 #   murderboard_roster.sh --selftest            prove every branch can still fire
 #
-# EXIT CODES   0 = ok   1 = roles missing from the report   2 = could not determine
+# EXIT CODES   0 = ok   1 = roles missing, or the mode line is missing/incoherent
+#              2 = could not determine
 #
 # Project-neutral: no hardcoded consumer paths.
 
@@ -32,6 +35,7 @@ set -u
 LC_ALL=C; export LC_ALL
 
 PROCESS=
+REQUIRE_MODE=0
 
 # Where the process file lives in a consumer, relative to the repo root. First hit wins.
 PROCESS_CANDIDATES="
@@ -88,8 +92,38 @@ cmd_count() { resolve_process; roster | grep -c . ; }
 # its number in a leading/table position OR its nickname. Deliberately generous about
 # FORMAT and strict about PRESENCE: the point is to catch a silently dropped role, not to
 # dictate markdown.
+# THE MODE LINE. An eleven-of-eleven ledger says every role ran; it does not say the
+# LOOP finished. A run against a published or submitted artifact cannot repair and cannot
+# re-review, so it stops after round 1 -- and produces a report indistinguishable from a
+# complete one, because the thing that was lost is not counted anywhere. Observed: a full
+# 11-role run against a published paper, correct in every role, stopping silently at round
+# 1 of 3.
+#
+# Reported, never assumed. Absent a declaration the answer is UNDECLARED, not "standard" --
+# the discipline the freshness gate already uses, where the one verdict it may never produce
+# is a false "current". Undeclared exits 0 so every report written before this existed keeps
+# passing; --require-mode is how a project opts into enforcement.
+report_mode() {
+  local report="$1"
+  if grep -qiE '^[[:space:]]*[*_|>[:space:]]*Mode:[[:space:]]*retrospective' "$report" 2>/dev/null; then
+    printf 'retrospective\n'
+  elif grep -qiE '^[[:space:]]*[*_|>[:space:]]*Mode:[[:space:]]*standard' "$report" 2>/dev/null; then
+    printf 'standard\n'
+  else
+    printf 'undeclared\n'
+  fi
+}
+
+# Generous about wording, strict about presence -- same posture as the role check. A
+# retrospective run that does not say WHY it stopped is the failure this is here to catch:
+# it reads as a complete run to everyone downstream.
+has_stopping_reason() {
+  grep -qiE 'round[[:space:]]+[0-9]+[[:space:]]+of[[:space:]]+[0-9]+|stopping reason|repair (and re-review )?(is |are )?unavailable|cannot be (changed|repaired)|already (published|submitted)' \
+       "$1" 2>/dev/null
+}
+
 cmd_check() {
-  local report="$1" missing=0 total=0 num ttl nick
+  local report="$1" missing=0 total=0 num ttl nick mode
   resolve_process
   [ -r "$report" ] || die "murderboard_roster: cannot read report $report"
 
@@ -116,7 +150,30 @@ EOF
            "$RED" "$((total - missing))" "$total" "$missing" "$RST" >&2
     return 1
   fi
-  printf '%smurderboard: all %s roles accounted for in %s%s\n' "$GRN" "$total" "$report" "$RST"
+
+  mode=$(report_mode "$report")
+  case "$mode" in
+    retrospective)
+      if ! has_stopping_reason "$report"; then
+        printf '%smurderboard: mode is retrospective but the report states no stopping reason%s\n' \
+               "$RED" "$RST" >&2
+        printf '%s  say which round it stopped at and why repair was unavailable — otherwise\n' "$RED" >&2
+        printf '  a truncated run is indistinguishable from a complete one%s\n' "$RST" >&2
+        return 1
+      fi
+      ;;
+    undeclared)
+      if [ "$REQUIRE_MODE" = 1 ]; then
+        printf '%smurderboard: report declares no Mode: line (--require-mode)%s\n' "$RED" "$RST" >&2
+        printf '%s  add "Mode: standard" or "Mode: retrospective"; all %s roles ran, but nothing\n' "$RED" "$total" >&2
+        printf '  in the report says whether the LOOP finished%s\n' "$RST" >&2
+        return 1
+      fi
+      ;;
+  esac
+
+  printf '%smurderboard: all %s roles accounted for in %s (mode: %s)%s\n' \
+         "$GRN" "$total" "$report" "$mode" "$RST"
   return 0
 }
 
@@ -176,6 +233,42 @@ MB
 
   t 'unreadable report -> exit 2'       2 cmd_check "$tmp/nope.md"
 
+  # --- the mode line ---------------------------------------------------------
+  # BACKWARD COMPATIBILITY IS THE FIRST TEST. This gate is vendored; every report
+  # written before the mode line existed must keep passing, or the change lands as
+  # a wall of red in projects that did nothing wrong.
+  t 'undeclared mode still passes'      0 cmd_check "$tmp/full.md"
+
+  printf 'Prove It / DOI or Die / Kill Your Darlings — all clean\nMode: standard\n' > "$tmp/std.md"
+  t 'Mode: standard passes'             0 cmd_check "$tmp/std.md"
+
+  # Retrospective WITHOUT a stopping reason is the exact failure this exists to catch:
+  # a truncated run that reads as a complete one.
+  printf 'Prove It / DOI or Die / Kill Your Darlings — all clean\nMode: retrospective\n' > "$tmp/retro_bad.md"
+  t 'retrospective without a reason FAILS' 1 cmd_check "$tmp/retro_bad.md"
+
+  printf 'Prove It / DOI or Die / Kill Your Darlings — all clean\nMode: retrospective\nStopped at round 1 of 3; the artifact is published.\n' > "$tmp/retro_ok.md"
+  t 'retrospective with a reason passes' 0 cmd_check "$tmp/retro_ok.md"
+
+  # Formatting is generous on purpose -- bold, table cell, blockquote all count --
+  # because a gate that only accepts one markdown dialect gets satisfied by
+  # reformatting rather than by declaring.
+  printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n**Mode:** standard\n' > "$tmp/bold.md"
+  t 'bolded mode line is recognised'    0 cmd_check "$tmp/bold.md"
+  printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n> Mode: standard\n' > "$tmp/quoted.md"
+  t 'blockquoted mode line recognised'  0 cmd_check "$tmp/quoted.md"
+
+  REQUIRE_MODE=1
+  t '--require-mode: undeclared FAILS'  1 cmd_check "$tmp/full.md"
+  t '--require-mode: standard passes'   0 cmd_check "$tmp/std.md"
+  t '--require-mode: retrospective ok'  0 cmd_check "$tmp/retro_ok.md"
+  REQUIRE_MODE=0
+
+  # The mode must never rescue a missing role: coverage is checked first and
+  # independently, or "Mode: standard" becomes a way to buy a pass.
+  printf 'Prove It / DOI or Die — clean\nMode: standard\n' > "$tmp/short_std.md"
+  t 'declared mode does NOT excuse a missing role' 1 cmd_check "$tmp/short_std.md"
+
   # a process file with no team section must NOT pass vacuously
   printf '# nothing\n' > "$tmp/noteam.md"
   PROCESS="$tmp/noteam.md"
@@ -192,7 +285,20 @@ while [ $# -gt 0 ]; do
     --process) PROCESS="${2:-}"; shift 2 ;;
     --selftest) CMD=selftest; shift ;;
     list|count) CMD="$1"; shift ;;
-    check) CMD=check; shift; REPORT="${1:-}"; [ -n "${REPORT:-}" ] || die "usage: murderboard_roster.sh check REPORT.md"; shift ;;
+    --require-mode) REQUIRE_MODE=1; shift ;;
+    check)
+      CMD=check; shift
+      # The flag may sit either side of `check`, because both read naturally and a
+      # gate that rejects the order someone typed teaches them to stop running it.
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --require-mode) REQUIRE_MODE=1; shift ;;
+          *) break ;;
+        esac
+      done
+      REPORT="${1:-}"
+      [ -n "${REPORT:-}" ] || die "usage: murderboard_roster.sh check [--require-mode] REPORT.md"
+      shift ;;
     -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) die "murderboard_roster: unknown argument '$1'" ;;
   esac

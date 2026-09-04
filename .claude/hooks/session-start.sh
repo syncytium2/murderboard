@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# vendored from interface2 @ f0bdaab1 — do NOT edit here; update interface2 tools/session-start.hook.sh and re-copy
+# instrument: retrieval
+# CANONICAL SOURCE: syncytium2/murderboard .claude/hooks/session-start.sh — edit HERE.
+# (Was stamped "vendored from interface2 @ f0bdaab1 — do NOT edit here". CLAUDE.md has
+#  recorded both hooks as canonical in this repo since 2026-08-21; its sibling
+#  no-heredoc-source.sh was restamped then and this one was missed, so the file went on
+#  telling every reader to take their edit somewhere else.)
 # Generic SessionStart briefing — runs at every session start / resume.
 # Its stdout is injected into the session's context.
 #

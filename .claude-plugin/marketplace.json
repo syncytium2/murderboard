@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "The murderboard and the gates that keep it honest.",
-    "version": "0.1.0"
+    "version": "0.7.0"
   },
   "plugins": [
     {
       "name": "murderboard",
       "source": "./",
       "description": "An adversarial review harness for document deliverables — explainers, methods text, figures and their captions, reports, handoffs. /murderboard runs eleven reviewer roles, checks every claim against a real source rather than against the draft, and gates its own output so a run that fired 7 of 11 roles cannot pass as a clean one.",
-      "version": "0.1.0",
+      "version": "0.7.0",
       "category": "workflow",
       "license": "Apache-2.0",
       "homepage": "https://murderboard.tonydefazio.com/",
