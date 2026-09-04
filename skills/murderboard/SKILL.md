@@ -42,6 +42,16 @@ done
 for p in tools/murderboard_roster.sh murderboard_roster.sh; do
   [ -r "$root/$p" ] && ROSTER="$root/$p" && break
 done
+for p in tools/murderboard_agents.py murderboard_agents.py; do
+  [ -r "$root/$p" ] && COMPILER="$root/$p" && break
+done
+# Where the compiled agent files belong in the repo BEING REVIEWED. Claude Code scans
+# `.claude/agents/` recursively, so the eleven go in a subdirectory this tool owns — writing
+# them loose into the shared directory is how an earlier version deleted a consumer's own
+# subagents. Ask the compiler rather than reproducing its rule here; it detects the
+# murderboard's own checkout by plugin NAME, since any consumer may publish a plugin too.
+AGENTDIR=$(python3 "$COMPILER" --print-dir 2>/dev/null) \
+  || AGENTDIR="$root/.claude/agents/murderboard"
 
 # Nothing vendored here — fall back to the plugin install. $CLAUDE_PLUGIN_ROOT is set when
 # this skill came from a plugin, but do not rely on it reaching the shell: glob the install
@@ -58,9 +68,11 @@ if [ -z "${PROCESS:-}" ]; then
     PROCESS="$MB/doc_review_process.md"
     FRESH="$MB/murderboard_freshness.sh"
     ROSTER="$MB/murderboard_roster.sh"
+    COMPILER="$MB/murderboard_agents.py"
+    AGENTDIR="$MB/agents"      # the plugin ships them already compiled
   fi
 fi
-echo "mode=$MODE process=${PROCESS:-NONE}"
+echo "mode=$MODE process=${PROCESS:-NONE} agents=${AGENTDIR:-NONE}"
 ```
 
 If `$PROCESS` is missing, **stop** and say the repo has neither vendored the murderboard nor
@@ -125,6 +137,47 @@ bash "$ROSTER" count
 Spawn **one subagent per row returned**, no fewer. The roster is derived from the process
 file, so when upstream adds role 12 every consumer picks it up without editing this skill.
 
+### 4a. Compile the specialists, then spawn them BY NAME
+
+Each role has its own agent file — frontmatter, its own checklist, and the tool grant the
+process file gives it — compiled out of `$PROCESS`. Bring them up to date first; a stale
+agent file is a reviewer running last month's checklist:
+
+```bash
+if [ -n "${COMPILER:-}" ]; then
+  python3 "$COMPILER" --process "$PROCESS" --dir "$AGENTDIR" check \
+    || python3 "$COMPILER" --process "$PROCESS" --dir "$AGENTDIR" write
+  python3 "$COMPILER" --process "$PROCESS" --dir "$AGENTDIR" list   # N<TAB>agent-name<TAB>path
+fi
+```
+
+Then spawn each row's `agent-name` as the subagent type. **If the named agent does not
+resolve**, fall back to spawning a generic subagent whose prompt is **the contents of that
+role's agent file**, and if there is no agent file either, the role's block from `$PROCESS`.
+
+**Expect the fallback on a repo's FIRST run, always.** Claude Code watches the agent
+directories and picks up edits within seconds with no restart — but only for directories that
+existed when the session started. Compiling the first time creates that directory, so nothing
+watches it yet and the named agents cannot resolve until the session restarts. That is not a
+failure; it is the first run. Say so in the record, and tell the human a restart converts
+subsequent runs to named agents.
+
+⚠ **Path 3 cannot satisfy the grants gate.** A role's block in `$PROCESS` carries its checklist
+but not the grant-declaration instruction, which the compiler injects. A role spawned that way
+emits no `GRANT` line and step 7's `verify` will report it as undeclared — correctly. Prefer
+path 2 whenever an agent file exists.
+
+**Say which path you used in the run record.** The fallback does not merely lose a grant — a
+generic subagent inherits whatever the harness hands it, which is sometimes *more* than the
+process file allows, including the editing tools no reviewer may have. So `roles:` in the
+header takes a suffix: `11 of 11 run (named agents)` or `11 of 11 run (inline fallback)`.
+
+**You do not have to take that on trust, and neither does the reader.** Every agent file tells
+its role to open with `GRANT <n> ok — <tools held>` or `GRANT <n> MISMATCH — …`. Carry those
+lines into the role ledger verbatim; step 7 gates the header against them. A `MISMATCH` is not
+a failed run — a fallback review is a real review — it just may not be written up as something
+else.
+
 Scale to stakes in *how* you run them, never in *which* ones:
 
 - **Substantial deliverable** (methods, manuscript, explainer, deck, multi-paragraph report)
@@ -165,7 +218,7 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - copy:      vendored | installed @ <sha>        # from step 0/1 — say WHICH, and at what
 - freshness: current | UNDETERMINED
 - artifact:  <path> (<hash before> -> <hash after>)
-- roles:     <n> of <n> run
+- roles:     <n> of <n> run (named agents | inline fallback)   # from step 4a
 - rounds:    <n> blind verify rounds to clean
 ```
 
@@ -176,12 +229,36 @@ adjudications, and any residual `⚠` the human must resolve.
 Finally, gate your own output:
 
 ```bash
-bash "$ROSTER" check docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md ; echo "exit=$?"
+REPORT=docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md
+bash "$ROSTER" check "$REPORT" ; echo "roster=$?"
+[ -n "${COMPILER:-}" ] && python3 "$COMPILER" --process "$PROCESS" verify "$REPORT" ; echo "grants=$?"
 ```
 
-**exit 1 means a role is missing from the ledger — the run is not finished.** Either that role
-never ran (run it) or it ran and left no trace (record it). Do not deliver past a failing
+**roster exit 1 means a role is missing from the ledger — the run is not finished.** Either that
+role never ran (run it) or it ran and left no trace (record it). Do not deliver past a failing
 check; a report that cannot show all its roles is the failure mode this skill was built for.
+
+**grants exit 1 means the report does not account for what its reviewers said they held.** Four
+shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are
+not the ones the process file grants it (naming none at all is this case, not a lesser one); a
+role declared **both** `ok` and `MISMATCH`; or the header claims `named agents` while a role
+reported `MISMATCH`. The two gates ask different questions and neither substitutes for the
+other: the roster asks *did every role leave a trace*, this asks *did every role state what it
+held*. Fix the header or re-run with the grants in place; do not delete the `GRANT` lines to
+make it green.
+
+**A contradiction is reported, never resolved.** If one role declared both verdicts the gate
+will not pick one — last-wins is how an honest `MISMATCH` used to launder into `ok`, since every
+agent file carries the literal string `GRANT n ok — <its tools>` and a report that quotes its own
+agent files is the most thorough one anyone would write. If a quotation supplied the second
+verdict, break the quotation. Otherwise state, once, what the reviewer actually reached.
+
+⚠ **What this gate still does NOT do, stated because the wording here has twice claimed more
+than was true.** It reads a report. It cannot tell you a declaration is *honest*: a reviewer
+that types its granted tools back without ever holding them passes, and so does one that could
+not perform its check. It proves that every role said what it held and that what it said matches
+the grant it was issued — not that the tools were there. Containment and equipment are enforced
+where the agent is spawned, not here.
 
 ## What to hand the human
 

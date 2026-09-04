@@ -126,6 +126,8 @@ tools/murderboard_prose.sh
 murderboard_prose.sh
 tools/murderboard_revendor.py
 murderboard_revendor.py
+tools/murderboard_agents.py
+murderboard_agents.py
 .claude/hooks/require-commit-before-message.sh
 tools/require_commit_before_message.sh
 require_commit_before_message.sh

@@ -3,7 +3,8 @@
 This repo is the canonical source of the **murderboard**: an anti-slop review process
 (`doc_review_process.md`), a literature tool (`fetch_paper.py`), four gates that keep the
 process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`, `murderboard_prose.sh`,
-`require_commit_before_message.sh`), and the call-up skill
+`require_commit_before_message.sh`), a team compiler that turns the process file's roles into
+one agent file each (`murderboard_agents.py` → `agents/`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 
@@ -20,6 +21,23 @@ that must not depend on being remembered. A new **rule** goes in the process fil
 that would otherwise be skipped goes in the skill. Putting a rule in the skill hides it from
 consumers who read the process directly; putting call-up mechanics in the process file is how
 they ended up as prose in the first place.
+
+**Anything here that writes into a directory it does not own may remove only what it can prove
+it wrote.** `.claude/agents/` and `.claude/skills/` belong to the consumer's repo, not to us;
+`murderboard_agents.py` may only unlink files carrying its own generated banner, and a file it
+cannot read is never a file it may delete. This is not hypothetical — the first version of that
+sweep deleted a consumer's own subagents, and two green selftest assertions were describing the
+deletion as correct (`doc_review_process.md` appendix, 2026-08-28). Any future tool that writes
+outside this repo inherits the rule: prove ownership from the file's **content**, never from its
+name or its location.
+
+**`agents/` is compiled output — never edit a file in it.** `murderboard_agents.py` slices the
+process file's role blocks and its *"what each role must be able to reach"* table into one agent
+file per role. Change a role's checklist, its nickname, or the tools it may reach **in
+`doc_review_process.md`**, then run `python3 murderboard_agents.py write`. A hand-edit to
+`agents/*.md` is a second copy of a rule and `tests/agents_generated_test.py` fails on it — the
+same drift that cost this repo two copies of the published page, except here it silently changes
+what a reviewer actually checks while the document consumers read still says the old thing.
 
 ## If you are working IN this repo
 
@@ -115,9 +133,22 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one. Run `tools/murderboard_prose.sh <artifact>` and **paste its output into
-> role 5** — that half of the role is a search, and a search nobody ran reads exactly like a
-> search that came back empty. **Every artifact this produces is ours and stays here** — the
+> pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a report
+> that does not carry a grant declaration for every role, naming the tools that role was granted,
+> cannot pass as one that does. The two ask different questions: *did every role leave a trace*
+> and *did every role state what it held*. `verify` set-compares each `ok` against the grants
+> table, so `GRANT n ok — nothing whatsoever` fails; and it refuses a report that declares both
+> verdicts for one role rather than picking one. ⚠ **It still cannot tell you a declaration is
+> honest** — a reviewer that types its granted tools back without holding them passes, and no
+> report-reading gate can catch that. Run `tools/murderboard_prose.sh <artifact>` too and
+> **paste its output into role 5** — that half of the role is a search, and a search nobody ran
+> reads exactly like a search that came back empty. The reviewers live in
+> `.claude/agents/murderboard/` — a directory the compiler owns, so it can never remove a
+> subagent of yours — **compiled** from the
+> process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run
+> `python3 tools/murderboard_agents.py write` after every re-vendor, or your reviewers
+> keep running the checklists they had before while the freshness gate reports current.
+> **Every artifact this produces is ours and stays here** — the
 > corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
 > the process comes from, never where our reviews go.
 

@@ -1,7 +1,7 @@
 {
   "name": "murderboard",
   "description": "An adversarial review harness for document deliverables. /murderboard runs eleven reviewer roles against a draft, checks every claim against a real source, and gates its own output so a run that skipped a role cannot pass as a clean one.",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "author": {
     "name": "Tony DeFazio",
     "url": "https://github.com/syncytium2"

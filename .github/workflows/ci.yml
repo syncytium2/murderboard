@@ -75,6 +75,71 @@ jobs:
       - name: no-heredoc hook, both modes
         run: bash tests/no_heredoc_hook_test.sh
 
+      # agents/ is COMPILED from doc_review_process.md. A hand-edited agent file is a
+      # second copy of a rule: the reviewer that actually runs checks one thing while
+      # the document every consumer reads, vendors and cites says another, and nothing
+      # in the report shows it. Regenerate and diff. Run on BOTH platforms with the
+      # other gates -- the compiler parses the same headings the BSD/GNU-sensitive
+      # roster parses, and the two must not disagree about who is on the team.
+      - name: agent files are generated, and agree with the process file
+        run: |
+          python3 murderboard_agents.py --selftest
+          python3 tests/agents_generated_test.py
+
+      # THE GRANTS GATE HAS TO RUN ON SOMETHING, or it is a gate that ships and never
+      # fires -- the exact shape this repo keeps finding in other people's tooling.
+      # `--selftest` above proves the gate can fail on fixtures; this proves it passes
+      # on the real records committed here.
+      #
+      # FOUR RECORDS ARE EXEMPT, NAMED ONE BY ONE rather than matched by a pattern, so
+      # adding a fifth is a visible decision in a diff and not a silent widening.
+      #
+      #   The 08-24, 08-25 and 08-26 records PREDATE the convention. They were written
+      #   before reviewers declared grants at all, so they carry no `GRANT n` lines and
+      #   cannot be made to. Rewriting them to pass would be inventing a declaration
+      #   nobody made -- which is the defect the gate exists to catch, committed by the
+      #   gate's own author to get a green check.
+      #
+      #   agents-roster_..._2026-08-27.md is DIFFERENT and is exempt for the opposite
+      #   reason: it declares grants and FAILS. All eleven reviewers reported MISMATCH
+      #   under a header claiming `named agents`; role 1 declared `GRANT 1 ok -- nothing
+      #   whatsoever` beside its own MISMATCH. That record is this branch's evidence
+      #   that the defect is real and was observed, not theorised. Repairing it would
+      #   delete the finding, and the mode vocabulary still has no term for what
+      #   actually happened -- reviewers that WERE named agents whose grants did not
+      #   take effect. Writing "fallback" there would be a second false claim.
+      #
+      # So the exemption is by name and stated, never by pretending any of them pass.
+      - name: committed run records account for their reviewers' grants
+        run: |
+          rc=0; checked=0
+          for f in docs/reviews/*.md; do
+            case "$(basename "$f")" in
+              explainer-outside-review-2026-08-24.md|\
+              explainer_murderboard_2026-08-25.md|\
+              plugin_adoption_docs_murderboard_2026-08-26.md|\
+              agents-roster_murderboard_2026-08-27.md)
+                echo "skip   $(basename "$f")  (exempt, see the comment above)"
+                continue ;;
+            esac
+            echo "verify $(basename "$f")"
+            checked=$((checked + 1))
+            python3 murderboard_agents.py verify "$f" || rc=1
+          done
+          # CAN THIS ALARM RING? Every record committed today is exempt, so as written
+          # this step verifies NOTHING and would stay green if `verify` were deleted.
+          # That is the repo's own rule turned on this step, and it is stated out loud
+          # rather than left for someone to notice: the exemptions are the entire set,
+          # and the first run record written after this lands is what makes it real.
+          # `--selftest` above is what proves the gate can fail meanwhile.
+          if [ "$checked" -eq 0 ]; then
+            echo "::warning::verified 0 run records — every committed record is exempt."
+            echo "::warning::This step is a placeholder until a post-gate record lands."
+          else
+            echo "verified $checked record(s)"
+          fi
+          exit $rc
+
       - name: portable prompt generator --selftest
         run: bash murderboard_prompt.sh --selftest
 
@@ -108,7 +173,19 @@ jobs:
     name: fetch_paper.py
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0, NOT the default 1. The version-bump step below diffs
+      # base...HEAD, and three dots needs a MERGE BASE. A shallow checkout plus a
+      # shallow fetch of the base commit gives two unrelated roots, so git exits 128
+      # with "no merge base" and the step dies -- a gate that crashes instead of
+      # returning a verdict, which is worse than one that fails, because a red X on
+      # an unrelated-looking job is where people stop reading.
+      #
+      # The fix is history, not two dots. `git diff base HEAD` needs no merge base but
+      # answers a different question: it reports files main changed and this branch did
+      # not, so the gate would demand a version bump for someone else's commit.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'   # the oldest a consumer is likely to drop it on
