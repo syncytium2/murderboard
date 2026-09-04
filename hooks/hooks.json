@@ -13,7 +13,16 @@
     "",
     "--hook never touches the network: it serves a cached verdict and refreshes detached, so",
     "session startup is never blocked on a lookup. --plugin reads the commit Claude Code",
-    "recorded for this install; with no answer it exits 2 and says nothing."
+    "recorded for this install; with no answer it exits 2 and says nothing.",
+    "",
+    "STILL ONE HOOK, and murderboard_subagents.sh --hook is the candidate that was weighed and",
+    "left out rather than forgotten. It is fast, offline, and silent unless it finds a blocker",
+    "-- but the blocker it finds lives in the USER's own settings, so an install would announce",
+    "it at the start of every session in every project, including the many where nobody intends",
+    "to run a review. The place that question needs answering is immediately before a run, and",
+    "the skill's step 1a asks it there by spawning a probe -- which needs no wiring and is the",
+    "stronger check anyway, since it exercises the capability instead of reading files. A repo",
+    "that reviews often can wire the scan itself; see the README."
   ],
   "hooks": {
     "SessionStart": [

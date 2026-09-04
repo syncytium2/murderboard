@@ -23,10 +23,12 @@
 #   murderboard_roster.sh check REPORT.md       every role accounted for? (0 yes / 1 no)
 #   murderboard_roster.sh check --require-mode REPORT.md
 #                                               ...and the report must declare its Mode:
+#   murderboard_roster.sh check --require-execution REPORT.md
+#                                               ...and the report must declare its Execution:
 #   murderboard_roster.sh --process PATH ...    use this process file (default: autodetect)
 #   murderboard_roster.sh --selftest            prove every branch can still fire
 #
-# EXIT CODES   0 = ok   1 = roles missing, or the mode line is missing/incoherent
+# EXIT CODES   0 = ok   1 = roles missing, or a mode/execution line is missing or incoherent
 #              2 = could not determine
 #
 # Project-neutral: no hardcoded consumer paths.
@@ -36,6 +38,7 @@ LC_ALL=C; export LC_ALL
 
 PROCESS=
 REQUIRE_MODE=0
+REQUIRE_EXECUTION=0
 
 # Where the process file lives in a consumer, relative to the repo root. First hit wins.
 PROCESS_CANDIDATES="
@@ -122,8 +125,71 @@ has_stopping_reason() {
        "$1" 2>/dev/null
 }
 
+# THE EXECUTION LINE. The mode line above records whether the LOOP finished. This one
+# records whether there was ever more than one reviewer, which the ledger also cannot show.
+#
+# The process runs a substantial deliverable as parallel subagents and permits a single-pass
+# self-review for a small one. Between those two sentences is a hole: when the Agent tool is
+# unavailable -- denied by a permission rule, withheld by a launch flag, forbidden by an
+# instruction, or absent because the session is already inside a subagent -- a run FALLS BACK
+# into the mode the process already sanctions. Eleven roles still appear, each with real
+# findings; this gate and the grants gate both still pass. What is lost is the independence,
+# and nothing counts independence.
+#
+# Observed here: docs/reviews/plugin_adoption_docs_murderboard_2026-08-26.md, a full 11-role
+# run in which one reviewer played all eleven parts. It says so only because its author chose
+# to write a "Stated deviation" section. A disclosure that depends on being volunteered is
+# the prose this repo keeps converting into gates.
+#
+# Same posture as the mode line, for the same reason: undeclared exits 0 so every report
+# written before this existed keeps passing, and --require-execution is how a project opts in.
+execution_line() {
+  grep -iE '^[[:space:]]*[*_|>[:space:]]*Execution:' "$1" 2>/dev/null | head -1
+}
+
+report_execution() {
+  local line
+  line=$(execution_line "$1")
+  if [ -z "$line" ]; then printf 'undeclared\n'; return; fi
+  # SINGLE-PASS IS TESTED FIRST, and the order is the whole correctness of this function.
+  # The honest way to write the degraded case names the thing that did not happen --
+  # "single-pass, no parallel fan-out" -- so a subagents-first test reads a confession as
+  # a boast. Whenever both appear, the narrower claim is the true one.
+  case "$(printf '%s' "$line" | tr 'A-Z' 'a-z')" in
+    *single-pass*|*single\ pass*|*self-review*|*self\ review*|*one-pass*) printf 'single-pass\n' ;;
+    *sub-agent*|*subagent*|*parallel*|*fan-out*|*fanout*) printf 'subagents\n' ;;
+    # A line that EXISTS and names neither is not the same as no line at all. Absence is
+    # backward compatibility; an unparseable claim is a live assertion nobody can check, so
+    # it fails whether or not enforcement was opted into.
+    *) printf 'unrecognized\n' ;;
+  esac
+}
+
+# A single-pass run must say WHICH KIND it was, because the two are not the same event:
+# CHOSEN is the process working as designed on a one-line deliverable, and FORCED is an
+# environment defect that will silently recur on every run until somebody fixes it. A report
+# that says only "single-pass" leaves the reader to assume the first, which is the assumption
+# that costs nothing to make and everything to be wrong about.
+#
+# SCOPED TO THE DECLARATION LINE, not the report. Searching the whole document for words
+# like "chosen" or "blocked" would pass on essentially every report ever written -- those
+# words appear in ordinary finding prose -- and a check that cannot fail is the defect this
+# file exists to name. The reason has to be ON the line that makes the claim, which is also
+# what the failure message asks for.
+execution_cause() {
+  local line
+  line=$(execution_line "$1")
+  if printf '%s' "$line" | grep -qiE 'unavailable|not available|could not|cannot|denied|blocked|refused|forbidden|not permitted|disabled|no agent tool|probe failed|without subagents'; then
+    printf 'forced\n'
+  elif printf '%s' "$line" | grep -qiE 'chose|chosen|by choice|deliberate|small|one-liner|single sentence|caption|short'; then
+    printf 'chosen\n'
+  else
+    printf 'unstated\n'
+  fi
+}
+
 cmd_check() {
-  local report="$1" missing=0 total=0 num ttl nick mode
+  local report="$1" missing=0 total=0 num ttl nick mode execution cause
   resolve_process
   [ -r "$report" ] || die "murderboard_roster: cannot read report $report"
 
@@ -172,8 +238,39 @@ EOF
       ;;
   esac
 
-  printf '%smurderboard: all %s roles accounted for in %s (mode: %s)%s\n' \
-         "$GRN" "$total" "$report" "$mode" "$RST"
+  execution=$(report_execution "$report")
+  case "$execution" in
+    single-pass)
+      cause=$(execution_cause "$report")
+      if [ "$cause" = unstated ]; then
+        printf '%smurderboard: execution is single-pass but the report does not say why%s\n' \
+               "$RED" "$RST" >&2
+        printf '%s  say whether subagents were UNAVAILABLE (an environment defect that will\n' "$RED" >&2
+        printf '  recur) or single-pass was CHOSEN for a small deliverable. Unqualified, it\n' >&2
+        printf '  reads as the second, which is the reading that costs nothing to assume%s\n' "$RST" >&2
+        return 1
+      fi
+      execution="single-pass ($cause)"
+      ;;
+    unrecognized)
+      printf '%smurderboard: the Execution: line names neither subagents nor single-pass%s\n' "$RED" "$RST" >&2
+      printf '%s  it is a claim nobody can check; write "Execution: parallel subagents" or\n' "$RED" >&2
+      printf '  "Execution: single-pass (<why>)"%s\n' "$RST" >&2
+      return 1
+      ;;
+    undeclared)
+      if [ "$REQUIRE_EXECUTION" = 1 ]; then
+        printf '%smurderboard: report declares no Execution: line (--require-execution)%s\n' "$RED" "$RST" >&2
+        printf '%s  all %s roles ran, but nothing says whether there was ever more than one\n' "$RED" "$total" >&2
+        printf '  reviewer. Eleven roles played by one agent is a real review and a weaker\n' >&2
+        printf '  adversary, and the report cannot currently tell them apart%s\n' "$RST" >&2
+        return 1
+      fi
+      ;;
+  esac
+
+  printf '%smurderboard: all %s roles accounted for in %s (mode: %s, execution: %s)%s\n' \
+         "$GRN" "$total" "$report" "$mode" "$execution" "$RST"
   return 0
 }
 
@@ -264,6 +361,66 @@ MB
   t '--require-mode: retrospective ok'  0 cmd_check "$tmp/retro_ok.md"
   REQUIRE_MODE=0
 
+  # --- the execution line ----------------------------------------------------
+  # Backward compatibility first, for the same reason as the mode line: this file is
+  # vendored, and a change that reddens every existing report in a consumer that did
+  # nothing wrong gets the gate removed rather than the reports fixed.
+  t 'undeclared execution still passes' 0 cmd_check "$tmp/full.md"
+
+  local roles='Prove It / DOI or Die / Kill Your Darlings — all clean'
+  printf '%s\nExecution: parallel subagents, one per role\n' "$roles" > "$tmp/exec_sub.md"
+  t 'Execution: subagents passes'       0 cmd_check "$tmp/exec_sub.md"
+
+  # A bare "single-pass" is the failure this exists to catch: it reads as the chosen
+  # case, and the forced case is the one that will happen again tomorrow.
+  printf '%s\nExecution: single-pass\n' "$roles" > "$tmp/exec_bare.md"
+  t 'single-pass with no cause FAILS'   1 cmd_check "$tmp/exec_bare.md"
+
+  printf '%s\nExecution: single-pass — subagents were unavailable in this session\n' "$roles" > "$tmp/exec_forced.md"
+  t 'single-pass (forced) passes'       0 cmd_check "$tmp/exec_forced.md"
+
+  printf '%s\nExecution: single-pass — chosen, the deliverable is a one-liner\n' "$roles" > "$tmp/exec_chosen.md"
+  t 'single-pass (chosen) passes'       0 cmd_check "$tmp/exec_chosen.md"
+
+  # A line that exists and says nothing checkable is worse than no line: it looks like
+  # a declaration. It fails WITHOUT --require-execution, unlike a missing line.
+  printf '%s\nExecution: yes\n' "$roles" > "$tmp/exec_junk.md"
+  t 'unrecognized execution FAILS'      1 cmd_check "$tmp/exec_junk.md"
+
+  printf '%s\n**Execution:** parallel subagents\n' "$roles" > "$tmp/exec_bold.md"
+  t 'bolded execution line recognised'  0 cmd_check "$tmp/exec_bold.md"
+
+  # NEGATIVE CONTROLS for two defects this function shipped with for an hour.
+  #
+  # A line naming both modes is a confession, not a boast: the honest way to write the
+  # degraded case is to name the thing that did not happen. Tested first-match-wins the
+  # wrong way round, this passed as "subagents".
+  printf '%s\nExecution: single-pass, no parallel fan-out — subagents were unavailable\n' "$roles" > "$tmp/exec_both.md"
+  if [ "$(report_execution "$tmp/exec_both.md")" = single-pass ]; then
+    pass=$((pass+1)); printf '  ok   a line naming both modes reads as single-pass\n'
+  else
+    fail=$((fail+1)); printf '  %sFAIL%s a line naming both modes read as subagents\n' "$RED" "$RST"
+  fi
+
+  # The cause must come from the DECLARATION, not from anywhere in the report. Searching
+  # the whole file for "chosen" passes on ordinary finding prose, and a bare declaration
+  # then buys a pass off a word it never said.
+  printf '%s\nExecution: single-pass\n\nF1: the wording chosen here overstates the result.\n' "$roles" > "$tmp/exec_leak.md"
+  t 'a bare declaration cannot borrow a cause from the body' 1 cmd_check "$tmp/exec_leak.md"
+
+  REQUIRE_EXECUTION=1
+  t '--require-execution: undeclared FAILS' 1 cmd_check "$tmp/full.md"
+  t '--require-execution: subagents ok'     0 cmd_check "$tmp/exec_sub.md"
+  t '--require-execution: forced ok'        0 cmd_check "$tmp/exec_forced.md"
+  REQUIRE_EXECUTION=0
+
+  # Neither declaration may rescue a missing role, and the two must not rescue each
+  # other: coverage is checked first, then mode, then execution, independently.
+  printf 'Prove It / DOI or Die — clean\nExecution: parallel subagents\n' > "$tmp/short_exec.md"
+  t 'declared execution does NOT excuse a missing role' 1 cmd_check "$tmp/short_exec.md"
+  printf '%s\nMode: retrospective\nExecution: parallel subagents\n' "$roles" > "$tmp/retro_exec.md"
+  t 'a good execution line does NOT excuse a missing stopping reason' 1 cmd_check "$tmp/retro_exec.md"
+
   # The mode must never rescue a missing role: coverage is checked first and
   # independently, or "Mode: standard" becomes a way to buy a pass.
   printf 'Prove It / DOI or Die — clean\nMode: standard\n' > "$tmp/short_std.md"
@@ -286,6 +443,7 @@ while [ $# -gt 0 ]; do
     --selftest) CMD=selftest; shift ;;
     list|count) CMD="$1"; shift ;;
     --require-mode) REQUIRE_MODE=1; shift ;;
+    --require-execution) REQUIRE_EXECUTION=1; shift ;;
     check)
       CMD=check; shift
       # The flag may sit either side of `check`, because both read naturally and a
@@ -293,11 +451,12 @@ while [ $# -gt 0 ]; do
       while [ $# -gt 0 ]; do
         case "$1" in
           --require-mode) REQUIRE_MODE=1; shift ;;
+          --require-execution) REQUIRE_EXECUTION=1; shift ;;
           *) break ;;
         esac
       done
       REPORT="${1:-}"
-      [ -n "${REPORT:-}" ] || die "usage: murderboard_roster.sh check [--require-mode] REPORT.md"
+      [ -n "${REPORT:-}" ] || die "usage: murderboard_roster.sh check [--require-mode] [--require-execution] REPORT.md"
       shift ;;
     -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) die "murderboard_roster: unknown argument '$1'" ;;

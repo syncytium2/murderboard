@@ -35,6 +35,15 @@ is the only reason it was noticed.
 - roles:     11 of 11 run
 - rounds:    3 (draft → findings applied → blind re-check → F3 reopened and fixed)
 
+Execution: single-pass (subagents unavailable — see *Stated deviation*)
+
+> **This line was added on 2026-09-04, and the run itself is unchanged.** The `Execution:`
+> declaration did not exist when this record was written; the deviation below did, because its
+> author chose to write it. That is exactly the argument for the field — the disclosure was
+> real, voluntary, and invisible to every gate — so this record is annotated rather than left
+> as the one worked example of the problem with no instance of the fix. Nothing else here has
+> been touched.
+
 ### Stated deviation
 
 **Run as a single-pass review walking every role in turn, not as eleven parallel subagents.**

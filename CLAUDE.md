@@ -3,8 +3,11 @@
 This repo is the canonical source of the **murderboard**: an anti-slop review process
 (`doc_review_process.md`), a literature tool (`fetch_paper.py`), four gates that keep the
 process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`, `murderboard_prose.sh`,
-`require_commit_before_message.sh`), a team compiler that turns the process file's roles into
-one agent file each (`murderboard_agents.py` → `agents/`), and the call-up skill
+`require_commit_before_message.sh`), a preflight that is pointedly *not* a gate
+(`murderboard_subagents.sh` — it reports what is blocking subagents in the files it can read,
+and says on every run, including its clean one, that a scan cannot answer the question), a
+team compiler that turns the process file's roles into one agent file each
+(`murderboard_agents.py` → `agents/`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 
@@ -132,8 +135,17 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > what you can't reach. Vendored from `syncytium2/murderboard` — put
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
-> `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a report
+> `tools/murderboard_roster.sh check --require-execution <report>` on the finished report so a
+> dropped role cannot pass as a clean one, **and so a run that could not spawn subagents cannot
+> pass as one that chose not to** — eleven roles played by the agent that wrote the draft
+> produce the same eleven ledger rows as eleven independent reviewers, and are a much weaker
+> adversary at role 4, where the attacker is otherwise the author. The skill settles that
+> before a run by spawning a probe subagent and requiring an answer; if it fails,
+> `tools/murderboard_subagents.sh --explain` names the blockers that are visible on disk (a
+> `permissions.deny` rule, an allow-list without `Task`, a CLAUDE.md line forbidding subagents)
+> so allowing them is one edit. ⚠ **That scan's exit 0 is not an all-clear** — a launch flag or
+> an instruction injected at runtime is invisible to it, which is how the one degraded run on
+> record happened — and `tools/murderboard_agents.py verify <report>` goes beside it, so a report
 > that does not carry a grant declaration for every role, naming the tools that role was granted,
 > cannot pass as one that does. The two ask different questions: *did every role leave a trace*
 > and *did every role state what it held*. `verify` set-compares each `ok` against the grants

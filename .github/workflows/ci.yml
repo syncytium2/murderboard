@@ -169,6 +169,30 @@ jobs:
       - name: prose gate --selftest
         run: bash murderboard_prose.sh --selftest
 
+      # The subagent preflight is the one tool here that is NOT a gate -- it reports what it
+      # can read and says on every run that a clean scan proves nothing. That makes its
+      # selftest more important, not less: the branch most likely to rot is the one that
+      # reports a blocker, and nothing downstream would notice if it stopped firing. The
+      # suite includes the clean case asserting the caveat is still printed, because the
+      # clean line is the sentence most likely to be quoted back as an all-clear.
+      - name: subagent preflight --selftest
+        run: bash murderboard_subagents.sh --selftest
+
+      # It also has to survive being pointed at THIS repo, which the fixtures cannot prove:
+      # every fixture is a directory this test wrote. Exit 0 or 1 are both fine (the answer
+      # depends on the runner); 2 means it could not read something it should have, and any
+      # other code means it crashed.
+      - name: subagent preflight runs against a real checkout
+        run: |
+          set +e
+          bash murderboard_subagents.sh --explain; rc=$?
+          set -e
+          echo "exit=$rc"
+          case "$rc" in
+            0|1) ;;
+            *) echo "::error::preflight exited $rc against this checkout"; exit 1 ;;
+          esac
+
   python:
     name: fetch_paper.py
     runs-on: ubuntu-latest
