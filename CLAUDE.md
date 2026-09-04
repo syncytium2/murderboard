@@ -38,6 +38,27 @@ they ended up as prose in the first place.
   in the core — the calcium-imaging origin lives only in the appendix of
   `doc_review_process.md` and in explicit back-compat branches of `fetch_paper.py`
   (`IF2_LIT`/`IF2_PAPERS`, the `01-lit` autodetect). New machinery is env-driven.
+- **The admission test, for anything proposed for this repo: _does a stranger reviewing a
+  document need this?_** Not "is it good", not "did it solve a real problem here" — both can
+  be true of something that has no business shipping to consumers.
+  **This repo is a document-review process. It is not the toolchain of the estate that
+  wrote it.** The distinction is invisible from the inside, which is why it needs a written
+  test: proposals arrive from sessions where the private repo resolves, the shared folder
+  exists, and the jargon is ordinary — so a thing that fails this test looks obviously
+  correct to everyone who can see it.
+  *Worked example, refused 2026-09-04:* a `PostToolUse` gate for `SendUserFile`, which
+  returns success and delivers nothing in the VS Code extension
+  ([claude-code#76739](https://github.com/anthropics/claude-code/issues/76739)). Real bug,
+  correctly diagnosed, working code, two sessions recommending it. **It fixes a Claude Code
+  defect, not a review defect**, its remedy was a folder convention private to this estate,
+  and its docstring cited seven repos of which six 404 for a stranger. A researcher
+  murderboarding a methods section would have inherited a hook firing on a tool they never
+  use, naming a directory that does not exist.
+  Weigh the ratio too, not just each addition: the vendored set is **~4,500 lines, of which
+  ~2,000 are the freshness gate and the re-vendor tool** — machinery for keeping the copy
+  current rather than for reviewing anything. That is defensible (a stale copy silently
+  omits rules already paid for) and it is also the shape of a tool optimising for its own
+  distribution. Every further addition makes adoption more expensive.
 - `fetch_paper.py` has no external dependencies beyond the standard library (+ optional
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
 - **`docs/index.html` loads nothing over the network** — no webfont, no script, no analytics,
