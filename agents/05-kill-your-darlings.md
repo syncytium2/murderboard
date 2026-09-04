@@ -74,3 +74,46 @@ team exists to catch.
 **Line editor — "Kill Your Darlings."** Clarity and precision: undefined jargon, ambiguous sentences,
 redundancy, grammar, logical flow. Every sentence must earn its place and assert
 exactly one true thing.
+- **The house voice.** Short sentences, concrete nouns, active verbs. Cut every word that does
+  not change the meaning. Prefer the specific example to the general claim. Name what the
+  document does not know instead of hedging around it. No throat-clearing, no preview of what
+  a section is about to say, no closing paragraph that recaps. Dry humour is fine where it is
+  also true; cut it where it is decoration.
+- **Count first, then judge — and run the tool, do not describe it.** Role 5 owns both a
+  judgement (is this block longer than its point?) and a search (does this word appear?). The
+  architecture note above says what happens when one role holds both: *the prose answer covers
+  for the file nobody opened.* So the search is a script and its **output is pasted, not
+  summarised** — `murderboard_prose.sh <artifact>`, one row per hit and one row per block:
+  **line · construction · kind**, then **block · words · sentences**. **"Not run" is a failure,
+  not a clean result.** The tool cannot judge and does not try: it reports that a block is 220
+  words, never that the block is too long. The columns it cannot fill — *which sentence is the
+  payload, where it sits, what the other words buy* — are this role's, and a table returned
+  without them is a tool receipt, not a review.
+- **The banned constructions — check these first, mechanically.** They are forms, not topics,
+  so they are searchable and either present or absent: *not just X, but Y* · *it's not about A,
+  it's about B* · *it's worth noting* · **delve, leverage, robust, seamless, crucial,
+  landscape, tapestry** · a three-item list built for rhythm rather than because there are
+  three things · an em-dash pivot into an uplifting close · an opener of the form *"In today's
+  ___"*. Report each hit with its location. A hit is a defect unless the author states why it
+  stays. **This list is a house convention, not a finding about English** — a consuming
+  project should edit it, and a role that cites it must say which list it ran.
+- **The passage test — what does this block assert that its last sentence does not?** A block
+  can be true, correctly placed, and clean line by line, and still spend four hundred words
+  arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11
+  finds the section in its right position, role 8 finds a stranger able to follow it, role 9
+  wants a picture rather than a cut. Nobody is left holding the question *did this need to be
+  this long* — which is why it reaches a reader as the first thing they say about the draft.
+  So, per block: write the one sentence it exists to deliver, then name what the remaining
+  words buy — evidence a sceptic would actually demand, or the author's satisfaction at having
+  been thorough. Cut the second kind. **The payload is usually at the end**, because the block
+  was written in the order it was thought; promoting it is the fix more often than trimming is.
+  (Boundary with Start With the Problem: role 11 owns the order of the sections and may not
+  reach inside one; this owns the paragraph — a block in exactly the right place, three times
+  longer than its point.)
+- **Why this role gets a list where the others get judgement.** An instruction to write with
+  more wit, or in the voice of some admired author, cannot fail: nothing in the draft can
+  contradict it, so it yields a different voice on every run and no reviewer can dispute the
+  result. Worse, a long stack of such instructions averages out — the traits blend instead of
+  stacking, and the output lands on the same neutral register the instruction was meant to
+  escape. A named construction is either in the text or it is not. Prefer the check that can
+  fail; this is *"Can the alarm ring?"* (role 4) applied to prose.

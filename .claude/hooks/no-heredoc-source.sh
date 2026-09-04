@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# instrument: retrieval
 # CANONICAL SOURCE: syncytium2/murderboard .claude/hooks/no-heredoc-source.sh — edit HERE.
 # no-heredoc-source.hook.sh — PreToolUse(Bash) gate: BLOCK writing source files
 # through a shell heredoc.

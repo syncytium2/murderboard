@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# vendored from interface2 @ f0bdaab1 — do NOT edit here; update interface2 tools/session-start.hook.sh and re-copy
+# instrument: retrieval
+# CANONICAL SOURCE: syncytium2/murderboard .claude/hooks/session-start.sh — edit HERE.
+# (Was stamped "vendored from interface2 @ f0bdaab1 — do NOT edit here". CLAUDE.md has
+#  recorded both hooks as canonical in this repo since 2026-08-21; its sibling
+#  no-heredoc-source.sh was restamped then and this one was missed, so the file went on
+#  telling every reader to take their edit somewhere else.)
 # Generic SessionStart briefing — runs at every session start / resume.
 # Its stdout is injected into the session's context.
 #
@@ -280,7 +285,29 @@ echo "--- recent commits ---"; TO 5 git log --oneline -6 --all 2>/dev/null || ec
 
 MARK "tail: session board"
 echo "--- session board: ${board} ---"
-if [ -f "$board" ]; then cat "$board"; else
+# A POINTER, NOT A DUMP — 2026-08-30.
+#
+# `cat "$board"` shipped the whole board into every session. This hook measured
+# 49,817B on 2026-08-30, against a harness that refuses an injection somewhere in
+# (8,768B, 10,186B] and substitutes a ~2KB preview. So the briefing had not been
+# arriving: everything past the first two kilobytes reached nobody, and a refused
+# hook looks exactly like one that ran.
+#
+# The board is not going anywhere and is one `cat` away. What a session needs
+# injected is that it exists, how loaded it is, and to read it BEFORE writing —
+# not at its first commit, which is hours later and after the collision.
+#
+# Same fix, same day, in syncytium2/bugarach (tools/session_start_trimmed.sh) and
+# syncytium2/interface2 (this hook's sibling), where the same dump was 22KB and
+# 34KB respectively.
+if [ -f "$board" ]; then
+  _b_bytes=$(wc -c < "$board" 2>/dev/null | tr -d ' ')
+  _b_active=$(grep -ci 'status:.*active' "$board" 2>/dev/null || echo 0)
+  echo "   ${_b_active} ACTIVE claim(s); board is ${_b_bytes}B."
+  echo "   READ IT BEFORE YOUR FIRST FILE WRITE:  $board"
+  echo "   (Dumped inline until 2026-08-30; at that size it spilled this briefing.)"
+  unset _b_bytes _b_active
+else
   echo "(no board yet — create it and claim your work when you touch shared EXTERNAL outputs)"
 fi
 

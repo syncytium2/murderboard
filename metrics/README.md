@@ -1,19 +1,64 @@
 # metrics/
 
+**The data is on the [`metrics`](../../tree/metrics) branch, not here.** This directory holds
+only the explainer, because the numbers are easy to misread and should not travel without it.
+
 `traffic.csv` is a permanent record of a number GitHub throws away.
 
 GitHub serves clone and view counts for the **last 14 days only** and keeps no history.
 This project is distributed by copying — vendored into a consumer, or installed as a
 plugin — so a fetch of the repo is the only adoption signal that exists upstream at all.
 Without something writing it down daily, the entire record of whether anyone uses this is a
-rolling fortnight that nobody is reading.
+rolling fortnight that nobody is reading. It is already doing its job: the series carries
+**2026-08-12**, a day GitHub no longer serves.
 
 `.github/workflows/traffic.yml` runs `.github/traffic_archive.py` once a day and merges the
-window into the CSV, newest value per date winning. To run it by hand:
+window into the CSV on the `metrics` branch, newest value per date winning.
+
+**The cron time is nominal.** It asks for 04:17 UTC and GitHub has been running it 11–12
+hours late. That is GitHub's scheduler under load, not a fault here, and it costs nothing:
+the window is 14 days, so the archive stays lossless as long as a run lands within a
+fortnight of the last one.
+
+## Being told when it changes
+
+A file is a record, not a notification — nobody opens a CSV on a branch each morning, so the
+archive answers *what happened* and never *did anything happen*. `.github/traffic_alert.py`
+answers the second question and **is silent unless one of these fires**, because a check that
+speaks daily gets filtered into a folder and stops being read:
+
+| Signal | Why it is trusted |
+|---|---|
+| a new **star**, **fork** or **watcher** | deliberate human acts, impossible for CI to cause |
+| a **referrer that is not `github.com`** | the only signal that says *where* — someone linked to this repo somewhere |
+| **more unique page viewers in a day than ever before** | the baseline of 1 is the maintainer; CI never renders a page |
+| a **new high in non-CI clones** | the weakest, and labelled so where it is reported: "non-CI" excludes only this repo's own Actions jobs, and still counts the maintainer's clones, mirrors and scanners |
+
+`clone_uniques` is deliberately **not** a trigger. It cannot have CI netted out of it, so a
+rise in it is not attributable to anything, and waking someone for an uninterpretable number
+is how an alert earns being ignored.
+
+When something fires, the workflow opens an issue — GitHub emails the repo owner, so there is
+no third-party mail service and no extra secret. Thresholds are high-water marks kept in
+`signals.json` on the `metrics` branch, so one event is reported once rather than every day
+afterwards. The first run records the baseline and stays quiet: everything is "new" on a
+first run, and an alert that fires for reasons that are not events teaches the reader to
+ignore the next one, which will be real.
+
+**Why a separate branch.** `main` is protected and rejected the workflow's push (`GH006`).
+Handing the workflow a token that can write to `main` would put that secret in a public
+repository, which is a worse trade than an extra branch — and the better reason is that
+`main`'s history is a curated log of problem statements that ~365 `traffic: <date>` commits a
+year would drown. The branch is **bootstrapped by hand and the workflow will not create it**:
+an archive that silently restarts from empty is indistinguishable from one that was always
+empty, and the discarded days cannot be recovered to tell them apart.
+
+To run it by hand, against a checkout of the data branch:
 
 ```
+git fetch origin metrics && git worktree add ../metrics origin/metrics
 GH_TOKEN=$(gh auth token) python3 .github/traffic_archive.py \
-    --repo syncytium2/murderboard --out metrics/traffic.csv
+    --repo syncytium2/murderboard --out ../metrics/traffic.csv
 ```
 
 ## Columns

@@ -1,8 +1,8 @@
 # CLAUDE.md — murderboard
 
 This repo is the canonical source of the **murderboard**: an anti-slop review process
-(`doc_review_process.md`), a literature tool (`fetch_paper.py`), three gates that keep the
-process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`,
+(`doc_review_process.md`), a literature tool (`fetch_paper.py`), four gates that keep the
+process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`, `murderboard_prose.sh`,
 `require_commit_before_message.sh`), a team compiler that turns the process file's roles into
 one agent file each (`murderboard_agents.py` → `agents/`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
@@ -56,6 +56,27 @@ what a reviewer actually checks while the document consumers read still says the
   in the core — the calcium-imaging origin lives only in the appendix of
   `doc_review_process.md` and in explicit back-compat branches of `fetch_paper.py`
   (`IF2_LIT`/`IF2_PAPERS`, the `01-lit` autodetect). New machinery is env-driven.
+- **The admission test, for anything proposed for this repo: _does a stranger reviewing a
+  document need this?_** Not "is it good", not "did it solve a real problem here" — both can
+  be true of something that has no business shipping to consumers.
+  **This repo is a document-review process. It is not the toolchain of the estate that
+  wrote it.** The distinction is invisible from the inside, which is why it needs a written
+  test: proposals arrive from sessions where the private repo resolves, the shared folder
+  exists, and the jargon is ordinary — so a thing that fails this test looks obviously
+  correct to everyone who can see it.
+  *Worked example, refused 2026-09-04:* a `PostToolUse` gate for `SendUserFile`, which
+  returns success and delivers nothing in the VS Code extension
+  ([claude-code#76739](https://github.com/anthropics/claude-code/issues/76739)). Real bug,
+  correctly diagnosed, working code, two sessions recommending it. **It fixes a Claude Code
+  defect, not a review defect**, its remedy was a folder convention private to this estate,
+  and its docstring cited seven repos of which six 404 for a stranger. A researcher
+  murderboarding a methods section would have inherited a hook firing on a tool they never
+  use, naming a directory that does not exist.
+  Weigh the ratio too, not just each addition: the vendored set is **~4,500 lines, of which
+  ~2,000 are the freshness gate and the re-vendor tool** — machinery for keeping the copy
+  current rather than for reviewing anything. That is defensible (a stale copy silently
+  omits rules already paid for) and it is also the shape of a tool optimising for its own
+  distribution. Every further addition makes adoption more expensive.
 - `fetch_paper.py` has no external dependencies beyond the standard library (+ optional
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
 - **`docs/index.html` loads nothing over the network** — no webfont, no script, no analytics,
@@ -64,11 +85,21 @@ what a reviewer actually checks while the document consumers read still says the
   invisible on the machine of whoever breaks it, so `tests/published_page_test.py` gates it.
   If analytics is ever wanted, that is a decision to raise, not a change to slip in.
 - **The page footer carries a stamp: `Born · Version · Updated`.** When you change
-  `docs/index.html`, bump **Version** and set **Updated** to the date you publish. **Born never
-  changes** — `tests/published_page_test.py` pins it to a literal and fails if it moves, because
-  a born-on date that can be quietly edited is just another mutable field. Versions are
+  `docs/index.html`, bump **Version** and set **Updated** to the date you publish. **Born is
+  `2026-07-20`, the date of this repo's first commit (`4a92748`), and it does not drift** —
+  `tests/published_page_test.py` pins it to a literal and fails if it moves, because a born-on
+  date that can be quietly edited is just another mutable field. Versions are
   `MAJOR.MINOR.PATCH`; the site started at `0.1.0` on 2026-08-25. (This stamp is the *page's*
   version and is unrelated to the vendoring stamps below, which track upstream commits.)
+  **Born has been corrected exactly once, on 2026-09-03**, from `2026-08-25` (the day the page
+  first served) to the first-commit date. The rule this line used to state — "Born never
+  changes" — was aimed at *silent* drift, and it does not oblige anyone to keep an
+  acknowledged error: colonel_kernel and no_peak both say "Born" and both mean their first
+  commit, so this page was the only stamp of the five that agreed with neither convention in
+  use. A correction made deliberately, in one commit, with the reason written into
+  `published_page_test.py` beside the constant, is the act the pin exists to force. A second
+  correction is not a precedent this sets — **if you think Born should move again, that is a
+  decision to raise, not a change to make.**
 - After any change, bump nothing automatically — consumers re-vendor deliberately and stamp
   the commit they took (see README "Vendoring"). Just commit and push here.
 - **This repo is PUBLIC (Apache-2.0).** Two rules follow, and neither is optional:
@@ -109,7 +140,9 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > table, so `GRANT n ok — nothing whatsoever` fails; and it refuses a report that declares both
 > verdicts for one role rather than picking one. ⚠ **It still cannot tell you a declaration is
 > honest** — a reviewer that types its granted tools back without holding them passes, and no
-> report-reading gate can catch that. The reviewers live in
+> report-reading gate can catch that. Run `tools/murderboard_prose.sh <artifact>` too and
+> **paste its output into role 5** — that half of the role is a search, and a search nobody ran
+> reads exactly like a search that came back empty. The reviewers live in
 > `.claude/agents/murderboard/` — a directory the compiler owns, so it can never remove a
 > subagent of yours — **compiled** from the
 > process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run

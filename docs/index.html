@@ -3,9 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Murderboard</title>
-<meta name="description" content="A review process for catching unchecked claims. Eleven reviewer roles, three scripts, and a fixed format for what comes back. Open source, Apache-2.0.">
+<!-- FINDABILITY. These five fields are the only thing a search engine reads before
+     deciding what this page is about, and until 2026-09-01 they never said "AI" —
+     for a tool whose entire subject is AI-assisted review. Nobody searching for the
+     problem could match the page that solves it, and "murderboard" alone collides
+     with an unrelated Wikipedia concept, two other GitHub repositories and a game
+     script pack. So the title and description now carry the words a person actually
+     types when they do not already know this exists.
+
+     og: tags are text only — no og:image — because an image URL would be the first
+     external reference on a page whose zero-fetch property is load-bearing. A
+     crawler never renders it; a link preview simply shows the title and text.
+
+     All three URLs must agree with docs/CNAME, and tests/published_page_test.py
+     fails if any of them drifts from it or from robots.txt and sitemap.xml. -->
+<title>The Murderboard — adversarial AI review for documents</title>
+<meta name="description" content="Stop AI slop in documents. An adversarial review process: any AI chat works through eleven fixed reviewer roles, checks each claim against its sources, and flags what it could not verify.">
 <link rel="canonical" href="https://murderboard.tonydefazio.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Murderboard">
+<meta property="og:title" content="The Murderboard — adversarial AI review for documents">
+<meta property="og:description" content="Stop AI slop in documents. An adversarial review process: any AI chat works through eleven fixed reviewer roles, checks each claim against its sources, and flags what it could not verify.">
+<meta property="og:url" content="https://murderboard.tonydefazio.com/">
+<meta name="twitter:card" content="summary">
 <!-- Nothing is requested on load. Every font stack ends in a generic family, so nothing here
      waits on a network: the page renders the same opened from disk, air-gapped, or behind a
      captive portal. A webfont link would make "opens from disk" false in the one case that
@@ -332,6 +352,27 @@ pre {
 pre .c { color: var(--ink-faint); }
 pre .k { color: var(--blood); }
 
+/* The paste-ready prompt, carried inline so that reading this page IS having the
+   prompt. It is GENERATED — murderboard_prompt.sh --sync-page splices it between
+   two markers below, and tests/published_page_test.py fails if it drifts from the
+   generator, because two hand-maintained copies of a role list is how a review
+   quietly runs with nine of eleven roles.
+
+   user-select:all makes one click select the whole block. That is the copy
+   affordance available to a page with no scripting at all, and this page has
+   none: the zero-script property is load-bearing — it is what makes "renders
+   the same air-gapped" true — and the page test forbids even an inline one.
+   A copy BUTTON would cost more than it is worth.
+
+   That test greps the whole source for the opening tag, comments included, which
+   is why the word is not spelled out here: a gate that tried to tell markup from
+   prose would be a parser, and a parser is a thing that can be wrong. */
+pre.promptblock {
+  -webkit-user-select: all; user-select: all;
+  white-space: pre-wrap; overflow-wrap: break-word;
+  max-height: 30rem; overflow-y: auto;
+}
+
 /* ---------- adoption ---------- */
 .adopt { counter-reset: step; margin-top: 2rem; display: grid; gap: 1.6rem; }
 .adopt > li { list-style: none; }
@@ -554,7 +595,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-08-25">2026-08-25</time> &middot; Version <b>0.9.1</b> &middot; Updated <time datetime="2026-08-27">2026-08-27</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.11.0</b> &middot; Updated <time datetime="2026-09-03">2026-09-03</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -608,6 +649,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
       <a href="#deliver">What you hand over</a>
       <a href="#gates">The gates</a>
       <a href="#limits">Limits</a>
+      <a href="#prompt">The prompt</a>
       <a href="#adopt">Implement it</a>
     </nav>
   </header>
@@ -1150,6 +1192,22 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
         rule catches the next one. The set covers the mistakes already made and says nothing about
         the next. Expect to add to it.</p>
       </div>
+      <div class="card">
+        <h3>A finding is only cheap while you can still act on it</h3>
+        <p><strong>The value of a finding and the cost of acting on one move in opposite
+        directions, and they cross at submission.</strong> On a draft you still control, a finding
+        is cheap and fully actionable. Once the thing is submitted, the same finding does not hand
+        you a fix &mdash; it hands you a choice: withdraw, correct at proof, or say nothing. Once
+        it is published, it is not actionable at all. <strong>Run it before the artifact leaves
+        your hands.</strong></p>
+        <p>A murderboard is a pre-mortem; the same eleven roles run afterwards produce an autopsy
+        &mdash; identical findings, no patient. If you do point it at something already out, say so
+        in the record: <a href="#deliver">the process calls that retrospective mode</a>. The loop
+        assumes you can repair, so on a fixed artifact it stops after the first round &mdash; and
+        it stops <em>silently</em>: all eleven roles run, the ledger comes out complete, and
+        nothing in the output says two rounds never happened. A report that does not distinguish
+        itself from a complete run will be read as one.</p>
+      </div>
     </div>
 
     <div class="provenance">
@@ -1176,6 +1234,104 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 
   <section>
     <details class="sec">
+    <summary id="prompt">
+      <span class="eyebrow">Two minutes, nothing to install</span>
+      <h2>The prompt itself, in full, on this page</h2>
+    </summary>
+    <div class="sec-body">
+    <div class="col">
+      <p class="lede"><strong>Click the block once to select all of it, copy, and paste it into
+      any AI chat</strong> &mdash; ChatGPT, Claude, Gemini, Copilot, a local model, anything with
+      a text box. It will answer with one line and wait. <strong>Then paste your document.</strong>
+      No account, no install, no agent, and nothing of yours comes here.</p>
+      <p>The role list below is <em>generated</em> from the process document rather than typed, so
+      it cannot quietly fall behind it &mdash; and this copy is generated from the same place as
+      <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>, so the
+      page and the file cannot disagree. A build gate fails if either drifts.</p>
+      <p><strong>It is printed here rather than linked</strong> because a link is a hop, and a hop
+      is somewhere to get lost. An assistant sent to fetch this prompt from the repository has been
+      observed searching for it instead, failing, announcing that it could only fetch &ldquo;URLs
+      that show up in search results&rdquo;, and offering to reconstruct the review from memory
+      instead &mdash; which would produce a confident report with no fixed roster behind it, the
+      exact thing this page argues against. Read this page and you already have the prompt.</p>
+<!-- BEGIN GENERATED PROMPT · do not edit by hand · regenerate: bash murderboard_prompt.sh --sync-page -->
+<pre class="promptblock" tabindex="0">
+You are running a MURDERBOARD on the document I am about to give you: an adversarial
+review that tries to tear the draft apart before it ships, so that what survives is
+trustworthy.
+
+Run EVERY role below. Not a sample, not the ones that seem relevant -- every one. A role
+with genuinely nothing to check says so explicitly and states what it checked; that is a
+valid result, and silently skipping it is not.
+
+THE ROLES
+   1. Claim &amp; data verifier — "Prove It."
+   2. Citation &amp; reference validator — "DOI or Die."
+   3. Consistency auditor — "Cross-Examiner."
+   4. Adversarial reviewer — "Reviewer 2."
+   5. Line editor — "Kill Your Darlings."
+   6. Methods / domain expert — "RTFM."
+   7. Reuse auditor — "Reinventing the Wheel."
+   8. Naive-reader accessibility — "You Lost Me."
+   9. Density &amp; figure-first — "Show, Don't Tell."
+  10. Build &amp; craft gate — "Ship It."
+  11. Argument order — "Start With the Problem."
+
+HOW TO RUN THEM
+
+1. Work role by role. For each one, output a short block:
+      ROLE &lt;n&gt; — &lt;name&gt;
+      findings: &lt;each with location · what is wrong · severity · suggested fix&gt;
+                · could I verify this against a source I was actually given? (yes/no)
+      or: "no findings — here is what I checked: ..."
+
+2. SEVERITY is blocking / major / minor. Be honest; inflating severity is its own defect.
+
+3. THE MOST IMPORTANT RULE: check claims against SOURCES, not against your impression of
+   the text. If I have not given you the underlying data, code, or references, you CANNOT
+   verify a claim that rests on them -- say so and mark it unverified. Do not guess, and
+   do not treat a confident sentence as evidence for itself. A review that silently
+   assumes the sources agree is worse than no review, because it manufactures confidence.
+
+4. Do not invent findings to look thorough. "This section is clean" is a real result.
+
+5. A null result needs a check that could have failed. If the document says "we tested for
+   X and it did not occur", ask whether the test could ever have detected X.
+
+THEN
+
+- List the findings ordered by severity, most severe first.
+- State plainly which findings you could NOT verify, and what you would need to verify them.
+- Do not rewrite the document unless I ask. Report first.
+
+Finally, confirm you ran all the roles by listing them with their finding counts, so I can
+see at a glance that none was dropped.
+
+I will paste the document in my next message. Acknowledge with a single line, then wait.
+</pre>
+<!-- END GENERATED PROMPT -->
+      <p class="signpost">The one habit that makes it work: if your document rests on data, code
+      or references, <strong>give the assistant those too.</strong> Otherwise it can only check the
+      text against itself, which catches contradictions but not the thing that actually ruins a
+      document &mdash; a number that disagrees with the source it came from. The prompt tells it to
+      say which findings it could not verify. That list is the honest part of the review.</p>
+      <p><strong>What the pasted prompt does not do.</strong> It runs the review; it does not run
+      <a href="#gates">the gates</a>. The role tally it prints at the end is <strong>self-reported</strong>
+      &mdash; nothing checks it, so it is the reviewer&rsquo;s claim of coverage rather than a
+      verification of it. Nothing is written down, so there is no record to re-check later. And it
+      stops after the attack: repairing the draft and re-reviewing the repaired version, <em>blind</em>,
+      is the rest of <a href="#loop">the loop</a> and it is yours to run. None of that makes the
+      findings less real. <strong>It means a clean run here is a good review, not a receipt</strong>
+      &mdash; which is this page&rsquo;s own argument turned one level inward: a clean report is
+      evidence the roles ran, and here not even that is checked. <a href="#adopt">Putting it in your
+      own project</a> is what closes the gap.</p>
+    </div>
+    </div>
+    </details>
+  </section>
+
+  <section>
+    <details class="sec">
     <summary id="adopt">
       <span class="eyebrow">Implementation</span>
       <h2>Putting it in your own project</h2>
@@ -1191,10 +1347,12 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
       <em>copy</em> of the files, so anyone who clones that project gets a working murderboard with
       it; or, if you use Claude Code, you can install it once and have it wherever you work.
       Both go out of date in silence, which is why the freshness gate exists.</p>
-      <p><strong>To try it in two minutes with no setup at all</strong>, open
-      <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>, copy the
-      block, paste it into any AI chat, then paste your document. Its role list is generated from the
-      process document, so it cannot drift.
+      <p><strong>To try it in two minutes with no setup at all</strong>, copy
+      <a href="#prompt">the prompt printed on this page</a>, paste it into any AI chat, then paste
+      your document. Its role list is generated from the process document, so it cannot drift.
+      The same text is in
+      <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a> if you
+      would rather take it from the repository.
       <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">START-HERE.md</a> is
       the same idea at more length. The rest of this section is for wiring it in permanently.</p>
       <p><strong>To install it</strong>, if you use Claude Code &mdash; two commands, typed at its

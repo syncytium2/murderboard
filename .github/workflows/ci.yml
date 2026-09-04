@@ -86,6 +86,60 @@ jobs:
           python3 murderboard_agents.py --selftest
           python3 tests/agents_generated_test.py
 
+      # THE GRANTS GATE HAS TO RUN ON SOMETHING, or it is a gate that ships and never
+      # fires -- the exact shape this repo keeps finding in other people's tooling.
+      # `--selftest` above proves the gate can fail on fixtures; this proves it passes
+      # on the real records committed here.
+      #
+      # FOUR RECORDS ARE EXEMPT, NAMED ONE BY ONE rather than matched by a pattern, so
+      # adding a fifth is a visible decision in a diff and not a silent widening.
+      #
+      #   The 08-24, 08-25 and 08-26 records PREDATE the convention. They were written
+      #   before reviewers declared grants at all, so they carry no `GRANT n` lines and
+      #   cannot be made to. Rewriting them to pass would be inventing a declaration
+      #   nobody made -- which is the defect the gate exists to catch, committed by the
+      #   gate's own author to get a green check.
+      #
+      #   agents-roster_..._2026-08-27.md is DIFFERENT and is exempt for the opposite
+      #   reason: it declares grants and FAILS. All eleven reviewers reported MISMATCH
+      #   under a header claiming `named agents`; role 1 declared `GRANT 1 ok -- nothing
+      #   whatsoever` beside its own MISMATCH. That record is this branch's evidence
+      #   that the defect is real and was observed, not theorised. Repairing it would
+      #   delete the finding, and the mode vocabulary still has no term for what
+      #   actually happened -- reviewers that WERE named agents whose grants did not
+      #   take effect. Writing "fallback" there would be a second false claim.
+      #
+      # So the exemption is by name and stated, never by pretending any of them pass.
+      - name: committed run records account for their reviewers' grants
+        run: |
+          rc=0; checked=0
+          for f in docs/reviews/*.md; do
+            case "$(basename "$f")" in
+              explainer-outside-review-2026-08-24.md|\
+              explainer_murderboard_2026-08-25.md|\
+              plugin_adoption_docs_murderboard_2026-08-26.md|\
+              agents-roster_murderboard_2026-08-27.md)
+                echo "skip   $(basename "$f")  (exempt, see the comment above)"
+                continue ;;
+            esac
+            echo "verify $(basename "$f")"
+            checked=$((checked + 1))
+            python3 murderboard_agents.py verify "$f" || rc=1
+          done
+          # CAN THIS ALARM RING? Every record committed today is exempt, so as written
+          # this step verifies NOTHING and would stay green if `verify` were deleted.
+          # That is the repo's own rule turned on this step, and it is stated out loud
+          # rather than left for someone to notice: the exemptions are the entire set,
+          # and the first run record written after this lands is what makes it real.
+          # `--selftest` above is what proves the gate can fail meanwhile.
+          if [ "$checked" -eq 0 ]; then
+            echo "::warning::verified 0 run records — every committed record is exempt."
+            echo "::warning::This step is a placeholder until a post-gate record lands."
+          else
+            echo "verified $checked record(s)"
+          fi
+          exit $rc
+
       - name: portable prompt generator --selftest
         run: bash murderboard_prompt.sh --selftest
 
@@ -100,6 +154,20 @@ jobs:
             exit 1
           fi
           echo "ok — PROMPT.md matches murderboard_prompt.sh"
+
+      # DRAFTING-PROMPT.md restates role 5's banned list forwards, for pasting before a
+      # draft exists. Two copies of one list, so it drifts -- and it drifts silently in
+      # the worst direction: the prompt goes on permitting a construction the review
+      # still fails, and a writer who followed the prompt gets marked down for it.
+      - name: the drafting prompt still agrees with role 5
+        run: python3 tests/drafting_prompt_test.py
+
+      # The prose gate derives its word list from role 5 at run time, so a reworded role 5
+      # does not silently leave it searching for the old list -- it stops. --selftest proves
+      # every check can still fire, including the ones that must come back EMPTY: a gate
+      # that cannot report clean is as useless as one that cannot report a hit.
+      - name: prose gate --selftest
+        run: bash murderboard_prose.sh --selftest
 
   python:
     name: fetch_paper.py
@@ -150,6 +218,16 @@ jobs:
       - name: revendor compiles
         run: python -m compileall -q murderboard_revendor.py
 
+      # `subprocess.run(..., text=True)` with no `encoding=` decodes with the machine's
+      # LOCALE codec -- UTF-8 here, cp1252 on a default Windows install. _git() is how
+      # upstream FILE CONTENT arrives, and these files are full of em-dashes: cp1252
+      # turns one into 'â€”' with no exception, so a Windows re-vendor lost the body
+      # comparison, reported every file as drifted even under --check, and wrote the
+      # mojibake back. Reported 2026-08-24. It cannot reproduce on any runner we have,
+      # so the test FORCES a non-UTF-8 locale rather than hoping for one.
+      - name: subprocess output decodes as UTF-8 on any locale
+        run: python tests/subprocess_encoding_test.py
+
       # murderboard_revendor.py --example-config tells consumers what to vendor;
       # murderboard_freshness.sh's STAMPED_FILES is what the gate walks to notice drift.
       # A file in the first and not the second is copied everywhere and then never
@@ -171,76 +249,15 @@ jobs:
       - name: revendor --example-config is valid JSON
         run: python murderboard_revendor.py --example-config | python -c "import json,sys; json.load(sys.stdin)"
 
-      # The plugin manifests are exercised ONLY on a stranger's machine, at install
-      # time, after a push to main -- nothing here loads them, because a contributor
-      # working in the checkout uses the files directly. Same invisible-locally shape
-      # as docs/index.html below, so it gets the same treatment. Three of the failures
-      # it catches (the two manifests disagreeing on the version, a hook naming a
-      # script that moved, the freshness gate losing the --plugin flag its own hook
-      # passes it) produce a plugin that installs, reports success, and does nothing.
-      - name: the plugin is still installable
-        run: python tests/plugin_manifest_test.py
-
       # Runs daily in a scheduled workflow against a 14-day window that GitHub then
       # discards. A break is unrecoverable rather than merely annoying, so it is
       # checked here on every PR instead of being discovered a fortnight later.
       - name: the traffic archiver compiles and runs
         run: |
           python -m compileall -q .github/traffic_archive.py
+          python .github/traffic_alert.py --help > /dev/null
+          python -m compileall -q .github/traffic_alert.py
           python .github/traffic_archive.py --help > /dev/null
-
-      # A FORGOTTEN VERSION BUMP IS A FALSE "CURRENT", which is the one verdict the
-      # freshness gate promises never to produce. `claude plugin update` keys on the
-      # version string: ship changed files under an unchanged version and nobody's
-      # update does anything, while murderboard_freshness.sh --plugin compares the two
-      # equal numbers and reports current. Both failures are silent and both land on
-      # strangers, so the bump is checked here rather than remembered.
-      #
-      # Scoped to the files that actually change plugin BEHAVIOUR. A README fix or a
-      # traffic-bot commit ships in the tree too (source is "./") but changes nothing a
-      # user runs, and demanding a release for it would train people to bump blindly.
-      - name: the plugin version was bumped if the plugin changed
-        if: github.event_name == 'pull_request'
-        run: |
-          base='${{ github.event.pull_request.base.sha }}'
-          # The checkout above is already unshallow, so this is belt-and-braces for a
-          # base commit that is somehow still absent. If there is STILL no merge base,
-          # say so and fail loudly -- do not fall back to a diff that answers a
-          # different question and call it a pass.
-          git fetch --no-tags origin "$base" 2>/dev/null || true
-          # NOT --is-ancestor: main moves while a branch is open, so the base commit is
-          # routinely NOT an ancestor of HEAD. All three dots need is that a merge base
-          # EXISTS, which is exactly what this asks.
-          if ! git merge-base "$base" HEAD >/dev/null 2>&1; then
-            echo "::error::no merge base between $base and HEAD — the version-bump gate"
-            echo "::error::cannot tell what this branch changed. Check fetch-depth."
-            exit 1
-          fi
-          changed=$(git diff --name-only "$base"...HEAD -- \
-                      skills hooks commands agents .claude-plugin \
-                      doc_review_process.md fetch_paper.py \
-                      'murderboard_*.sh' 'murderboard_*.py' \
-                      require_commit_before_message.sh)
-          if [ -z "$changed" ]; then
-            echo "no change to the plugin payload — no bump required"
-            exit 0
-          fi
-          echo "plugin payload changed:"; printf '  %s\n' $changed
-          now=$(python -c "import json;print(json.load(open('.claude-plugin/plugin.json'))['version'])")
-          was=$(git show "$base:.claude-plugin/plugin.json" 2>/dev/null \
-                | python -c "import json,sys;print(json.load(sys.stdin)['version'])" 2>/dev/null || echo "")
-          if [ -z "$was" ]; then
-            echo "no plugin.json on the base commit — first introduction, nothing to bump against"
-            exit 0
-          fi
-          if [ "$now" = "$was" ]; then
-            echo "::error::the plugin payload changed but .claude-plugin/plugin.json is still $now."
-            echo "::error::Installs key on this number: without a bump, /plugin update is a no-op"
-            echo "::error::and the freshness gate compares two equal versions and says 'current'."
-            echo "::error::Bump it (and marketplace.json, which must match)."
-            exit 1
-          fi
-          echo "version bumped $was -> $now"
 
       # docs/index.html is served to the public by GitHub Pages. Its three
       # load-bearing properties all fail SILENTLY: drop the doctype and every
@@ -252,6 +269,140 @@ jobs:
       # own negative controls: eight mutations it must catch, checked every run.
       - name: the published page is still publishable
         run: python tests/published_page_test.py
+
+  # ITS OWN JOB, AND THE NAME MATTERS. These steps used to live in the job called
+  # `fetch_paper.py`, which has nothing to do with either of them: when the version gate
+  # failed, the check a maintainer saw go red in the PR list was named after an unrelated
+  # tool, and the first thing they had to work out was that the name was lying. A status
+  # check that misdirects the person reading it is most of the way to being switched off.
+  plugin:
+    name: plugin
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0, DELIBERATELY. The version gate below compares against the base
+      # commit, and a shallow checkout has no ancestry, so `git diff base...HEAD` cannot
+      # find the merge base it requires and dies with `no merge base` / exit 128 -- before
+      # comparing any versions at all. That was issue #48: it blocked a PR with an error
+      # naming neither the plugin nor a version. It reproduced only in CI, because a local
+      # clone has the full history, which is exactly why it survived review.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # The plugin manifests are exercised ONLY on a stranger's machine, at install time,
+      # after a push to main -- nothing here loads them, because a contributor working in
+      # the checkout uses the files directly. Same invisible-locally shape as
+      # docs/index.html, so it gets the same treatment. Three of the failures it catches
+      # (the two manifests disagreeing on the version, a hook naming a script that moved,
+      # the freshness gate losing the --plugin flag its own hook passes it) produce a
+      # plugin that installs, reports success, and does nothing.
+      - name: the plugin is still installable
+        run: python tests/plugin_manifest_test.py
+
+      # A FORGOTTEN VERSION BUMP IS A FALSE "CURRENT", which is the one verdict the
+      # freshness gate promises never to produce. `claude plugin update` keys on the
+      # version string: ship changed files under an unchanged version and nobody's update
+      # does anything, while murderboard_freshness.sh --plugin compares the two equal
+      # numbers and reports current. Both failures are silent and both land on strangers.
+      #
+      # IT RUNS ON PUSH TO MAIN AS WELL AS ON PRs. PR-only was itself a hole, and the
+      # author fell straight through it: murderboard_freshness.sh was changed and merged
+      # directly to main under an unchanged 0.1.0, so the gate built to prevent exactly
+      # that never applied to the person who wrote it. On a push the base is the previous
+      # tip, which for a merge commit covers everything the merge brought in.
+      #
+      # Scoped to the files that change plugin BEHAVIOUR. A README fix or a traffic-bot
+      # commit ships in the tree too (source is "./") but changes nothing a user runs, and
+      # demanding a release for those would train people to bump blindly.
+      - name: the plugin version was bumped if the plugin changed
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base='${{ github.event.pull_request.base.sha }}'
+          else
+            base='${{ github.event.before }}'
+          fi
+
+          # A first push to a new branch reports an all-zero "before" and there is nothing
+          # to compare against.
+          case "$base" in
+            ''|0000000000000000000000000000000000000000)
+              echo "no base commit to compare against — nothing to check"; exit 0 ;;
+          esac
+
+          # REPORT, DO NOT CRASH. Without this the step dies inside `git diff` under
+          # `bash -e` and the maintainer is told "no merge base", which says nothing about
+          # plugin versions. The other gates in this repo all have a distinct
+          # could-not-determine state; this is that state, and it fails CLOSED, because
+          # the alternative is silently shipping an unbumped plugin.
+          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "::error::cannot see base commit $base, so the version check could not run."
+            echo "::error::This is a CI history problem, not a plugin problem — the job needs"
+            echo "::error::fetch-depth: 0. Nothing is known about whether a bump was needed."
+            exit 1
+          fi
+          if ! git merge-base "$base" HEAD >/dev/null 2>&1; then
+            echo "::error::no merge base between $base and HEAD, so the version check could"
+            echo "::error::not run. This is a CI history problem, not a plugin problem."
+            exit 1
+          fi
+
+          changed=$(git diff --name-only "$base"...HEAD -- \
+                      skills hooks commands agents .claude-plugin \
+                      doc_review_process.md fetch_paper.py \
+                      'murderboard_*.sh' 'murderboard_*.py' \
+                      require_commit_before_message.sh)
+          if [ -z "$changed" ]; then
+            echo "no change to the plugin payload — no bump required"
+            exit 0
+          fi
+          echo "plugin payload changed:"; printf '  %s\n' $changed
+          # BOTH VERSIONS ARE NOW READ INSIDE THE GATE, not extracted here. Two defects
+          # lived in the shell that used to do it, and both were failures of the pipeline
+          # rather than of the comparison:
+          #
+          #   now=$(python -c "...['version']")                      # a broken manifest
+          #                                                          # died with a traceback
+          #   was=$(git show "$base:..." 2>/dev/null \
+          #         | python -c "...['version']" 2>/dev/null || echo "")
+          #   if [ -z "$was" ]; then echo "...first introduction"; exit 0; fi
+          #
+          # That `2>/dev/null || echo ""` collapsed THREE states into one: the file is
+          # absent, the file is not JSON, and the file has no `version` key. Only the
+          # first is a first introduction; the other two are could-not-determine, and the
+          # gate answered them by exiting 0 with a sentence asserting the one thing it had
+          # not checked. Worse than the downgrade below, because "first introduction"
+          # reads as NORMAL and nobody investigates a green check that says the expected
+          # thing. Reported by murderboard-7a, 2026-09-03.
+          #
+          # f62acb3 already gave the merge-base failure in this same step a distinct
+          # could-not-determine state that reports and fails CLOSED. That reasoning
+          # covered this extraction verbatim and had never been applied to it.
+          #
+          # WAS: if [ "$now" = "$was" ]; then ...fail... fi; echo "version bumped $was -> $now"
+          #
+          # That compares for INEQUALITY, so it passed a DOWNGRADE and announced it as a
+          # bump. On 2026-09-03 #38 merged and main went 0.2.0 -> 0.3.0; every branch cut
+          # before that still said 0.2.0, so the first one to re-baseline compared
+          # now=0.2.0 against was=0.3.0, found them unequal, printed "version bumped
+          # 0.3.0 -> 0.2.0" and went green. PR #55 was in exactly that state when this
+          # was found.
+          #
+          # A lower number is WORSE than the unchanged one this gate was built to catch:
+          # /plugin update never takes the files and nothing reports an error. The check
+          # verified a PROXY (the string changed) for the property it meant to enforce
+          # (the number went up), and the proxy held for the failure.
+          python .github/plugin_version_gate.py --base "$base"
+
+      # The comparison above IS the gate, so it gets negative controls like everything
+      # else here: the downgrade fixture must FAIL under the old `!=` comparison, which
+      # the file keeps for exactly that purpose, and PASS under the real one. Without
+      # that, a simplification back to `!=` lands quietly and takes the bug with it.
+      - name: version gate --selftest (a downgrade is not a bump)
+        run: python .github/plugin_version_gate.py --selftest
 
   lint:
     name: shell lint
