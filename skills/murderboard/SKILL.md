@@ -339,6 +339,12 @@ classified opposite ways. Distance cannot tell whether a failure attaches to the
 one role, so the author says which and the gate stops guessing. A line with no token is refused
 with the grammar printed — a failure that teaches rather than one that misclassifies.
 
+⚠ **Which means the token has to be true, and nothing here can check that.** A `subagents`
+token above prose describing a total fan-out failure records as a full run: the gate compares
+the prose against *mode* words only, for the reason set out in the process file. This is the
+same limit the grants gate states about itself. Write the token from what step 1a actually
+returned, not from what the run was meant to be.
+
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are
 not the ones the process file grants it (naming none at all is this case, not a lesser one); a

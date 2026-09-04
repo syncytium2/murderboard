@@ -1131,6 +1131,19 @@ not what distinguishes them. A cheap measurable quantity standing in for the pro
 actually matters is a defect this process hunts in other people's work; it had been built into
 one of its own gates.
 
+⚠ **What the execution gate does not catch, and why it is not worth fixing.** It reads a
+declaration. A `subagents` token whose prose then denies the fan-out in words that are not
+*mode* words — *"spawned the eleven. Every one failed to start"* — records as a full run. The
+gate compares the token against mode vocabulary only (*inline*, *by hand*, *single-pass*),
+because those words can only describe how the **run** went, whereas *could not*, *failed* and
+*unavailable* describe a run **or** a single role. Catching the mislabelled head would need
+that second vocabulary, and *"subagents — 11 spawned, role 4 could not reach the web"* is a
+role-level failure in a genuinely complete run that false-positives on it. That is the
+attachment problem again, one layer in: **it would trade a stated limit for an unstated false
+positive**, which is the worse deal. A mislabelled token buys a false record, and no
+report-reading gate can take that back — the same limit `murderboard_agents.py` states about a
+reviewer that types its granted tools back without ever holding them.
+
 A single-pass declaration must say **which kind** it was, and the gate rejects a bare one:
 
 - **chosen** — the deliverable is a caption or a one-liner, and a ten-agent fan-out on one

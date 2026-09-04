@@ -243,6 +243,30 @@ report_execution() {
   # `single-pass` head whose prose mentions a fan-out is almost always saying the fan-out
   # did NOT happen -- "no parallel fan-out" -- and checking it would resurrect the
   # negation problem this design exists to retire.
+  #
+  # MODE WORDS ONLY, which is what keeps attachment out of this check. "inline", "by hand",
+  # "single-pass" can only describe how the RUN went. "could not", "failed", "unavailable"
+  # describe a run OR a role, and that ambiguity is the whole attachment problem.
+  #
+  # ⚠ WHAT THIS GATE THEREFORE DOES NOT CATCH, stated because understating a gate is the
+  # same defect as overstating one. A `subagents` head whose prose denies the fan-out in
+  # NON-MODE words passes unchecked:
+  #
+  #     Execution: subagents — spawned the eleven. Every one failed to start
+  #     Execution: subagents — parallel fan-out; nothing came back
+  #
+  # Both record as a full run. A mislabelled head buys exactly that, and this gate cannot
+  # take it back: it reads a declaration, and a declaration that is simply false is not
+  # something a report-reading check can detect -- the same limit murderboard_agents.py
+  # states about a role that types its granted tools back without holding them.
+  #
+  # DO NOT "FIX" IT BY ADDING DENIAL VOCABULARY TO THE TAIL. The fixture two lines below --
+  # "subagents — 11 spawned, role 4 could not reach the web" -- is a role-level failure in
+  # a genuinely full run, and it false-positives on precisely that vocabulary. That is the
+  # attachment problem again, one layer in, and the argument that killed the proximity
+  # bound kills this too: it would trade a stated limit for an unstated false positive.
+  # The reasoning is in doc_review_process.md so the next person does not rediscover it.
+  # (Boundary identified by murderboard-b1, 2026-09-04, who also argued against fixing it.)
   if [ "$mode" = subagents ] && execution_tail "$1" 2>/dev/null \
      | grep -qE 'single-?pass|single pass|self-review|one-?pass|inline|by hand|myself'; then
     printf 'contradictory\n'; return
@@ -547,6 +571,17 @@ MB
   # ONE DIRECTION OF CONTRADICTION. A subagents token whose prose says the run went
   # inline is a visible self-contradiction and is refused, never resolved.
   e 'token says subagents, prose says inline' contradictory unstated 'subagents — fell back to inline after the first failure'
+
+  # THE DOCUMENTED LIMIT, PINNED. These three are NOT bugs and must not be "fixed": a
+  # mislabelled head whose prose denies the fan-out in non-mode words records as a full
+  # run, because catching it needs denial vocabulary in the tail and the fourth case here
+  # is a role-level failure in a genuinely full run that false-positives on exactly that.
+  # If someone later makes any of these `contradictory`, the fourth will go red and say so
+  # -- which is the point of asserting a limit rather than only writing it down.
+  e 'LIMIT: total failure under a subagents head'  subagents unstated 'subagents — spawned the eleven. Every one failed to start'
+  e 'LIMIT: denial past the head'                  subagents unstated 'subagents — were, after three attempts and a timeout, unavailable'
+  e 'LIMIT: denial in no vocabulary'               subagents unstated 'subagents — parallel fan-out; nothing came back'
+  e 'and why it cannot be fixed in the tail'       subagents unstated 'subagents — 11 spawned, role 4 could not reach the web'
   # ...and the reverse is NOT a contradiction: a single-pass line mentioning a fan-out is
   # almost always saying the fan-out did not happen.
   e 'single-pass may mention the fan-out'  single-pass forced 'single-pass (forced) — no parallel fan-out was available'
