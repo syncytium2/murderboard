@@ -223,7 +223,7 @@ which is what the output actually looks like.
 
 | repo | what it is | what it shows |
 |---|---|---|
-| [`syncytium2/colonel_kernel`](https://github.com/syncytium2/colonel_kernel) | research tool relating action-potential firing to calcium signals | [`ADR-0037`](https://github.com/syncytium2/colonel_kernel/blob/master/docs/adr/0037-adopt-murderboard-review-process.md) records the adoption decision and its reasoning; `dep-freshness.yml` runs the freshness gate on a weekly cron |
+| [`syncytium2/colonel_kernel`](https://github.com/syncytium2/colonel_kernel) | research tool relating action-potential firing to calcium signals | [`ADR-0037`](https://github.com/syncytium2/colonel_kernel/blob/main/docs/adr/0037-adopt-murderboard-review-process.md) records the adoption decision and its reasoning; `dep-freshness.yml` runs the freshness gate on a weekly cron |
 | [`syncytium2/bugarach`](https://github.com/syncytium2/bugarach) | coordination-detection port with an interactive viewer | a **[public run record](https://github.com/syncytium2/bugarach/blob/main/docs/reviews/pensub_export_validation_murderboard_2026-08-20.md)** — 11/11 roles, per-round severity table, stated deviation, six residual `⚠` |
 | [`syncytium2/no_peak`](https://github.com/syncytium2/no_peak) | validated port of a pulse-detection algorithm | the full vendored set — process, skill, both gates, both hooks |
 
@@ -260,10 +260,11 @@ Extracted and generalized from a calcium-imaging analysis project (`interface2`)
 grew out of real slop incidents — the appendix of the process doc records them, and the rules
 in the core exist because of them rather than in anticipation of them.
 
-**The sibling repos named in comments here are private**, so their names are attribution, not
-links: `interface2` (origin and first consumer), `colonel_kernel` (which reported the
-fail-open bug fixed in the no-heredoc hook), and `fireflies` (an `R` analysis app). You do not
-need any of them. Everything murderboard needs to run is in this repo, and the session
+**Two of the sibling repos named in comments here are private**, so their names are attribution,
+not links: `interface2` (origin and first consumer) and `fireflies` (an `R` analysis app).
+[`colonel_kernel`](https://github.com/syncytium2/colonel_kernel) — which reported the fail-open
+bug fixed in the no-heredoc hook — **is public**, and is linked from the adoption table above.
+You do not need any of them. Everything murderboard needs to run is in this repo, and the session
 protocol and both hooks are **canonical here** as of 2026-08-21 — adopted when this repo went
 public, because a provenance stamp pointing into a private repo is a dead end for the reader
 and makes `murderboard_freshness.sh` permanently answer `2` (unknown).
