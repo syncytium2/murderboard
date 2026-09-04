@@ -147,75 +147,107 @@ execution_line() {
   grep -iE '^[[:space:]]*[*_|>[:space:]]*Execution:' "$1" 2>/dev/null | head -1
 }
 
-# ONE PREDICATE, TWO CALLERS: does this line say the fan-out did not happen?
+# A CONTROLLED TOKEN, AND THE PROSE IS LEFT ALONE. The grammar is:
 #
-# Both functions below needed it and the first version of each answered it separately and
-# wrongly. `report_execution` matched substrings with no regard to negation, so
-# "subagents unavailable" counted as evidence OF subagents -- a degraded run read as a full
-# one, which is the misclassification this whole field exists to prevent. `execution_cause`
-# had a list of unavailability idioms, which is a denylist over unbounded English: any
-# forced run phrased outside the list fell through to the next branch.
+#     Execution: subagents
+#     Execution: subagents — 11 spawned, role 4 could not reach the web
+#     Execution: single-pass (forced) — the Agent tool was unavailable
+#     Execution: single-pass (chosen) — a one-line caption
 #
-# Proximity, not line-global. "Execution: parallel subagents; role 4 could not reach the
-# web" says nothing about the fan-out -- the failure is a role's, and a line-global search
-# for "could not" would call that degraded. So the two terms must sit within one clause of
-# each other, which `[^.;]{0,40}` enforces: commas are inside a clause, a semicolon or a
-# full stop ends one. Matched in both directions, since "no subagents" and "subagents
-# unavailable" are the same claim written from either end.
+# Everything before the separator is parsed and must be a token exactly. Everything after
+# it is never parsed at all.
 #
-# The vocabulary is deliberately about the MECHANISM (denied, timed out, errored, hit a
-# limit, fell back) rather than about phrasing, because the phrasings are unbounded and the
-# mechanisms are not.
-FANOUT_WORDS='sub-?agents?|agent tool|task tool|parallel|fan-?out|spawn'
-FANOUT_ABSENT='unavailable|not available|[^[:alnum:]]no[^[:alnum:]]|without|denied|blocked|refused|forbidden|disabled|could not|cannot|can.t|fail|error|timed out|timing out|limit|fell back|fall back|fallback|never ran|did not'
+# TWO PARSERS DIED TO GET HERE, and both died the same way -- inferring a verdict the author
+# could simply have stated. The first matched substrings with no regard for negation, so
+# "subagents unavailable" counted as evidence OF subagents. The second added a negation
+# predicate bounded to one clause by `[^.;]{0,40}`, on the reasoning that "parallel
+# subagents; role 4 could not reach the web" is a role's failure and not the fan-out's.
+#
+# That bound was defeated four ways in review, and the first case is the one that settles it:
+#
+#     "parallel subagents; role 4 could not reach the web"   -> subagents
+#     "parallel subagents, role 4 could not reach the web"   -> single-pass
+#
+# The same sentence, one character apart, classified opposite ways. And:
+#
+#     "spawned the eleven. Every one of them failed to start"   a full stop blocks the denial
+#     "subagents were, after three attempts and a timeout, unavailable"   44 chars: too long
+#     "parallel fan-out; nothing came back"    no vocabulary word at all, and no bound on
+#                                              how many such phrasings exist
+#
+# The second is the one worth staring at: it defeats the bound BY BEING MORE DETAILED, so a
+# terser and less honest line passes where a fuller one fails. That is a gate rewarding the
+# wrong behaviour, not a threshold needing a tweak.
+#
+# THE DIAGNOSIS, which is why no setting of the bound would have worked: proximity is
+# standing in for GRAMMATICAL ATTACHMENT -- does the denial attach to the fan-out or to one
+# role? -- and those two are not distinguishable by distance.
+#
+#     "parallel subagents could not start"           the fan-out
+#     "parallel subagents, role 4 could not start"   a role
+#
+# Nearly the same span, opposite meanings. Widen the bound and false positives rise; narrow
+# it and real denials are missed. A cheap measurable quantity standing in for the property
+# that actually matters is the defect this repo names everywhere else; it had been built
+# into a gate here.
+#
+# So: stop parsing the sentence. An unbounded natural-language problem becomes a bounded
+# one, every case above becomes unambiguous, and the author states the verdict instead of
+# the gate guessing at it. A line that does not fit is `unrecognized` -- refused, with the
+# grammar printed -- which is a failure that TEACHES rather than one that misclassifies.
+#
+# The window for imposing a format is open exactly now: `Execution:` is new as of
+# 2026-09-04 and no report anywhere carries one, so this costs no consumer anything. It
+# closes the moment the first one does. Diagnosis and design from murderboard-b1.
 
-fanout_denied() {
-  local s
-  s=" $(printf '%s' "$1" | tr 'A-Z' 'a-z') "
-  printf '%s' "$s" | grep -qE "($FANOUT_ABSENT)[^.;]{0,40}($FANOUT_WORDS)" && return 0
-  printf '%s' "$s" | grep -qE "($FANOUT_WORDS)[^.;]{0,40}($FANOUT_ABSENT)" && return 0
-  return 1
+# Everything up to the first separator, lowercased and squeezed. Separators are authoring
+# marks a writer puts in deliberately: an em/en dash, a double hyphen, a spaced hyphen, or
+# a second colon. NOT a comma or a semicolon -- "subagents, none of which started" would
+# hand back "subagents", which is the misread this design exists to end.
+execution_head() {
+  local raw
+  raw=$(execution_line "$1")
+  [ -n "$raw" ] || return 1
+  raw=${raw#*:}
+  raw=${raw%%—*}; raw=${raw%%–*}; raw=${raw%%--*}; raw=${raw%% - *}; raw=${raw%%:*}
+  # Strip markdown decoration left over on the far side of the label. `**Execution:**
+  # subagents` keeps its closing `**` after the colon is cut, and the head would be
+  # `** subagents` -- a token match away from being refused for its formatting rather
+  # than its content, which is the thing the mode line is careful not to do.
+  printf '%s' "$raw" | tr 'A-Z' 'a-z' | tr -s '[:space:]' ' ' \
+    | sed -e 's/^[]['"'"'*_|>#[:space:]]*//' -e 's/ *$//'
 }
 
-# "inline", "sequentially", "by hand", "myself" are how a degraded run gets written when
-# nobody has been handed this vocabulary, and the first version of this list contained none
-# of them -- so the commonest honest phrasings landed in `unrecognized` and hard-failed.
-EXEC_DEGRADED='single-?pass|single pass|self-review|self review|one-?pass|inline|sequentially|serially|by hand|myself|alone|solo|in turn'
+# Everything AFTER the separator. Read for exactly one purpose -- see report_execution.
+execution_tail() {
+  local raw head
+  raw=$(execution_line "$1"); raw=${raw#*:}
+  head=${raw%%—*}; head=${head%%–*}; head=${head%%--*}; head=${head%% - *}; head=${head%%:*}
+  [ "$head" = "$raw" ] && return 1
+  printf '%s' "${raw#"$head"}" | tr 'A-Z' 'a-z'
+}
 
 report_execution() {
-  local line lower degraded=0 fanout=0
-  line=$(execution_line "$1")
-  if [ -z "$line" ]; then printf 'undeclared\n'; return; fi
-  lower=$(printf '%s' "$line" | tr 'A-Z' 'a-z')
+  local head mode
+  head=$(execution_head "$1") || { printf 'undeclared\n'; return; }
+  mode=${head%%(*}                       # drop a "(forced)" / "(chosen)" qualifier
+  mode=$(printf '%s' "$mode" | sed -e 's/ *$//')
+  case "$mode" in
+    subagents|parallel\ subagents|parallel-subagents) mode=subagents ;;
+    single-pass|single\ pass)                          mode=single-pass ;;
+    *) printf 'unrecognized\n'; return ;;
+  esac
 
-  printf '%s' "$lower" | grep -qE "$EXEC_DEGRADED" && degraded=1
-  printf '%s' "$lower" | grep -qE "$FANOUT_WORDS"  && fanout=1
-
-  # A line claiming BOTH, with the fan-out not denied, is not a line to guess at:
-  # "11 parallel agents spawned; role 5 also self-reviewed" is a full run, and
-  # "spawned in parallel after a one-pass triage" is a full run, while
-  # "single-pass, no parallel fan-out" is a degraded one -- and no substring rule
-  # separates them. REPORTED, NEVER RESOLVED, which is the discipline the grants gate
-  # already applies to a role that declares two verdicts: picking one is how the wrong
-  # one gets laundered into the record. The writer says which; the gate does not choose.
-  if [ "$degraded" = 1 ] && [ "$fanout" = 1 ] && ! fanout_denied "$line"; then
+  # ONE DIRECTION ONLY, and the asymmetry is deliberate. A `subagents` head whose prose
+  # says the run went inline is a visible self-contradiction worth refusing. A
+  # `single-pass` head whose prose mentions a fan-out is almost always saying the fan-out
+  # did NOT happen -- "no parallel fan-out" -- and checking it would resurrect the
+  # negation problem this design exists to retire.
+  if [ "$mode" = subagents ] && execution_tail "$1" 2>/dev/null \
+     | grep -qE 'single-?pass|single pass|self-review|one-?pass|inline|by hand|myself'; then
     printf 'contradictory\n'; return
   fi
-  # A denied fan-out IS the degraded case even when the line never says "single-pass":
-  # "subagents unavailable, ran inline" names the mode only by its absence.
-  if [ "$degraded" = 1 ] || fanout_denied "$line"; then printf 'single-pass\n'; return; fi
-  if [ "$fanout" = 1 ]; then printf 'subagents\n'; return; fi
-  # A line that EXISTS and names neither is not the same as no line at all. Absence is
-  # backward compatibility; an unparseable claim is a live assertion nobody can check, so
-  # it fails whether or not enforcement was opted into.
-  #
-  # THAT STRICTNESS IS SAFE FOR A REASON WORTH WRITING DOWN, because it is the reason and
-  # not the posture that makes it safe: `Execution:` is new as of 2026-09-04, so no report
-  # anywhere carries one yet. There is no legacy line for this branch to redden -- unlike
-  # `Mode:` above, which returns undeclared for anything it does not recognise and so lets
-  # a garbled mode line pass in silence. Raised as a backward-compatibility risk in review;
-  # it is not one today, and the day it becomes one is the day this comment is wrong.
-  printf 'unrecognized\n'
+  printf '%s\n' "$mode"
 }
 
 # A single-pass run must say WHICH KIND it was, because the two are not the same event:
@@ -224,38 +256,29 @@ report_execution() {
 # that says only "single-pass" leaves the reader to assume the first, which is the assumption
 # that costs nothing to make and everything to be wrong about.
 #
-# SCOPED TO THE DECLARATION LINE, not the report. Searching the whole document for words
-# like "chosen" or "blocked" would pass on essentially every report ever written -- those
-# words appear in ordinary finding prose -- and a check that cannot fail is the defect this
-# file exists to name. The reason has to be ON the line that makes the claim, which is also
-# what the failure message asks for.
+# A TOKEN, in the head's parenthetical, for the same reason and after the same failure.
 #
-# THE TWO SIDES ARE NOT SYMMETRICAL, and the first version's bug was assuming they were.
-# `forced` was a list of idioms; `chosen` contained `small`, `short`, `caption`, `one-liner`.
-# Those describe the DELIVERABLE, and a forced run also has a short deliverable -- so any
-# forced run phrased outside the idiom list that mentioned its own brevity was recorded as a
-# deliberate judgement call. Four of five constructed forced runs classified as `chosen`,
-# including "Task tool errored out, small deliverable". A recurring environment defect filed
-# as a choice is the precise outcome this field was added to prevent.
+# The first version searched the whole report and would have passed on any document
+# containing the word "chosen" in ordinary finding prose. The second scoped to the
+# declaration line and read the two sides as symmetrical, which they are not: `forced` was
+# a list of idioms while `chosen` held `small`, `short`, `caption`, `one-liner` -- words
+# describing the DELIVERABLE. A forced run also has a short deliverable, so any forced run
+# phrased outside the idiom list that mentioned its own brevity was filed as a deliberate
+# judgement call. Four of five constructed forced runs classified as `chosen`, including
+# "Task tool errored out, small deliverable" -- a recurring environment defect recorded as
+# a choice, which is the single outcome this field exists to prevent.
 #
-# The fix is not a longer forced list -- that is a denylist over unbounded English, which is
-# the argument this repo's own reviewer-shell-guard makes against denylists. It is that only
-# words describing the DECISION can distinguish a choice from a constraint. So `chosen`
-# keeps `chose`/`by choice`/`deliberate` and nothing about the artifact, and `forced` defers
-# to the shared mechanism predicate above. A line that says neither is `unstated`, and the
-# gate asks rather than guessing.
-#
-# Reported by murderboard-b1 with constructed inputs, 2026-09-04.
+# Both failures were the gate inferring an answer only the author has. So it is stated:
+# `single-pass (forced)` or `single-pass (chosen)`, and the prose after the separator says
+# forced by WHAT or chosen WHY without being parsed for it.
 execution_cause() {
-  local line
-  line=$(execution_line "$1")
-  if fanout_denied "$line"; then
-    printf 'forced\n'
-  elif printf '%s' "$line" | grep -qiE 'chose|chosen|by choice|deliberate|elected|opted|judged'; then
-    printf 'chosen\n'
-  else
-    printf 'unstated\n'
-  fi
+  local head
+  head=$(execution_head "$1") || { printf 'unstated\n'; return; }
+  case "$head" in
+    *\(forced\)*) printf 'forced\n' ;;
+    *\(chosen\)*) printf 'chosen\n' ;;
+    *)            printf 'unstated\n' ;;
+  esac
 }
 
 cmd_check() {
@@ -313,27 +336,32 @@ EOF
     single-pass)
       cause=$(execution_cause "$report")
       if [ "$cause" = unstated ]; then
-        printf '%smurderboard: execution is single-pass but the report does not say why%s\n' \
+        printf '%smurderboard: execution is single-pass but does not say which kind%s\n' \
                "$RED" "$RST" >&2
-        printf '%s  say whether subagents were UNAVAILABLE (an environment defect that will\n' "$RED" >&2
-        printf '  recur) or single-pass was CHOSEN for a small deliverable. Unqualified, it\n' >&2
-        printf '  reads as the second, which is the reading that costs nothing to assume%s\n' "$RST" >&2
+        printf '%s  write "single-pass (forced)" if subagents were unavailable — an\n' "$RED" >&2
+        printf '  environment defect that will recur on every run until it is fixed — or\n' >&2
+        printf '  "single-pass (chosen)" if the deliverable did not warrant a fan-out.\n' >&2
+        printf '  Unqualified it reads as chosen, which is the assumption that costs\n' >&2
+        printf '  nothing to make and everything to be wrong about%s\n' "$RST" >&2
         return 1
       fi
       execution="single-pass ($cause)"
       ;;
     contradictory)
-      printf '%smurderboard: the Execution: line claims both a fan-out and a single pass%s\n' "$RED" "$RST" >&2
-      printf '%s  and does not say the fan-out failed, so it is not clear which happened.\n' "$RED" >&2
-      printf '  This is reported, never resolved: picking one is how the wrong one gets\n' >&2
-      printf '  into the record. State the mode the ELEVEN ROLES ran in — a triage pass or\n' >&2
-      printf '  one role re-reading its own work does not change it%s\n' "$RST" >&2
+      printf '%smurderboard: the Execution: line declares subagents and then describes a%s\n' "$RED" "$RST" >&2
+      printf '%s  single pass. Reported, never resolved: picking one is how the wrong one\n' "$RED" >&2
+      printf '  reaches the record. State the mode the ELEVEN ROLES ran in — a triage pass,\n' >&2
+      printf '  or one role re-reading its own work, does not change it%s\n' "$RST" >&2
       return 1
       ;;
     unrecognized)
-      printf '%smurderboard: the Execution: line names neither subagents nor single-pass%s\n' "$RED" "$RST" >&2
-      printf '%s  it is a claim nobody can check; write "Execution: parallel subagents" or\n' "$RED" >&2
-      printf '  "Execution: single-pass (<why>)"%s\n' "$RST" >&2
+      printf '%smurderboard: the Execution: line does not start with a known token%s\n' "$RED" "$RST" >&2
+      printf '%s  The token is parsed; everything after the dash is yours and is never read:\n' "$RED" >&2
+      printf '      Execution: subagents — 11 spawned, role 4 could not reach the web\n' >&2
+      printf '      Execution: single-pass (forced) — the Agent tool was unavailable\n' >&2
+      printf '      Execution: single-pass (chosen) — a one-line caption\n' >&2
+      printf '  Earlier versions inferred this from the prose and got it wrong in both\n' >&2
+      printf '  directions, so the verdict is stated rather than guessed at%s\n' "$RST" >&2
       return 1
       ;;
     undeclared)
@@ -446,7 +474,7 @@ MB
   t 'undeclared execution still passes' 0 cmd_check "$tmp/full.md"
 
   local roles='Prove It / DOI or Die / Kill Your Darlings — all clean'
-  printf '%s\nExecution: parallel subagents, one per role\n' "$roles" > "$tmp/exec_sub.md"
+  printf '%s\nExecution: subagents — one per role, all eleven spawned\n' "$roles" > "$tmp/exec_sub.md"
   t 'Execution: subagents passes'       0 cmd_check "$tmp/exec_sub.md"
 
   # A bare "single-pass" is the failure this exists to catch: it reads as the chosen
@@ -454,10 +482,10 @@ MB
   printf '%s\nExecution: single-pass\n' "$roles" > "$tmp/exec_bare.md"
   t 'single-pass with no cause FAILS'   1 cmd_check "$tmp/exec_bare.md"
 
-  printf '%s\nExecution: single-pass — subagents were unavailable in this session\n' "$roles" > "$tmp/exec_forced.md"
+  printf '%s\nExecution: single-pass (forced) — the Agent tool was unavailable\n' "$roles" > "$tmp/exec_forced.md"
   t 'single-pass (forced) passes'       0 cmd_check "$tmp/exec_forced.md"
 
-  printf '%s\nExecution: single-pass — chosen, the deliverable is a one-liner\n' "$roles" > "$tmp/exec_chosen.md"
+  printf '%s\nExecution: single-pass (chosen) — the deliverable is a one-liner\n' "$roles" > "$tmp/exec_chosen.md"
   t 'single-pass (chosen) passes'       0 cmd_check "$tmp/exec_chosen.md"
 
   # A line that exists and says nothing checkable is worse than no line: it looks like
@@ -465,29 +493,17 @@ MB
   printf '%s\nExecution: yes\n' "$roles" > "$tmp/exec_junk.md"
   t 'unrecognized execution FAILS'      1 cmd_check "$tmp/exec_junk.md"
 
-  printf '%s\n**Execution:** parallel subagents\n' "$roles" > "$tmp/exec_bold.md"
+  printf '%s\n**Execution:** subagents\n' "$roles" > "$tmp/exec_bold.md"
   t 'bolded execution line recognised'  0 cmd_check "$tmp/exec_bold.md"
 
-  # NEGATIVE CONTROLS for two defects this function shipped with for an hour.
-  #
-  # A line naming both modes is a confession, not a boast: the honest way to write the
-  # degraded case is to name the thing that did not happen. Tested first-match-wins the
-  # wrong way round, this passed as "subagents".
-  printf '%s\nExecution: single-pass, no parallel fan-out — subagents were unavailable\n' "$roles" > "$tmp/exec_both.md"
-  if [ "$(report_execution "$tmp/exec_both.md")" = single-pass ]; then
-    pass=$((pass+1)); printf '  ok   a line naming both modes reads as single-pass\n'
-  else
-    fail=$((fail+1)); printf '  %sFAIL%s a line naming both modes read as subagents\n' "$RED" "$RST"
-  fi
-
   # --- constructed inputs, from murderboard-b1's review, 2026-09-04 ------------
-  # A peer defeated both matchers with lines nobody on this branch had thought to write.
-  # They are fixtures now, because the way this function fails is by looking correct
+  # A peer defeated two successive matchers with lines nobody on this branch had thought
+  # to write. They are fixtures because the way this function fails is by looking correct
   # against the phrasings its author happened to imagine.
   #
   # e() asserts on the CLASSIFICATION rather than the exit code: the exit code collapses
   # "read it wrong" and "refused to guess" into the same 1, and the difference between
-  # those is the entire review.
+  # those is the entire design.
   e() { # e <name> <expected-mode> <expected-cause> <line>
     local name="$1" wm="$2" wc="$3" ln="$4" gm gc
     printf '%s\nExecution: %s\n' "$roles" "$ln" > "$tmp/e.md"
@@ -500,36 +516,40 @@ MB
     fi
   }
 
-  # A forced run whose phrasing sits outside any idiom list, mentioning that the
-  # deliverable was short. Four of these five classified as CHOSEN -- an environment
-  # defect filed as a judgement call -- because `chosen` held words describing the
-  # artifact, and a forced run also has a short artifact.
-  e 'forced: "was unavailable"'     single-pass forced 'single-pass — the Agent tool was unavailable; deliverable was short anyway'
-  e 'forced: "no subagents"'        single-pass forced 'single-pass — no subagents in this environment, short doc anyway'
-  e 'forced: "errored out"'         single-pass forced 'single-pass — Task tool errored out, small deliverable'
-  e 'forced: "concurrency limit"'   single-pass forced 'single-pass — spawning hit the concurrency limit; a short caption'
-  e 'forced: "kept timing out"'     single-pass forced 'single-pass — subagents kept timing out, so I did it inline (short doc)'
+  # THE PAIR THAT SETTLED THE DESIGN. One character apart, classified opposite ways by
+  # the proximity parser. Under the token grammar the first is read from its token and
+  # the second is refused for having no token -- neither is guessed at.
+  e 'semicolon form reads its token'  subagents unstated 'subagents — 11 spawned; role 4 could not reach the web'
+  e 'comma form is refused, not read' unrecognized unstated 'parallel subagents, role 4 could not reach the web'
 
-  # The dangerous direction: a degraded run reading as a full one. Neither line contains
-  # the words "single-pass", so ordering could not save it -- the fix is that a denied
-  # fan-out IS the degraded case.
-  e 'degraded: "unavailable, inline"'  single-pass forced 'subagents unavailable, ran inline'
-  e 'degraded: "fell back to inline"'  single-pass forced 'fan-out attempted, fell back to inline'
+  # Three degraded runs that the proximity parser read as FULL -- the direction that
+  # costs the most. A full stop blocked the denial in the first; the second defeated the
+  # 40-character bound BY BEING MORE DETAILED, so a terser and less honest line passed
+  # where a fuller one failed; the third used a phrasing in no vocabulary at all, and
+  # there is no bound on how many such phrasings exist.
+  e 'denial in a second sentence'   unrecognized unstated 'spawned the eleven. Every one of them failed to start'
+  e 'denial past the length bound'  unrecognized unstated 'subagents were, after three separate attempts and a timeout, unavailable'
+  e 'denial in no vocabulary'       unrecognized unstated 'parallel fan-out; nothing came back'
 
-  # A full run that mentions a single pass somewhere inside it. No substring rule
-  # separates these from a degraded run, so the gate refuses rather than guessing.
-  e 'both, fan-out not denied -> refuse' contradictory unstated '11 parallel agents spawned; role 5 also self-reviewed'
-  e 'both, triage pass -> refuse'        contradictory unstated 'spawned in parallel after a one-pass triage'
+  # The five forced runs that classified as CHOSEN when `chosen` held words describing
+  # the DELIVERABLE -- a forced run also has a short deliverable. The cause is a token
+  # now, so the artifact prose cannot reach it.
+  e 'forced token, prose mentions brevity' single-pass forced 'single-pass (forced) — the Agent tool was unavailable; deliverable was short anyway'
+  e 'forced token, "errored out"'          single-pass forced 'single-pass (forced) — Task tool errored out, small deliverable'
+  e 'forced token, "concurrency limit"'    single-pass forced 'single-pass (forced) — spawning hit the concurrency limit; a short caption'
+  e 'chosen token, prose mentions failure'  single-pass chosen 'single-pass (chosen) — a caption; the fan-out would have worked fine'
+  e 'no token -> cause is unstated'         single-pass unstated 'single-pass — subagents were unavailable'
 
-  # The commonest honest phrasings of a degraded run. These used to be `unrecognized`
-  # and hard-fail as unparseable; now they parse, and fail for the right reason instead
-  # -- the cause is genuinely unstated and the gate asks for it.
-  e 'honest: "myself"'                 single-pass unstated 'ran the eleven roles myself'
-  e 'honest: "sequentially, by hand"'  single-pass unstated 'ran the roles sequentially, by hand'
+  # THE PROSE IS NOT READ, and that is the whole point. A `subagents` token followed by
+  # any description of role-level trouble stays `subagents`.
+  e 'prose about a role never demotes the token' subagents unstated 'subagents — every one of them was slow and role 4 could not reach the web'
 
-  # PROXIMITY CONTROL. A role's failure is not the fan-out's failure, and a line-global
-  # search for "could not" would call this degraded. The clause boundary is what stops it.
-  e 'a role failing != the fan-out failing' subagents unstated 'parallel subagents; role 4 could not reach the web'
+  # ONE DIRECTION OF CONTRADICTION. A subagents token whose prose says the run went
+  # inline is a visible self-contradiction and is refused, never resolved.
+  e 'token says subagents, prose says inline' contradictory unstated 'subagents — fell back to inline after the first failure'
+  # ...and the reverse is NOT a contradiction: a single-pass line mentioning a fan-out is
+  # almost always saying the fan-out did not happen.
+  e 'single-pass may mention the fan-out'  single-pass forced 'single-pass (forced) — no parallel fan-out was available'
 
   # The cause must come from the DECLARATION, not from anywhere in the report. Searching
   # the whole file for "chosen" passes on ordinary finding prose, and a bare declaration
@@ -545,9 +565,9 @@ MB
 
   # Neither declaration may rescue a missing role, and the two must not rescue each
   # other: coverage is checked first, then mode, then execution, independently.
-  printf 'Prove It / DOI or Die — clean\nExecution: parallel subagents\n' > "$tmp/short_exec.md"
+  printf 'Prove It / DOI or Die — clean\nExecution: subagents\n' > "$tmp/short_exec.md"
   t 'declared execution does NOT excuse a missing role' 1 cmd_check "$tmp/short_exec.md"
-  printf '%s\nMode: retrospective\nExecution: parallel subagents\n' "$roles" > "$tmp/retro_exec.md"
+  printf '%s\nMode: retrospective\nExecution: subagents\n' "$roles" > "$tmp/retro_exec.md"
   t 'a good execution line does NOT excuse a missing stopping reason' 1 cmd_check "$tmp/retro_exec.md"
 
   # The mode must never rescue a missing role: coverage is checked first and

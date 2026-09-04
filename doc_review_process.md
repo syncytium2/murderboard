@@ -1105,11 +1105,31 @@ murderboard_roster.sh check --require-mode REPORT.md   # undeclared mode is a fa
 An eleven-of-eleven ledger says every role ran. It does not say the loop finished, and until the
 mode line existed there was nowhere for that difference to be recorded.
 
-**The record also declares how the roles were executed**, on a line of its own:
-`Execution: parallel subagents`, or `Execution: single-pass (<why>)`. The ledger cannot carry
-this either. Eleven roles spawned as eleven independent reviewers, and eleven roles played in
-turn by the one agent that wrote the draft, produce the same eleven rows — and the second is a
-materially weaker adversary, most of all at role 4, where the attacker is also the author.
+**The record also declares how the roles were executed**, on a line of its own, as a
+**controlled token** followed by prose the gate never reads:
+
+```
+Execution: subagents — one per role, all eleven spawned
+Execution: single-pass (forced) — the Agent tool was unavailable
+Execution: single-pass (chosen) — a one-line caption
+```
+
+The ledger cannot carry this either. Eleven roles spawned as eleven independent reviewers, and
+eleven roles played in turn by the one agent that wrote the draft, produce the same eleven rows
+— and the second is a materially weaker adversary, most of all at role 4, where the attacker is
+also the author.
+
+**The token is stated rather than inferred, and the reason generalises past this gate.** Two
+earlier versions read the verdict out of the sentence, and both failed in the expensive
+direction — recording a degraded run as a full one. The second was defeated by a comma:
+*"parallel subagents; role 4 could not reach the web"* and the same sentence with a comma
+classified opposite ways. The diagnosis is worth carrying: textual distance was standing in for
+**grammatical attachment** — does a failure attach to the fan-out or to one role? — and
+*"parallel subagents could not start"* and *"parallel subagents, role 4 could not start"* have
+nearly the same span and opposite meanings. No threshold separates them, because distance is
+not what distinguishes them. A cheap measurable quantity standing in for the property that
+actually matters is a defect this process hunts in other people's work; it had been built into
+one of its own gates.
 
 A single-pass declaration must say **which kind** it was, and the gate rejects a bare one:
 

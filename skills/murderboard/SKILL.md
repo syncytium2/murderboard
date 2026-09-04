@@ -283,7 +283,16 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - roles:     <n> of <n> run (named agents | inline fallback)   # from step 4a
 - rounds:    <n> blind verify rounds to clean
 
-Execution: parallel subagents | single-pass (<forced by what, or chosen why>)   # from step 1a
+Execution: subagents | single-pass (forced) | single-pass (chosen)   # from step 1a
+```
+
+The token before the dash is parsed and must be exact; everything after it is yours and is
+**never read**:
+
+```markdown
+Execution: subagents — one per role, all eleven spawned
+Execution: single-pass (forced) — the Agent tool was unavailable; step 1a's probe failed
+Execution: single-pass (chosen) — a one-line caption, not worth an eleven-agent fan-out
 ```
 
 `roles:` and `Execution:` answer different questions and neither implies the other. `roles:`
@@ -316,14 +325,19 @@ designed on a one-line deliverable, the other an environment defect that will re
 every run until somebody fixes it. Do not satisfy this by picking whichever word makes it
 green; step 1a already knows which it was.
 
-Write the line about the **eleven roles**, not about everything that happened. A line claiming
-both a fan-out and a single pass — *"11 parallel agents spawned; role 5 also self-reviewed"* —
-is **reported, never resolved**: the gate refuses it rather than picking, on the same grounds
-the grants gate refuses a role that declares two verdicts. A triage pass before the fan-out, or
-one role re-reading its own work, does not change the mode the team ran in. Two phrasings that
-do *not* need the words "single-pass": *"subagents unavailable, ran inline"* and *"ran the
-eleven roles myself"* both read correctly as degraded, because a denied fan-out **is** the
-degraded case however it is worded.
+Write the token about the **eleven roles**, not about everything that happened — a triage pass
+before the fan-out, or one role re-reading its own work, does not change the mode the team ran
+in. A `subagents` token whose prose then describes an inline run is **reported, never
+resolved**: the gate refuses it rather than picking, on the same grounds the grants gate
+refuses a role that declares two verdicts.
+
+**The token is not decoration, and it replaced two parsers that tried to do without it.** Both
+inferred the verdict from the sentence and both got it wrong in the direction that costs most —
+reading a degraded run as a full one. The second was defeated by a comma:
+*"parallel subagents; role 4 could not reach the web"* and the same line with a comma
+classified opposite ways. Distance cannot tell whether a failure attaches to the fan-out or to
+one role, so the author says which and the gate stops guessing. A line with no token is refused
+with the grammar printed — a failure that teaches rather than one that misclassifies.
 
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are

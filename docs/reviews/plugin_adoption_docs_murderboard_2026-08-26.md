@@ -35,7 +35,7 @@ is the only reason it was noticed.
 - roles:     11 of 11 run
 - rounds:    3 (draft → findings applied → blind re-check → F3 reopened and fixed)
 
-Execution: single-pass (subagents unavailable — see *Stated deviation*)
+Execution: single-pass (forced) — subagents unavailable; see *Stated deviation*
 
 > **This line was added on 2026-09-04, and the run itself is unchanged.** The `Execution:`
 > declaration did not exist when this record was written; the deviation below did, because its
