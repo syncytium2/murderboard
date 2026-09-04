@@ -316,6 +316,15 @@ designed on a one-line deliverable, the other an environment defect that will re
 every run until somebody fixes it. Do not satisfy this by picking whichever word makes it
 green; step 1a already knows which it was.
 
+Write the line about the **eleven roles**, not about everything that happened. A line claiming
+both a fan-out and a single pass — *"11 parallel agents spawned; role 5 also self-reviewed"* —
+is **reported, never resolved**: the gate refuses it rather than picking, on the same grounds
+the grants gate refuses a role that declares two verdicts. A triage pass before the fan-out, or
+one role re-reading its own work, does not change the mode the team ran in. Two phrasings that
+do *not* need the words "single-pass": *"subagents unavailable, ran inline"* and *"ran the
+eleven roles myself"* both read correctly as degraded, because a denied fan-out **is** the
+degraded case however it is worded.
+
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are
 not the ones the process file grants it (naming none at all is this case, not a lesser one); a
