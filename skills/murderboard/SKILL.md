@@ -43,6 +43,19 @@ If the gate is absent, **say which model you are running on and confirm the huma
 spend it here** before spawning anything. That sentence is the whole of the fallback, and
 it is cheap: one line before the fan-out, rather than an apology after it.
 
+**You should also expect to be ASKED.** By default the same hook returns `ask`, so Claude
+Code puts the run to the human before it starts. That prompt is not about the model — it is
+about the **moment**. Sessions fire this process at drafts that were not ready, and an early
+run costs full price to produce findings about a draft that is replaced ten minutes later.
+The human is being asked *is this the artifact, and is it ready*, which is a question only
+they can answer. One prompt covers the fan-out it authorises; the eleven role agents do not
+each re-ask.
+
+**If the human declines, that is the end of it.** Do not re-invoke, do not reach for the
+hand-run path through the process file, and do not decide their answer was about the skill
+rather than the review. The hook cannot see their answer — the design relies on you not
+routing around a refusal you were present for.
+
 **If you are blocked, stop and hand it back.** Do not run a reduced roster to fit a budget.
 The process is explicit that scaling to stakes changes *how* roles run and never *which*,
 and a report missing roles is indistinguishable from a clean one — that is the failure this

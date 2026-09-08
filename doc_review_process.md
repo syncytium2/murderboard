@@ -74,9 +74,26 @@ No fabricated or approximate citation. No internal contradiction. No filler.
 > the process. For that same reason the block carries a review-by date that CI enforces:
 > when it lapses, a human re-affirms the block or removes it.
 >
+> **It also asks before every run, and that question is about the MOMENT, not the model.**
+> The other way this process wastes money is being fired too early — at a draft that was not
+> ready, by a session that decided on its own that something was a deliverable. An early run
+> costs full price and returns findings about a draft that is replaced ten minutes later. So
+> the gate returns `ask`, and Claude Code puts it to the human: *is this the artifact, and is
+> it ready?* One confirmation covers the fan-out it authorises. **If the human declines, the
+> run is over** — do not re-invoke it, and do not route around a refusal by running the roles
+> by hand from this file.
+>
 > **If you are stopped by it, stop — do not economise by running fewer roles.** A review
 > missing roles is the exact defect this whole apparatus exists to prevent, and it is
 > indistinguishable in the report from a clean one. Tell the human and let them choose.
+>
+> **And the bill is yours.** Under no circumstances are the authors or contributors of this
+> process responsible or liable for any token, API, subscription, usage, or overage cost
+> incurred by running it — including runs that fail, produce nothing, or exhaust a limit. The
+> gate above is a safeguard, **not a spending cap**: it knows nothing about your plan, your
+> balance, or any price, and it can be overridden, unwired, or simply absent. Set real limits
+> with whoever bills you. Full terms:
+> <https://github.com/syncytium2/murderboard/blob/main/TERMS.md>
 
 0. **Preflight — confirm the process itself is current.** This file is usually **vendored** into a
    consumer repo, where it drifts behind its canonical source. Before running, verify THIS copy is up

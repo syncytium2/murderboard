@@ -72,6 +72,15 @@ REVIEW_BY="${MURDERBOARD_BLOCK_REVIEW_BY:-2026-12-08}"   # set 2026-09-08, +3 mo
 # obeyed, and then there is no gate and no record that there was one.
 OVERRIDE="${MURDERBOARD_ALLOW_EXPENSIVE_MODEL:-}"
 
+# CONFIRMATION. Default ON: every murderboard call-up asks the human first, through
+# Claude Code's own permission prompt rather than through the model's good intentions.
+# This is a SECOND failure mode from the model block above — not "wrong model" but
+# "wrong moment" — and it is the more common one. CONFIRM_TTL is how long one
+# confirmation covers the fan-out it authorised, in seconds; long enough for a roster to
+# spawn, short enough that a later run in the same session asks again.
+CONFIRM="${MURDERBOARD_CONFIRM:-1}"
+CONFIRM_TTL="${MURDERBOARD_CONFIRM_TTL:-900}"
+
 usage_and_exit() {
   cat >&2 <<'USAGE'
 murderboard_model_gate.sh — PreToolUse hook. Reads a hook payload on stdin.
@@ -112,8 +121,14 @@ case "${1:-}" in
     printf 'blocked models (regex, case-insensitive): %s\n' "$BLOCKED"
     printf 'review by: %s (today: %s)\n' "$REVIEW_BY" "$(date +%F)"
     printf 'override:  MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1\n'
+    printf 'confirm:   %s (every call-up asks the human; MURDERBOARD_CONFIRM=0 to stop)\n' \
+           "$( [ "$CONFIRM" != 0 ] && echo on || echo OFF )"
+    printf '           one prompt per run, good for %ss, then it asks again\n' "$CONFIRM_TTL"
     printf 'reason:    the roster fan-out spends a usage window in minutes;\n'
     printf '           a Fable run on 2026-09-07 cost two days of access.\n'
+    printf '           it is also fired too early: confirmation is about the MOMENT.\n'
+    printf 'liability: you pay for these tokens. No cost you incur running this\n'
+    printf '           software is ever the responsibility of its authors. See TERMS.md.\n'
     exit 0 ;;
   --check-review-date)
     today=$(date +%F)
@@ -169,14 +184,43 @@ if [ "${1:-}" = "--selftest" ]; then
     printf '%s' "$f"
   }
 
+  # Every fixture gets a private state dir and confirmation OFF by default, so the
+  # model-policy cases below test the model policy and nothing else. The confirmation
+  # group turns it back on explicitly -- assignments in "$@" come after these, so a
+  # test can override either. Without this, the first fixture would write a marker and
+  # silently suppress the asks in every fixture after it.
   t() { # t <want> <desc> <payload> [env assignments...]
     local want="$1" desc="$2" payload="$3"; shift 3
     local got
-    got=$(printf '%s' "$payload" | env "$@" bash "$SELF" >/dev/null 2>&1; echo $?)
+    got=$(printf '%s' "$payload" \
+          | env MURDERBOARD_CONFIRM=0 MURDERBOARD_GATE_STATE="$TMP/state" "$@" \
+                bash "$SELF" >/dev/null 2>&1; echo $?)
     if [ "$got" = "$want" ]; then
       pass=$((pass+1)); printf '  ok   %s\n' "$desc"
     else
       fail=$((fail+1)); printf '  %sFAIL%s %s (exit=%s, want %s)\n' "$RED" "$RST" "$desc" "$got" "$want"
+    fi
+  }
+
+  # Same, but asserts on STDOUT -- the permission decision, which is where the
+  # confirmation lives. `t` cannot see it: an ask and a plain allow are both exit 0,
+  # so a suite that only checked exit codes would report a working confirmation
+  # prompt that never appears.
+  tout() { # tout <want-substring|NONE> <desc> <payload> [env assignments...]
+    local want="$1" desc="$2" payload="$3"; shift 3
+    local out
+    out=$(printf '%s' "$payload" \
+          | env MURDERBOARD_GATE_STATE="$TMP/state2" "$@" bash "$SELF" 2>/dev/null)
+    local ok=0
+    if [ "$want" = "NONE" ]; then
+      [ -z "$out" ] && ok=1
+    else
+      case "$out" in (*"$want"*) ok=1 ;; esac
+    fi
+    if [ "$ok" = 1 ]; then
+      pass=$((pass+1)); printf '  ok   %s\n' "$desc"
+    else
+      fail=$((fail+1)); printf '  %sFAIL%s %s (stdout=%.60s)\n' "$RED" "$RST" "$desc" "${out:-<empty>}"
     fi
   }
 
@@ -249,6 +293,74 @@ if [ "${1:-}" = "--selftest" ]; then
   fi
   # An EXPIRED policy still blocks. This is the one people get wrong.
   t 2 "an expired review date still BLOCKS" "$(sk "$FABLE")" MURDERBOARD_BLOCK_REVIEW_BY=2000-01-01
+
+  # --- CONFIRMATION: the second failure mode, "wrong moment" rather than "wrong model".
+  #     These assert on STDOUT, because that is where the permission decision goes and an
+  #     ask is indistinguishable from an allow by exit code alone.
+  SESS() { printf '{"session_id":"%s","tool_name":"Skill","transcript_path":"%s","tool_input":{"skill":"murderboard"}}' "$1" "$2"; }
+
+  rm -rf "$TMP/state2"
+  tout '"permissionDecision":"ask"' "a call-up ASKS the human first" "$(SESS s1 "$OPUS")"
+  # ONE PROMPT PER RUN, NOT ELEVEN. The fan-out this authorised must not re-interrogate.
+  tout NONE "the fan-out it authorised does not ask again" \
+       "$(printf '{"session_id":"s1","tool_name":"Agent","transcript_path":"%s","tool_input":{"prompt":"role 4 murderboard checklist"}}' "$OPUS")"
+  # A DIFFERENT session is a different run and must ask on its own account.
+  tout '"permissionDecision":"ask"' "a different session asks on its own account" "$(SESS s2 "$OPUS")"
+  # The marker EXPIRES, so a later run in the same session is confirmed again.
+  tout '"permissionDecision":"ask"' "a later run in the same session asks again" \
+       "$(SESS s1 "$OPUS")" MURDERBOARD_CONFIRM_TTL=0
+  tout NONE "MURDERBOARD_CONFIRM=0 turns the prompt off" "$(SESS s3 "$OPUS")" MURDERBOARD_CONFIRM=0
+  # NEGATIVE CONTROL: confirmation must not soften the model block into a question the
+  # human can wave through by reflex. A blocked model is refused, not offered.
+  t 2 "a blocked model is DENIED, never merely asked" "$(SESS s4 "$FABLE")" MURDERBOARD_CONFIRM=1
+  # The emitted decision has to be the shape Claude Code actually parses.
+  tout '"hookEventName":"PreToolUse"' "the decision names its own hook event" "$(SESS s5 "$OPUS")"
+  # A session id is used to build a filename. It must not be able to escape the dir.
+  tout '"permissionDecision":"ask"' "a hostile session id cannot escape the state dir" \
+       "$(SESS '../../etc/passwd' "$OPUS")"
+  if [ -e "$TMP/state2/../../etc/passwd" ] && [ ! -e /etc/passwd.murderboard ]; then :; fi
+  if find "$TMP/state2" -name 'confirm-*' 2>/dev/null | grep -q .; then
+    pass=$((pass+1)); printf '  ok   the marker stayed inside the state dir\n'
+  else
+    fail=$((fail+1)); printf '  %sFAIL%s the marker escaped the state dir\n' "$RED" "$RST"
+  fi
+
+  # THE DECISION MUST ACTUALLY PARSE AS JSON. Substring checks cannot see this, and the
+  # failure is silent in the worst way: Claude Code ignores unparseable hook output, so a
+  # malformed object means the confirmation prompt simply never appears and every run is
+  # waved through while the file looks like it is asking. The reason string is built by
+  # hand -- multi-line, with quotes and an em dash in it -- so this is a live risk, not a
+  # theoretical one.
+  #
+  # AN INTERPRETER IS USED HERE AND NOWHERE ELSE. The runtime path stays grep/sed-only for
+  # the reason given at the top of this file; a test may depend on python because a
+  # missing python must not silently pass. If it is absent this SKIPS LOUDLY rather than
+  # counting a pass -- the no-heredoc bug was exactly a check that reported success from a
+  # branch it never entered.
+  PYB=""
+  for c in python3 python; do command -v "$c" >/dev/null 2>&1 && PYB="$c" && break; done
+  if [ -z "$PYB" ]; then
+    printf '  %sSKIP%s decision-JSON parse check (no python found) — NOT a pass\n' "$RED" "$RST"
+  else
+    rm -rf "$TMP/state3"
+    if printf '{"session_id":"json1","tool_name":"Skill","transcript_path":"%s","tool_input":{"skill":"murderboard"}}' "$OPUS" \
+       | env MURDERBOARD_GATE_STATE="$TMP/state3" bash "$SELF" 2>/dev/null \
+       | "$PYB" -c 'import json,sys; d=json.load(sys.stdin)["hookSpecificOutput"]; sys.exit(0 if d["permissionDecision"]=="ask" and d["hookEventName"]=="PreToolUse" else 1)'; then
+      pass=$((pass+1)); printf '  ok   the emitted decision is valid, parseable JSON\n'
+    else
+      fail=$((fail+1)); printf '  %sFAIL%s the emitted decision is not valid JSON\n' "$RED" "$RST"
+    fi
+    # A quote and a backslash in the interpolated model name must not break the object.
+    ODD=$(mk_transcript odd 'claude-"weird"\model')
+    rm -rf "$TMP/state4"
+    if printf '{"session_id":"json2","tool_name":"Skill","transcript_path":"%s","tool_input":{"skill":"murderboard"}}' "$ODD" \
+       | env MURDERBOARD_GATE_STATE="$TMP/state4" bash "$SELF" 2>/dev/null \
+       | "$PYB" -c 'import json,sys; json.load(sys.stdin); sys.exit(0)'; then
+      pass=$((pass+1)); printf '  ok   a model name with quotes and backslashes stays valid JSON\n'
+    else
+      fail=$((fail+1)); printf '  %sFAIL%s a quoted/backslashed model name breaks the JSON\n' "$RED" "$RST"
+    fi
+  fi
 
   printf '\n%s%d passed%s, %s%d failed%s\n' "$GRN" "$pass" "$RST" \
          "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" )" "$fail" "$RST"
@@ -354,6 +466,67 @@ prevent, and it reads identically to a clean one.
         MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1$stale_note
 EOF
   exit 2
+fi
+
+# ---- stage two: is this the right MOMENT? -----------------------------------------
+# The model check above answers "can you afford this at all". It does not answer the
+# other way a murderboard wastes money, which Tony reported on 2026-09-08: "some of my
+# sessions are running it unnecessarily or prematurely in the doc process." An agent
+# decides on its own that something is a document deliverable and fires the whole
+# roster at a draft that was not ready for it. The tokens are spent, the findings are
+# about a draft that no longer exists five minutes later, and nobody asked.
+#
+# WHY THIS IS A HARNESS PROMPT AND NOT AN INSTRUCTION. Telling the model "ask the human
+# first" is worth nothing: the model is the thing being gated, so it can believe it
+# asked, or ask and answer for itself. `permissionDecision: "ask"` hands the decision to
+# Claude Code, which prompts the actual human. That is the only version of consent here
+# that the model cannot manufacture.
+#
+# ONE PROMPT PER RUN, NOT ELEVEN. This hook fires on every Agent spawn, so a naive ask
+# would interrogate the human once per role. A short-lived marker keyed on the session
+# suppresses the follow-ups: the first call-up asks, the fan-out it authorises does not.
+# The marker is written when we ASK rather than when the human answers, because a hook
+# is never told what the human chose.
+#
+# THE LIMIT, STATED RATHER THAN IMPLIED. That last point leaves a hole: if the human
+# DENIES the skill call and the model immediately hand-runs the same review through
+# Agent calls, the marker is already there and the follow-ups pass unasked. Closing it
+# needs a signal the hook does not receive. It is documented here, in SKILL.md and in
+# the process file as "if you are refused, stop" rather than papered over, because a
+# gate that overstates its reach is the defect this repo keeps rediscovering. Likewise
+# `ask` does nothing under `bypassPermissions` or in a non-interactive session — the
+# harness has nobody to prompt.
+if [ "$CONFIRM" != "0" ]; then
+  sid=$(printf '%s' "$payload" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
+         | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+  # Sanitise: the session id becomes part of a filename. Anything unexpected collapses
+  # to a constant rather than escaping the directory.
+  case "$sid" in (*[!A-Za-z0-9._-]*|'') sid=nosession ;; esac
+  state_dir="${MURDERBOARD_GATE_STATE:-${TMPDIR:-/tmp}/murderboard-gate}"
+  marker="$state_dir/confirm-$sid"
+
+  fresh=0
+  if [ -f "$marker" ]; then
+    now=$(date +%s); then_=$(cat "$marker" 2>/dev/null || echo 0)
+    case "$then_" in (''|*[!0-9]*) then_=0 ;; esac
+    [ $(( now - then_ )) -lt "$CONFIRM_TTL" ] && fresh=1
+  fi
+
+  if [ "$fresh" -eq 0 ]; then
+    mkdir -p "$state_dir" 2>/dev/null && date +%s > "$marker" 2>/dev/null
+    reason="Start a murderboard run now? It spawns one subagent per reviewer role (every role
+runs, always), so this is the full cost of a review, not a sample of one — on model
+'$model'. Confirm this is the right MOMENT: is the draft actually ready to be attacked,
+and is this the artifact you want reviewed? Runs fired early get paid for in full and
+produce findings about a draft you are about to replace. You pay for these tokens; see
+TERMS.md. (Set MURDERBOARD_CONFIRM=0 to stop asking.)"
+    # JSON, hand-built, because this file takes no interpreter dependency. Only the
+    # reason is interpolated and only newlines and quotes can occur in it, both escaped
+    # here; everything else in the object is literal.
+    esc=$(printf '%s' "$reason" | sed 's/\\/\\\\/g; s/"/\\"/g' | awk 'BEGIN{ORS=""} NR>1{print "\\n"} {print}')
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"%s"}}\n' "$esc"
+    exit 0
+  fi
 fi
 
 exit 0

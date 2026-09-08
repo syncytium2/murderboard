@@ -605,9 +605,29 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 
     <div class="stats">
       <div><b>11</b><span>reviewer roles, every one of them, every time</span></div>
-      <div><b>3</b><span>scripts that run the checks nobody remembers to run</span></div>
+      <div><b>4</b><span>scripts that run the checks nobody remembers to run</span></div>
       <div><b>&le;3</b><span>re-review rounds, then it stops, converged or not</span></div>
       <div><b>0</b><span>things to install to try it</span></div>
+    </div>
+
+    <div class="caution">
+      <p class="eyebrow">Before you run anything</p>
+      <p><b>You pay for the tokens, and we are not responsible for your costs &mdash; ever.</b>
+      Reading this page costs nothing and pasting the prompt into a chat costs one
+      conversation. The <em>automated</em> version is different in kind: it starts one AI agent
+      per reviewer role, every role, every run. There is no cheap run, and on an expensive model
+      a single one can exhaust a usage allowance outright &mdash; leaving you with <b>no review
+      and the full bill</b>. That is not hypothetical. It happened on 2026-09-07 and cost two
+      days of access.</p>
+      <p><b>Under no circumstances are the authors or contributors liable for any token, API,
+      subscription, usage, or overage cost you incur by running this software</b> &mdash;
+      including runs that fail, produce nothing, or blow through a limit. No refunds, credits,
+      or reimbursement, ever. A gate ships that tries to stop the worst of it, and it is a
+      safeguard, <b>not a spending cap</b>: it knows nothing about your plan, your balance, or
+      any price, and it can be overridden or simply not installed. Set real limits with whoever
+      bills you.</p>
+      <p>Full terms, in plain language:
+      <a href="https://github.com/syncytium2/murderboard/blob/main/TERMS.md">TERMS.md</a>.</p>
     </div>
 
     <div class="summary">
@@ -1122,7 +1142,11 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
             block costs you one sentence, and a wrong allow costs days that nothing gives back.
             You can override it deliberately, and change which models it names &mdash; that list
             is a claim about today's prices, so it carries a review date the project's own CI
-            fails past.</td>
+            fails past. <strong>It also asks you before every run</strong> &mdash; that question
+            is about the <em>moment</em> rather than the model, because the other way a review
+            wastes money is being started too early, on a draft that was not ready, by an
+            assistant that decided on its own that something needed reviewing. One confirmation
+            covers the whole run, not one prompt per role.</td>
             <td class="exits">
               <span class="pill ok">0</span>allow<br>
               <span class="pill warn">2</span>block
