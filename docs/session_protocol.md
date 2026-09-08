@@ -86,8 +86,25 @@ cannot deliver a message to another machine.
 
 - **`docs/SESSIONS.md` — in git.** Claims on shared external paths, exclusive-write claims,
   messages to another session, freezes, who is live where. **Default here.**
-- **`../<repo>-worktrees/SESSIONS.md` — outside git, machine-local.** Only what genuinely cannot
+- **`../<repo>-worktrees/SESSIONS.md` — the machine-local board.** Only what genuinely cannot
   travel: live process ids, that box's free disk, local scratch paths.
+
+  ⚠ **This path is not guaranteed to be outside git, and until 2026-09-04 this line said it was.**
+  On that date four repos in this estate had it replaced with a **symlink into a private
+  coordination repo**, because the boards were 678 KB across six repos on one disk with no Time
+  Machine destination and no cloud sync — nothing to restore from. Reads and appends pass through
+  a symlink unchanged, and the SessionStart hook derives this path rather than hardcoding it, so
+  nothing needed to know. **The routing test below is unaffected: it asks what the content is, not
+  where the file sits.** But do not assume this file is unversioned, and never put something here
+  on the strength of it being invisible.
+
+  **OPEN, and deliberately not resolved here — how the split reads for a PUBLIC consumer.** The
+  rule above sends claims to `docs/SESSIONS.md` *in the repo's own git*, which for a public repo
+  means **publishing them** — and claims name shared external paths, which may be private repos or
+  a shared drive. This protocol was written in a private repo (`interface2`) and does not address
+  the case. `syncytium2/murderboard` is public and consequently has **no** in-git board at all, so
+  it is not running this split; that is the gap, not an oversight to tidy. Resolving it is a
+  decision about the protocol, not an edit to it.
 
 The routing test is **not** "is this about my machine?" It is:
 

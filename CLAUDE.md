@@ -3,7 +3,9 @@
 This repo is the canonical source of the **murderboard**: an anti-slop review process
 (`doc_review_process.md`), a literature tool (`fetch_paper.py`), five gates that keep the
 process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`, `murderboard_prose.sh`,
-`murderboard_model_gate.sh`, `require_commit_before_message.sh`), and the call-up skill
+`murderboard_model_gate.sh`, `require_commit_before_message.sh`), a team compiler that turns
+the process file's roles into one agent file each (`murderboard_agents.py` → `agents/`), and
+the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 
@@ -20,6 +22,23 @@ that must not depend on being remembered. A new **rule** goes in the process fil
 that would otherwise be skipped goes in the skill. Putting a rule in the skill hides it from
 consumers who read the process directly; putting call-up mechanics in the process file is how
 they ended up as prose in the first place.
+
+**Anything here that writes into a directory it does not own may remove only what it can prove
+it wrote.** `.claude/agents/` and `.claude/skills/` belong to the consumer's repo, not to us;
+`murderboard_agents.py` may only unlink files carrying its own generated banner, and a file it
+cannot read is never a file it may delete. This is not hypothetical — the first version of that
+sweep deleted a consumer's own subagents, and two green selftest assertions were describing the
+deletion as correct (`doc_review_process.md` appendix, 2026-08-28). Any future tool that writes
+outside this repo inherits the rule: prove ownership from the file's **content**, never from its
+name or its location.
+
+**`agents/` is compiled output — never edit a file in it.** `murderboard_agents.py` slices the
+process file's role blocks and its *"what each role must be able to reach"* table into one agent
+file per role. Change a role's checklist, its nickname, or the tools it may reach **in
+`doc_review_process.md`**, then run `python3 murderboard_agents.py write`. A hand-edit to
+`agents/*.md` is a second copy of a rule and `tests/agents_generated_test.py` fails on it — the
+same drift that cost this repo two copies of the published page, except here it silently changes
+what a reviewer actually checks while the document consumers read still says the old thing.
 
 ## If you are working IN this repo
 
@@ -38,6 +57,27 @@ they ended up as prose in the first place.
   in the core — the calcium-imaging origin lives only in the appendix of
   `doc_review_process.md` and in explicit back-compat branches of `fetch_paper.py`
   (`IF2_LIT`/`IF2_PAPERS`, the `01-lit` autodetect). New machinery is env-driven.
+- **The admission test, for anything proposed for this repo: _does a stranger reviewing a
+  document need this?_** Not "is it good", not "did it solve a real problem here" — both can
+  be true of something that has no business shipping to consumers.
+  **This repo is a document-review process. It is not the toolchain of the estate that
+  wrote it.** The distinction is invisible from the inside, which is why it needs a written
+  test: proposals arrive from sessions where the private repo resolves, the shared folder
+  exists, and the jargon is ordinary — so a thing that fails this test looks obviously
+  correct to everyone who can see it.
+  *Worked example, refused 2026-09-04:* a `PostToolUse` gate for `SendUserFile`, which
+  returns success and delivers nothing in the VS Code extension
+  ([claude-code#76739](https://github.com/anthropics/claude-code/issues/76739)). Real bug,
+  correctly diagnosed, working code, two sessions recommending it. **It fixes a Claude Code
+  defect, not a review defect**, its remedy was a folder convention private to this estate,
+  and its docstring cited seven repos of which six 404 for a stranger. A researcher
+  murderboarding a methods section would have inherited a hook firing on a tool they never
+  use, naming a directory that does not exist.
+  Weigh the ratio too, not just each addition: the vendored set is **~4,500 lines, of which
+  ~2,000 are the freshness gate and the re-vendor tool** — machinery for keeping the copy
+  current rather than for reviewing anything. That is defensible (a stale copy silently
+  omits rules already paid for) and it is also the shape of a tool optimising for its own
+  distribution. Every further addition makes adoption more expensive.
 - `fetch_paper.py` has no external dependencies beyond the standard library (+ optional
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
 - **`docs/index.html` loads nothing over the network** — no webfont, no script, no analytics,
@@ -94,16 +134,32 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one. Run `tools/murderboard_prose.sh <artifact>` and **paste its output into
-> role 5** — that half of the role is a search, and a search nobody ran reads exactly like a
-> search that came back empty. **Wire `tools/murderboard_model_gate.sh` as a `PreToolUse` hook
-> on `Skill|Agent|Task`** — the murderboard is a fan-out and every role runs, so there is no
-> cheap run, and on an expensive model one invocation can spend a usage window in minutes and
-> leave you with no review and the full bill. That gate is the only one here that must fire
-> *before* the work rather than after, which is why it is a hook and not something you
-> remember to run. **If it stops you, stop and say so — never trim the roster to fit a
-> budget:** a report missing roles is indistinguishable from a clean one, which is the defect
-> the whole process exists to catch. **Every artifact this produces is ours and stays here** — the
+> pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a report
+> that does not carry a grant declaration for every role, naming the tools that role was granted,
+> cannot pass as one that does. The two ask different questions: *did every role leave a trace*
+> and *did every role state what it held*. `verify` set-compares each `ok` against the grants
+> table, so `GRANT n ok — nothing whatsoever` fails; and it refuses a report that declares both
+> verdicts for one role rather than picking one. ⚠ **It still cannot tell you a declaration is
+> honest** — a reviewer that types its granted tools back without holding them passes, and no
+> report-reading gate can catch that. Run `tools/murderboard_prose.sh <artifact>` too and
+> **paste its output into role 5** — that half of the role is a search, and a search nobody ran
+> reads exactly like a search that came back empty. The reviewers live in
+> `.claude/agents/murderboard/` — a directory the compiler owns, so it can never remove a
+> subagent of yours — **compiled** from the
+> process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run
+> `python3 tools/murderboard_agents.py write` after every re-vendor, or your reviewers
+> keep running the checklists they had before while the freshness gate reports current.
+> **Wire `tools/murderboard_model_gate.sh` as a `PreToolUse` hook on `Skill|Agent|Task`** —
+> the murderboard is a fan-out and every role runs, so there is no cheap run, and on an
+> expensive model one invocation can spend a usage window in minutes and leave you with no
+> review and the full bill. It is the only gate here that must fire *before* the work rather
+> than after, which is why it is a hook and not something you remember to run; it also **asks
+> the human before every run**, because the other way this wastes money is being fired at a
+> draft that was not ready. **If it stops you, stop and say so — never trim the roster to fit
+> a budget:** a report missing roles is indistinguishable from a clean one, which is the
+> defect the whole process exists to catch. **You pay for these tokens and upstream does not**
+> — see <https://github.com/syncytium2/murderboard/blob/main/TERMS.md>.
+> **Every artifact this produces is ours and stays here** — the
 > corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
 > the process comes from, never where our reviews go.
 
