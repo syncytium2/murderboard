@@ -90,55 +90,30 @@ No fabricated or approximate citation. No internal contradiction. No filler.
 > still works and is the fallback for a consumer without the skill installed; it is simply the mode
 > in which each of those four steps can be silently skipped.
 
-> **Cost — know what you are about to spend, and do not spend it on the wrong model.**
-> This process is a **fan-out**. Every role runs on every deliverable, and what scales to
-> stakes is how you run them, never which ones — so there is no cheap murderboard. The
-> smallest legitimate run is still the whole roster, and on an expensive model a single
-> invocation can consume a usage window in minutes.
+> **Cost — what to run this on.** This process is a **fan-out**: every role runs on every
+> deliverable, and what scales to stakes is how you run them, never which ones — so there is
+> no cheap murderboard. **Known good: Claude Opus 5**; other current models are likely fine.
+> **Do not start a run on a model you cannot afford to exhaust.** On **2026-09-07** a run under
+> **Fable** spent a two-day usage limit and produced no review at all. That is the shape of
+> this failure: you do not get a partial review for a partial price, you get no review and the
+> full bill.
 >
-> **Do not start a run on a model you cannot afford to exhaust.** On **2026-09-07** a run
-> was started under **Fable** and spent a two-day usage limit; the review it was called to
-> produce never arrived, because the budget ran out before the deliverable did. That is the
-> characteristic shape of this failure — you do not get a partial review for a partial
-> price, you get no review and the full bill.
+> **This is a gate, not advice.** `murderboard_model_gate.sh` is a `PreToolUse` hook that reads
+> the running model and blocks the call-up before the fan-out starts; it ships wired in the
+> plugin and vendoring consumers should wire it too. It **also asks the human before every
+> run**, because the other way this wastes money is being fired too early — at a draft that was
+> not ready, by a session that decided on its own that something was a deliverable.
+> `--why` prints what it is currently stopping; the file itself explains why it fails closed
+> and why the blocklist carries a review-by date.
 >
-> **This is a gate, not advice.** `murderboard_model_gate.sh` is a `PreToolUse` hook that
-> reads the running model from the session transcript and blocks the call-up before the
-> fan-out starts. It ships wired in the plugin, and vendoring consumers should wire it too:
+> **If you are blocked or declined, stop.** Do not re-invoke, do not run the roles by hand to
+> route around a refusal, and never economise by running fewer roles — a review missing roles
+> is indistinguishable in the report from a clean one, which is the defect this whole apparatus
+> exists to prevent. Tell the human and let them choose.
 >
-> ```
-> bash tools/murderboard_model_gate.sh --selftest           # prove it can still fire
-> bash tools/murderboard_model_gate.sh --why                # what is blocked, and why
-> bash tools/murderboard_model_gate.sh --check-review-date  # CI: is the policy still current?
-> ```
->
-> It **fails closed** — an undetermined model blocks — because the asymmetry is not close: a
-> wrong block costs one message, and a wrong allow costs days that nothing gives back. It is
-> overridable on purpose (`MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1`), because a gate with no way
-> past it gets deleted rather than obeyed, and re-aimable (`MURDERBOARD_BLOCKED_MODELS`),
-> because which models are expensive is a fact about **this month's prices** and not about
-> the process. For that same reason the block carries a review-by date that CI enforces:
-> when it lapses, a human re-affirms the block or removes it.
->
-> **It also asks before every run, and that question is about the MOMENT, not the model.**
-> The other way this process wastes money is being fired too early — at a draft that was not
-> ready, by a session that decided on its own that something was a deliverable. An early run
-> costs full price and returns findings about a draft that is replaced ten minutes later. So
-> the gate returns `ask`, and Claude Code puts it to the human: *is this the artifact, and is
-> it ready?* One confirmation covers the fan-out it authorises. **If the human declines, the
-> run is over** — do not re-invoke it, and do not route around a refusal by running the roles
-> by hand from this file.
->
-> **If you are stopped by it, stop — do not economise by running fewer roles.** A review
-> missing roles is the exact defect this whole apparatus exists to prevent, and it is
-> indistinguishable in the report from a clean one. Tell the human and let them choose.
->
-> **And the bill is yours.** Under no circumstances are the authors or contributors of this
-> process responsible or liable for any token, API, subscription, usage, or overage cost
-> incurred by running it — including runs that fail, produce nothing, or exhaust a limit. The
-> gate above is a safeguard, **not a spending cap**: it knows nothing about your plan, your
-> balance, or any price, and it can be overridden, unwired, or simply absent. Set real limits
-> with whoever bills you. Full terms:
+> **The bill is theirs, not ours.** No cost incurred running this process is ever the
+> responsibility of its authors, and the gate is a safeguard, **not a spending cap** — it knows
+> nothing about anyone's plan, balance, or prices. Full terms:
 > <https://github.com/syncytium2/murderboard/blob/main/TERMS.md>
 
 0. **Preflight — confirm the process itself is current.** This file is usually **vendored** into a
