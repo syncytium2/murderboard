@@ -606,11 +606,28 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
 8. **Naive-reader accessibility — "You Lost Me."** *Spawn for any deliverable meant to be understood by a
    reader NOT already steeped in the work — an explainer, a slide deck, a figure a colleague
    must read cold.* Read each slide/panel with ZERO prior context and flag every place such a
-   reader is lost. It exists because a deliverable can be every-number-correct, honest, and
-   craft-clean and still be **unreadable to the audience it is for** — a gap the rest of the
-   team does not cover. This role holds only the checks that require **reading as a stranger**;
+   reader is **lost, or misled by a line they follow perfectly**. It exists because a deliverable
+   can be every-number-correct, honest, and craft-clean and still be **unreadable to the audience
+   it is for — or read without difficulty and understood to mean something false** — a gap the
+   rest of the team does not cover. This role holds only the checks that require **reading as a stranger**;
    its mechanical figure rules moved to agent 10, its cross-figure rules to agent 3, and its
    evidence-adequacy rules to agent 4. Checklist:
+   - **What a true sentence will be TAKEN to mean.** Every other role establishes whether a claim
+     is *supported*; none asks what a supported claim invites the reader to *infer*. The two come
+     apart on any term that carries different weight inside the field and outside it: a role held
+     on someone else's grant, a title whose seniority does not translate, a "review" performed by
+     an agent rather than a colleague, an internal course or protocol number, a standard
+     attribution that credits the wrong group. Ask of each, in the reader's vocabulary rather than
+     the author's: **what does this sentence grant or credit its subject, and is that true?** Where
+     the honest answer cannot be said in the reader's vocabulary in the same space, the line is
+     cut rather than softened; where the fact is worth keeping, restate it as **work done** rather
+     than as **standing held**. Unlike the rest of this role's checklist, the term list for a given
+     audience is fixed and searchable, so a consumer can put it behind a gate — the judgement of
+     *which* terms mislead *this* reader stays here, because it is a judgement.
+     (Boundary with Prove It and DOI or Die: those verify that the claim and the citation are
+     correct; a line can pass both and still be read as something else. Boundary with the
+     three-undefined-terms rule below: that one is about a reader who cannot follow; this is about
+     a reader who follows and arrives somewhere false.)
    - **Output contract: a per-slide verdict, not a deck-wide list of terms.** One row per
      slide/panel: *terms and identifiers first used here · which are defined on the slide · can a
      cold reader follow it (yes / no / blocking)*. A pooled list of undefined terms lets the worst
@@ -1349,6 +1366,24 @@ seriously than a rule stated in the abstract.
   > document itself — the 2026-08-24 arms had this bullet's predecessor withheld for exactly that
   > reason. When re-testing on a recorded case, redact its entry and say that you did; when
   > choosing a case, prefer one that is **not** written down here.
+- **Naive reader / what a true line is taken to mean** (a 2026-09 two-page résumé prepared for an
+  industry role; eleven roles, three blind rounds, plus a follow-up pass) — the document carried
+  *"Co-Investigator on three active NIH awards"* with the award numbers. Every element was
+  verified and every check passed: the awards exist, all three were active in the funder's public
+  database, the activity codes were right, and the author's CV designates Co-Investigator on each.
+  Inside academia the line means *contributes to funded programmes*. The first reader from outside
+  it took the line as the author's **own** funding — and the correction that invites is a
+  downgrade delivered in an interview, on a document whose whole purpose is a first impression.
+  Three rounds of eleven roles passed it because every role asked whether the sentence was
+  **true**. This role owns the outside reader, and its checklist asked only whether that reader
+  could **follow** the line; nobody was asked what they would **conclude** from it. The same run
+  produced a second instance of the identical shape: a correct, resolvable, conventionally-used
+  attribution that credited the wrong laboratory — which is the 2026-08 entry above, arriving a
+  second time in a different document. Lesson: *what a sentence will be taken to mean* is a
+  different question from *whether it is true*, it is invisible to every check that asks only the
+  second, and until it has an owner it is found by the first outsider who reads the document — if
+  the document is still a draft when they do.
+
 - **A green check that had stopped measuring what its name claimed** (the freshness gate's own
   selftest, 2026-08) — the case named `clone guesses are slug-scoped` existed to prove the gate's
   built-in clone guesses are admissible for its own upstream and refused for anyone else's. It
