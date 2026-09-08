@@ -63,6 +63,14 @@ entire skill exists to prevent, and reproducing it to save money is still reprod
 The human's options are: switch model, or set `MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1` because
 they have decided to spend it. Both are theirs to pick, not yours.
 
+**And be straight with them about whose bill it is.** The tokens this run spends are the
+human's, and **no cost incurred running the murderboard is ever the responsibility of its
+authors** — not a failed run, not one that produces nothing, not one that exhausts a limit.
+The gate above is a safeguard and **not a spending cap**: it knows nothing about their plan,
+their balance, or any price, it can be overridden, and it may simply not be installed here.
+Never imply it protects them from a bill. Terms:
+<https://github.com/syncytium2/murderboard/blob/main/TERMS.md>
+
 ## 0. Resolve the paths — do not assume a layout
 
 There are two ways these files get onto a machine, and they land in different places:
