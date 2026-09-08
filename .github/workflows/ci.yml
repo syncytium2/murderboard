@@ -169,6 +169,30 @@ jobs:
       - name: prose gate --selftest
         run: bash murderboard_prose.sh --selftest
 
+      # The model gate is the only gate here that costs money to get wrong, and it is
+      # SILENT on every call it allows -- so if it regressed to allowing everything,
+      # nothing in a normal session would look different. Its fixtures cover both
+      # directions deliberately: the blocks, and the negative controls that must still
+      # pass (reading ABOUT the murderboard on a blocked model is not a fan-out). An
+      # allow-everything regression fails this step.
+      - name: model cost gate --selftest
+        run: bash murderboard_model_gate.sh --selftest
+
+      # THIS STEP IS SUPPOSED TO GO RED ONE DAY. The block names models that were
+      # expensive in September 2026; it is a claim about PRICE, and prices move. Tony,
+      # 2026-09-08: "some day fable might get cheap so this needs to be reviewed
+      # regularly." Without a date the block becomes folklore -- carried from repo to
+      # repo, its reason forgotten, until someone deletes it in a cleanup with no idea
+      # what they switched off.
+      #
+      # When this fails, it is not a bug. It is the gate asking to be re-justified:
+      # re-affirm the block and push MURDERBOARD_BLOCK_REVIEW_BY out, or drop the model
+      # and remove it from the docs that name it. Do not rubber-stamp the date -- a
+      # review nobody performed launders folklore as policy, which is the failure this
+      # repo keeps rediscovering under other names.
+      - name: the model block is still within its review date
+        run: bash murderboard_model_gate.sh --check-review-date
+
   python:
     name: fetch_paper.py
     runs-on: ubuntu-latest
