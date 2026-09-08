@@ -1,13 +1,13 @@
 # CLAUDE.md — murderboard
 
 This repo is the canonical source of the **murderboard**: an anti-slop review process
-(`doc_review_process.md`), a literature tool (`fetch_paper.py`), four gates that keep the
+(`doc_review_process.md`), a literature tool (`fetch_paper.py`), five gates that keep the
 process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`, `murderboard_prose.sh`,
-`require_commit_before_message.sh`), a preflight that is pointedly *not* a gate
-(`murderboard_subagents.sh` — it reports what is blocking subagents in the files it can read,
-and says on every run, including its clean one, that a scan cannot answer the question), a
-team compiler that turns the process file's roles into one agent file each
-(`murderboard_agents.py` → `agents/`), and the call-up skill
+`murderboard_model_gate.sh`, `require_commit_before_message.sh`), a preflight that is
+pointedly *not* a gate (`murderboard_subagents.sh` — it reports what is blocking subagents in
+the files it can read, and says on every run, including its clean one, that a scan cannot
+answer the question), a team compiler that turns the process file's roles into one agent file
+each (`murderboard_agents.py` → `agents/`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 
@@ -160,6 +160,16 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > process file by `tools/murderboard_agents.py` — never hand-edit one, and re-run
 > `python3 tools/murderboard_agents.py write` after every re-vendor, or your reviewers
 > keep running the checklists they had before while the freshness gate reports current.
+> **Wire `tools/murderboard_model_gate.sh` as a `PreToolUse` hook on `Skill|Agent|Task`** —
+> the murderboard is a fan-out and every role runs, so there is no cheap run, and on an
+> expensive model one invocation can spend a usage window in minutes and leave you with no
+> review and the full bill. It is the only gate here that must fire *before* the work rather
+> than after, which is why it is a hook and not something you remember to run; it also **asks
+> the human before every run**, because the other way this wastes money is being fired at a
+> draft that was not ready. **If it stops you, stop and say so — never trim the roster to fit
+> a budget:** a report missing roles is indistinguishable from a clean one, which is the
+> defect the whole process exists to catch. **You pay for these tokens and upstream does not**
+> — see <https://github.com/syncytium2/murderboard/blob/main/TERMS.md>.
 > **Every artifact this produces is ours and stays here** — the
 > corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
 > the process comes from, never where our reviews go.

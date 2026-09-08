@@ -18,6 +18,59 @@ in `doc_review_process.md`, which you will load in step 2 and follow.
 > outcomes looked exactly like success. The steps below are the parts that must not depend on
 > anyone remembering them.
 
+## Preflight — what this costs, before it costs it
+
+**Deliberately before step 0**, and unnumbered, because it gates whether the run happens
+at all rather than how it is done. A murderboard is a fan-out: one subagent per role,
+every role, always. On an expensive model that empties a usage window in minutes — and
+when it does, you get **no review and the full bill**, which is what happened on
+2026-09-07 under Fable.
+
+**A `PreToolUse` hook should already have stopped you** if this model is blocked —
+`murderboard_model_gate.sh`, wired in the plugin and in consumers that vendored it. If you
+are reading this line, either it allowed the call or it is not installed here. Do not
+assume the second case means "no policy":
+
+```bash
+GATE=; for p in tools/murderboard_model_gate.sh murderboard_model_gate.sh \
+                "${MB:-/nonexistent}/murderboard_model_gate.sh"; do
+  [ -r "$p" ] && GATE="$p" && break
+done
+[ -n "$GATE" ] && bash "$GATE" --why || echo "no model gate present — check the model yourself"
+```
+
+If the gate is absent, **say which model you are running on and confirm the human wants to
+spend it here** before spawning anything. That sentence is the whole of the fallback, and
+it is cheap: one line before the fan-out, rather than an apology after it.
+
+**You should also expect to be ASKED.** By default the same hook returns `ask`, so Claude
+Code puts the run to the human before it starts. That prompt is not about the model — it is
+about the **moment**. Sessions fire this process at drafts that were not ready, and an early
+run costs full price to produce findings about a draft that is replaced ten minutes later.
+The human is being asked *is this the artifact, and is it ready*, which is a question only
+they can answer. One prompt covers the fan-out it authorises; the eleven role agents do not
+each re-ask.
+
+**If the human declines, that is the end of it.** Do not re-invoke, do not reach for the
+hand-run path through the process file, and do not decide their answer was about the skill
+rather than the review. The hook cannot see their answer — the design relies on you not
+routing around a refusal you were present for.
+
+**If you are blocked, stop and hand it back.** Do not run a reduced roster to fit a budget.
+The process is explicit that scaling to stakes changes *how* roles run and never *which*,
+and a report missing roles is indistinguishable from a clean one — that is the failure this
+entire skill exists to prevent, and reproducing it to save money is still reproducing it.
+The human's options are: switch model, or set `MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1` because
+they have decided to spend it. Both are theirs to pick, not yours.
+
+**And be straight with them about whose bill it is.** The tokens this run spends are the
+human's, and **no cost incurred running the murderboard is ever the responsibility of its
+authors** — not a failed run, not one that produces nothing, not one that exhausts a limit.
+The gate above is a safeguard and **not a spending cap**: it knows nothing about their plan,
+their balance, or any price, it can be overridden, and it may simply not be installed here.
+Never imply it protects them from a bill. Terms:
+<https://github.com/syncytium2/murderboard/blob/main/TERMS.md>
+
 ## 0. Resolve the paths — do not assume a layout
 
 There are two ways these files get onto a machine, and they land in different places:
@@ -137,7 +190,16 @@ a degraded run.
 Then act on the answer:
 
 - **Token comes back** → subagents work. The run record's `Execution:` line says
-  `parallel subagents`. Carry on.
+  `subagents`. Carry on.
+
+  ⚠ **That does not mean the ROLE fan-out will be allowed.** The cost gate above is a
+  `PreToolUse` hook on `Skill|Agent|Task` that reads the prompt, and it blocks a murderboard
+  role spawn while letting an unrelated Agent call through. Verified against it: on a blocked
+  model this probe returns **0** and a role spawn returns **2**. So a green probe answers *can
+  I spawn a subagent*, never *can I spawn eleven of these* — the cost preflight is what answers
+  the second, which is why it runs first and why skipping it is not a shortcut. If the fan-out
+  is refused after a green probe, that is a **cost** refusal, not an availability one: stop and
+  hand it back, do not record `single-pass (forced)` and carry on.
 - **It does not** → **STOP, before role 1.** Say so plainly, and name the knob, which is what
   the scanner is for:
   ```bash

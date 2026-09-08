@@ -126,6 +126,8 @@ tools/murderboard_prose.sh
 murderboard_prose.sh
 tools/murderboard_subagents.sh
 murderboard_subagents.sh
+tools/murderboard_model_gate.sh
+murderboard_model_gate.sh
 tools/murderboard_revendor.py
 murderboard_revendor.py
 tools/murderboard_agents.py

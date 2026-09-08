@@ -84,6 +84,7 @@ EXAMPLE_CONFIG = {
                 "tools/murderboard_roster.sh",
                 "tools/murderboard_prose.sh",
                 "tools/murderboard_subagents.sh",
+                "tools/murderboard_model_gate.sh",
                 "tools/murderboard_revendor.py",
                 # The COMPILER, not the eleven agent files it produces. Vendoring the output
                 # would freeze the team at whatever size it is today: upstream adds role 12,
@@ -103,6 +104,7 @@ EXAMPLE_CONFIG = {
                 "tools/murderboard_roster.sh": "murderboard_roster.sh",
                 "tools/murderboard_prose.sh": "murderboard_prose.sh",
                 "tools/murderboard_subagents.sh": "murderboard_subagents.sh",
+                "tools/murderboard_model_gate.sh": "murderboard_model_gate.sh",
                 "tools/murderboard_revendor.py": "murderboard_revendor.py",
                 "tools/murderboard_agents.py": "murderboard_agents.py",
                 "tools/fetch_paper.py": "fetch_paper.py",

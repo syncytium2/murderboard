@@ -15,6 +15,11 @@ the repaired version, blind, is the rest of the process, and it is yours to run.
 makes the findings less real — it means a clean run here is a good review, not a receipt.
 [`START-HERE.md`](START-HERE.md) has the levels that close those gaps.
 
+**What it costs.** Pasting this into a chat costs one conversation — it is the cheap way in,
+and it is not the fan-out. The automated levels in [`START-HERE.md`](START-HERE.md) spawn one
+agent per role and can cost a great deal more. Either way: **you pay for the tokens, and we
+are not responsible for any cost you incur — ever.** See [`TERMS.md`](TERMS.md).
+
 ---
 
 ```

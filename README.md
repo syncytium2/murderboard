@@ -7,6 +7,21 @@
 page you can read: what this is, the one rule, the eleven roles, and what you hand over. Written
 for someone deciding whether to adopt it.
 
+> ## ⚠ YOU PAY FOR THE TOKENS. WE ARE NOT RESPONSIBLE FOR YOUR COSTS — EVER.
+>
+> A murderboard run is a **fan-out**: every reviewer role runs, every time. There is no cheap
+> run, and on an expensive model **one invocation can exhaust a usage allowance outright** —
+> leaving you with **no review and the full bill**. That is not hypothetical; it happened on
+> 2026-09-07.
+>
+> **Under no circumstances are the authors or contributors liable for any token, API,
+> subscription, usage, or overage cost you incur by running this software** — including runs
+> that fail, produce nothing, or blow through a rate limit. No refunds, credits, or
+> reimbursement, ever. The cost gate below is a safeguard, **not a spending cap**: set real
+> limits with whoever bills you, because nothing in this repository can.
+>
+> Read **[TERMS.md](TERMS.md)** before you run this. It is short and it is the whole deal.
+
 ## ▶ [**START HERE**](START-HERE.md) — new to this? Two minutes, no install, no Claude needed.
 
 **In a hurry:** open **[PROMPT.md](PROMPT.md)**, copy the block, paste it into any AI chat,
@@ -31,7 +46,7 @@ A project-neutral **anti-slop review harness** for document deliverables, plus t
 literature tool that feeds it. A *murderboard* is a panel that tries to tear a thing apart
 before it ships, so what survives is trustworthy.
 
-It is a small set of files you vendor into a project — the process, the four gates that keep
+It is a small set of files you vendor into a project — the process, the five gates that keep
 it honest, one preflight that is deliberately not a gate, and the skill that calls it up:
 
 | File | What it is |
@@ -42,6 +57,7 @@ it honest, one preflight that is deliberately not a gate, and the skill that cal
 | [`murderboard_roster.sh`](murderboard_roster.sh) | The coverage gate. **Derives** the role roster from `doc_review_process.md` (never recalled, so a new role propagates to every consumer for free) and checks that a finished review report accounts for **every** role — **0 all present · 1 one missing · 2 unknown**. It exists because "every role runs" was prose: a run that fired 7 of 11 roles and one that fired all 11 cleanly produced reports no reader could tell apart. |
 | [`murderboard_prose.sh`](murderboard_prose.sh) | The prose gate. Runs the **mechanical half of role 5** over a document — every banned construction with its line number, and a word/sentence count per block — **0 clean · 1 hits · 2 unknown**. The word list is **derived** from role 5 at run time, so editing the process file moves the gate, and a reworded list stops it rather than leaving it searching for the old one. It exists because a greppable check sitting inside a judgement role gets answered in prose: *"the wording is clean"* from a reviewer who searched and from one who did not are the same sentence. It deliberately **cannot judge** — it reports that a block is 220 words, never that the block is too long, and which sentence carries the payload stays with role 5. `--selftest` proves every check can still fire, including the ones that must come back **empty**: a gate that cannot report clean is as useless as one that cannot report a hit. |
 | [`murderboard_subagents.sh`](murderboard_subagents.sh) | The subagent preflight, and **the one file here that is not a gate** — it says so on every run, including its clean one. The review runs eleven roles as independent subagents; where the Agent tool is unavailable the run does not fail, it *degrades* into the single-pass self-review the process already permits for a small deliverable, and the report is indistinguishable from one where eleven independent reviewers agreed. This scans the settings chain and the instruction files for what would cause that — a `permissions.deny` rule, an allow-list without `Task`, a `PreToolUse` hook that runs on the Agent tool, a CLAUDE.md sentence forbidding subagents in plain English — **0 nothing found · 1 blocker · 2 unknown**. **Exit 0 is not an all-clear and must never be read as one:** availability is also settled by a launch flag, the permission mode, an instruction injected at runtime, or already being inside a subagent, and the one degraded run this repo has on record was blocked by none of the things a scan can read. The check that cannot be fooled is spawning a subagent and requiring an answer, which the skill does at step 1a before anything is spent; this names the knob once that probe has failed, so *"allow subagents"* is one edit rather than a scavenger hunt. |
+| [`murderboard_model_gate.sh`](murderboard_model_gate.sh) | The cost gate. A `PreToolUse` hook that reads the running model out of the session transcript and **blocks a murderboard call-up on a model you cannot afford to exhaust** — **0 allow · 2 block**. It exists because the process is a fan-out: every role runs, always, so the smallest legitimate run is still the whole roster, and on **2026-09-07** one run under Fable spent a two-day usage limit and produced no review at all — the cost landed before the deliverable did. It is the only gate here that **fails closed** (an undetermined model blocks), because the asymmetry is not close: a wrong block costs one message, a wrong allow costs days nothing gives back. It catches the hand-run path too, not just `/murderboard` — the role fan-out is where the money goes. Overridable by `MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1` and re-aimable by `MURDERBOARD_BLOCKED_MODELS`, because *which* models are expensive is a claim about this month's prices; for the same reason it carries a **review-by date** that CI fails past, so the policy gets re-justified or dropped rather than quietly becoming folklore. **It also asks before every run**, via the harness's own permission prompt rather than the model's good intentions — because the other way this wastes money is being fired *too early*, at a draft that was not ready, by a session that decided on its own that something was a deliverable. That question is about the **moment**, not the model; one confirmation covers the fan-out it authorises rather than prompting once per role (`MURDERBOARD_CONFIRM=0` to stop asking). `--why` prints the policy; `--selftest` covers the blocks, the confirmation, and the negative controls that must still pass. |
 | [`murderboard_agents.py`](murderboard_agents.py) → [`agents/`](agents/) | The team compiler. Slices `doc_review_process.md` into **one agent file per role** — frontmatter, that role's checklist and nobody else's, and the tools the process file says the role must be able to reach. It exists because a role spawned without the means to do its check still returns prose, and prose describing a check reads in a report exactly like the check: *DOI or Die* with no web access reports on citations it never resolved. That is the process file's own **"can the alarm ring?"** rule pointed at the reviewers. **Compiled, never authored** — `write` regenerates, `check` exits 1 if one of *its own* files was hand-edited or orphaned, `list` prints `N<TAB>agent-name<TAB>path` so a harness spawns by name instead of recalling one. **It writes into `.claude/agents`, which is a shared directory, so it only ever removes files it can see it wrote** — every generated file carries a banner, and anything without one is somebody's own subagent and is left alone. That rule exists because the first version did not have it and deleted them. `verify <report>` closes the loop the other way: every role opens its output with `GRANT <n> ok — <tools held>` or `GRANT <n> MISMATCH — …`, and the gate refuses a run record that claims **named agents** while its own reviewers reported otherwise. That matters because a grant *written down* and a grant that *arrived* are different facts — a role spawned through a fallback path inherits whatever the harness handed it, sometimes less than the table allows and sometimes more, including the editing tools no reviewer may have. A fallback run is a real run; it just may not be written up as something else. Vendor the **compiler**, not its output: re-running it after a re-vendor is how role 12 reaches you, where a vendored list of eleven filenames would have quietly stayed eleven. |
 | [`murderboard_revendor.py`](murderboard_revendor.py) | The re-vendor tool. Does the update the freshness gate tells you to do, without the corruption the obvious `sed` causes: it rewrites the stamp on **exactly one line** — line 1, or line 2 behind a shebang, or JSON's `"_vendored"` key — and never touches a stamp-shaped string in a body. `murderboard_freshness.sh` has **11** stamp-shaped strings in its body, because it documents the format. It also refuses two silent failures: a stamp on some *other* early line (the gate reads it, so the copy drifts behind a green check) and a file set that disagrees with your SessionStart hook's `--file` list. `--check` reports without writing; `--selftest` proves the rewrite is surgical **and** that the two broken implementations fail its fixtures. Configured by `.murderboard-vendor.json` in your repo, not by editing this file — so it can re-vendor itself. |
 | [`require_commit_before_message.sh`](require_commit_before_message.sh) | The durability gate. Refuses a cross-session message while the working tree is dirty — **0 allow · 2 block** — so a session may tell another session something only once that something exists in git. Messages between sessions are socket traffic: nothing persists them, and when a session exits its half of every conversation is gone. One estate lost a finding four sessions had established, and noticed only because someone asked whether the messages were committed. Wire it as a `PreToolUse` hook on the message-sending tool; vendor it to `.claude/hooks/`. `--selftest` proves every branch fires. |
@@ -81,8 +97,18 @@ that motivated each rule.)
 /plugin install murderboard@murderboard
 ```
 
-That gets the skill, the process document, both review gates and the literature tool, and
-wires the freshness check to run at session start. `/murderboard <artifact>` works immediately.
+That gets the skill, the process document, the review gates and the literature tool, and wires
+two hooks: the freshness check at session start, and the **cost gate** before any call-up.
+`/murderboard <artifact>` works immediately.
+
+**The cost gate is the one thing an install turns on that can refuse you**, and that is
+deliberate — everything else here is silent unless something is wrong. The murderboard is a
+fan-out (every role runs, always), so a single `/murderboard` on an expensive model can spend
+a usage window in minutes; on 2026-09-07 one did, and produced no review for it. Refusing to
+spend a stranger's money on our own fan-out is different from refusing their commands over
+style, which is why the other gates ship **unwired** and this one does not. It is overridable
+(`MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1`) and re-aimable (`MURDERBOARD_BLOCKED_MODELS`); run
+`murderboard_model_gate.sh --why` to see what it is currently stopping and on what grounds.
 
 **It does not do everything the four steps below do.** It replaces *copying the files*, and the
 session-start half of *wiring the gates*. **Pointing the lit tool at your library is still
@@ -99,7 +125,7 @@ it, an install by the version its updater acts on. Pick by whether the murderboa
 travel with the project or with the person.
 
 1. **Copy the files** into the consuming repo — `doc_review_process.md` under `docs/`, the
-   four tools under `tools/`, and `skills/murderboard/SKILL.md` to
+   tools under `tools/`, and `skills/murderboard/SKILL.md` to
    `.claude/skills/murderboard/SKILL.md` — and stamp each with the upstream commit you copied
    from, so drift is visible. See "Vendoring" below.
 2. **Wire the gates so they fire without being remembered.** Freshness at session start
@@ -119,6 +145,28 @@ travel with the project or with the person.
    check: the skill probes for the capability directly before every run, which needs no wiring
    and catches the blocks a file cannot show. Wire it in a repo where reviews are frequent and
    you would rather learn about a standing block at session start than at step 1a.
+
+   **And wire the cost gate, which is a `PreToolUse` hook rather than a command you run.**
+   It has to fire *before* the fan-out starts, so unlike the three above there is no useful
+   place to call it by hand — by the time you would remember, the money is spent. In
+   `.claude/settings.json`:
+   ```json
+   { "hooks": { "PreToolUse": [
+       { "matcher": "Skill|Agent|Task",
+         "hooks": [ { "type": "command",
+                      "command": "bash tools/murderboard_model_gate.sh",
+                      "timeout": 10 } ] } ] } }
+   ```
+   Then **prove it fires in your repo**, because it is silent on every call it allows and a
+   gate that cannot fire manufactures exactly the confidence it was built to earn:
+   ```
+   bash tools/murderboard_model_gate.sh --selftest   # 18 fixtures, both directions
+   bash tools/murderboard_model_gate.sh --why        # what is blocked here, and until when
+   ```
+   Put `--check-review-date` in CI too. It fails once the block passes its review-by date,
+   which is the mechanism that makes a human re-justify the policy instead of inheriting it:
+   the models named in it were expensive in September 2026, and that is a claim with a
+   shelf life.
    **If the repo vendors from more than one upstream, wire one freshness entry per family.**
    Staleness is not a murderboard-specific disease — it is a property of vendoring. Example,
    policing a vendored copy of another repo's files:

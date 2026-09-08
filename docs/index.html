@@ -595,7 +595,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.11.0</b> &middot; Updated <time datetime="2026-09-03">2026-09-03</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.12.0</b> &middot; Updated <time datetime="2026-09-08">2026-09-08</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -605,9 +605,29 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 
     <div class="stats">
       <div><b>11</b><span>reviewer roles, every one of them, every time</span></div>
-      <div><b>3</b><span>scripts that run the checks nobody remembers to run</span></div>
+      <div><b>4</b><span>scripts that run the checks nobody remembers to run</span></div>
       <div><b>&le;3</b><span>re-review rounds, then it stops, converged or not</span></div>
       <div><b>0</b><span>things to install to try it</span></div>
+    </div>
+
+    <div class="caution">
+      <p class="eyebrow">Before you run anything</p>
+      <p><b>You pay for the tokens, and we are not responsible for your costs &mdash; ever.</b>
+      Reading this page costs nothing and pasting the prompt into a chat costs one
+      conversation. The <em>automated</em> version is different in kind: it starts one AI agent
+      per reviewer role, every role, every run. There is no cheap run, and on an expensive model
+      a single one can exhaust a usage allowance outright &mdash; leaving you with <b>no review
+      and the full bill</b>. That is not hypothetical. It happened on 2026-09-07 and cost two
+      days of access.</p>
+      <p><b>Under no circumstances are the authors or contributors liable for any token, API,
+      subscription, usage, or overage cost you incur by running this software</b> &mdash;
+      including runs that fail, produce nothing, or blow through a limit. No refunds, credits,
+      or reimbursement, ever. A gate ships that tries to stop the worst of it, and it is a
+      safeguard, <b>not a spending cap</b>: it knows nothing about your plan, your balance, or
+      any price, and it can be overridden or simply not installed. Set real limits with whoever
+      bills you.</p>
+      <p>Full terms, in plain language:
+      <a href="https://github.com/syncytium2/murderboard/blob/main/TERMS.md">TERMS.md</a>.</p>
     </div>
 
     <div class="summary">
@@ -1068,8 +1088,9 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 
     <div class="scroller">
       <table>
-        <caption>Three gates. Each answers one question, and reports &ldquo;could not tell&rdquo;
-        rather than guessing.</caption>
+        <caption>Four gates. Each answers one question, and reports &ldquo;could not tell&rdquo;
+        rather than guessing &mdash; except the last, which <em>blocks</em> when it cannot tell,
+        for the reason given in its row.</caption>
         <thead>
           <tr><th scope="col">The question it answers</th><th scope="col">How</th><th scope="col">What it reports</th></tr>
         </thead>
@@ -1104,6 +1125,28 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
             between sessions while anything in the project is uncommitted. It cannot read the message
             and does not try &mdash; it gates on there being a commit at all. Nothing stores these
             messages, so what they describe must already be saved.</td>
+            <td class="exits">
+              <span class="pill ok">0</span>allow<br>
+              <span class="pill warn">2</span>block
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Can you afford to run this?<br><code>murderboard_<wbr>model_gate.sh</code></th>
+            <td>A review is a <em>fan&#8209;out</em>: every role runs, every time. Scaling to the
+            stakes changes how the roles run, never which &mdash; so there is no cheap review, and
+            on an expensive AI model one run can spend a whole usage allowance in minutes. When
+            that happens you do not get a partial review for a partial price; you get
+            <strong>no review and the full bill</strong>. This gate reads which model is running
+            and stops the review before it starts. It is the one gate here that <strong>blocks
+            when it cannot tell</strong>, because the two mistakes are not comparable: a wrong
+            block costs you one sentence, and a wrong allow costs days that nothing gives back.
+            You can override it deliberately, and change which models it names &mdash; that list
+            is a claim about today's prices, so it carries a review date the project's own CI
+            fails past. <strong>It also asks you before every run</strong> &mdash; that question
+            is about the <em>moment</em> rather than the model, because the other way a review
+            wastes money is being started too early, on a draft that was not ready, by an
+            assistant that decided on its own that something needed reviewing. One confirmation
+            covers the whole run, not one prompt per role.</td>
             <td class="exits">
               <span class="pill ok">0</span>allow<br>
               <span class="pill warn">2</span>block
