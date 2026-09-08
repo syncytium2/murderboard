@@ -7,20 +7,14 @@
 page you can read: what this is, the one rule, the eleven roles, and what you hand over. Written
 for someone deciding whether to adopt it.
 
-> ## ⚠ YOU PAY FOR THE TOKENS. WE ARE NOT RESPONSIBLE FOR YOUR COSTS — EVER.
+> ### ⚠ What it costs, and what to run it on
 >
-> A murderboard run is a **fan-out**: every reviewer role runs, every time. There is no cheap
-> run, and on an expensive model **one invocation can exhaust a usage allowance outright** —
-> leaving you with **no review and the full bill**. That is not hypothetical; it happened on
-> 2026-09-07.
+> A run fans out **one agent per reviewer role**, every role, every time — so it is never
+> cheap. **Known good: Claude Opus 5.** Other current models are likely fine. **Fable is
+> blocked by default:** one run there spent a two-day allowance and returned no review.
 >
-> **Under no circumstances are the authors or contributors liable for any token, API,
-> subscription, usage, or overage cost you incur by running this software** — including runs
-> that fail, produce nothing, or blow through a rate limit. No refunds, credits, or
-> reimbursement, ever. The cost gate below is a safeguard, **not a spending cap**: set real
-> limits with whoever bills you, because nothing in this repository can.
->
-> Read **[TERMS.md](TERMS.md)** before you run this. It is short and it is the whole deal.
+> **You pay for the tokens, and we are not liable for any cost — ever.** The cost gate is a
+> safeguard, **not a spending cap**; set real limits with whoever bills you. **[TERMS.md](TERMS.md)**
 
 ## ▶ [**START HERE**](START-HERE.md) — new to this? Two minutes, no install, no Claude needed.
 

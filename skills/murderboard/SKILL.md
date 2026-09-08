@@ -20,16 +20,17 @@ in `doc_review_process.md`, which you will load in step 2 and follow.
 
 ## Preflight — what this costs, before it costs it
 
-**Deliberately before step 0**, and unnumbered, because it gates whether the run happens
-at all rather than how it is done. A murderboard is a fan-out: one subagent per role,
-every role, always. On an expensive model that empties a usage window in minutes — and
-when it does, you get **no review and the full bill**, which is what happened on
+**Deliberately before step 0**, and unnumbered, because it gates whether the run happens at
+all rather than how it is done. A murderboard is a fan-out: one subagent per role, every role,
+always. **Known good: Claude Opus 5**; other current models are likely fine. On a model you
+cannot afford to exhaust you get **no review and the full bill** — which is what happened on
 2026-09-07 under Fable.
 
-**A `PreToolUse` hook should already have stopped you** if this model is blocked —
-`murderboard_model_gate.sh`, wired in the plugin and in consumers that vendored it. If you
-are reading this line, either it allowed the call or it is not installed here. Do not
-assume the second case means "no policy":
+**A `PreToolUse` hook should already have handled this** — `murderboard_model_gate.sh`, wired
+in the plugin and in consumers that vendored it. It blocks a run on a blocked model, and it
+**asks the human before every run**, because the other way this wastes money is being fired
+too early, at a draft that was not ready. If you are reading this line it either allowed the
+call or is not installed here; do not assume the second case means no policy:
 
 ```bash
 GATE=; for p in tools/murderboard_model_gate.sh murderboard_model_gate.sh \
@@ -39,36 +40,19 @@ done
 [ -n "$GATE" ] && bash "$GATE" --why || echo "no model gate present — check the model yourself"
 ```
 
-If the gate is absent, **say which model you are running on and confirm the human wants to
-spend it here** before spawning anything. That sentence is the whole of the fallback, and
-it is cheap: one line before the fan-out, rather than an apology after it.
+**If the gate is absent, say which model you are running on and confirm the human wants to
+spend it here** before spawning anything. One line before the fan-out, rather than an apology
+after it.
 
-**You should also expect to be ASKED.** By default the same hook returns `ask`, so Claude
-Code puts the run to the human before it starts. That prompt is not about the model — it is
-about the **moment**. Sessions fire this process at drafts that were not ready, and an early
-run costs full price to produce findings about a draft that is replaced ten minutes later.
-The human is being asked *is this the artifact, and is it ready*, which is a question only
-they can answer. One prompt covers the fan-out it authorises; the eleven role agents do not
-each re-ask.
+**If you are blocked or the human declines, that is the end of it.** Do not re-invoke, do not
+reach for the hand-run path through the process file, and do not trim the roster to fit a
+budget — a report missing roles is indistinguishable from a clean one, which is the failure
+this entire skill exists to prevent. Their options are to switch model or to set
+`MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1`; both are theirs to pick, not yours.
 
-**If the human declines, that is the end of it.** Do not re-invoke, do not reach for the
-hand-run path through the process file, and do not decide their answer was about the skill
-rather than the review. The hook cannot see their answer — the design relies on you not
-routing around a refusal you were present for.
-
-**If you are blocked, stop and hand it back.** Do not run a reduced roster to fit a budget.
-The process is explicit that scaling to stakes changes *how* roles run and never *which*,
-and a report missing roles is indistinguishable from a clean one — that is the failure this
-entire skill exists to prevent, and reproducing it to save money is still reproducing it.
-The human's options are: switch model, or set `MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1` because
-they have decided to spend it. Both are theirs to pick, not yours.
-
-**And be straight with them about whose bill it is.** The tokens this run spends are the
-human's, and **no cost incurred running the murderboard is ever the responsibility of its
-authors** — not a failed run, not one that produces nothing, not one that exhausts a limit.
-The gate above is a safeguard and **not a spending cap**: it knows nothing about their plan,
-their balance, or any price, it can be overridden, and it may simply not be installed here.
-Never imply it protects them from a bill. Terms:
+**Be straight about whose bill it is.** No cost incurred running the murderboard is ever the
+responsibility of its authors, and the gate is a safeguard, **not a spending cap** — never
+imply it protects anyone from a bill.
 <https://github.com/syncytium2/murderboard/blob/main/TERMS.md>
 
 ## 0. Resolve the paths — do not assume a layout

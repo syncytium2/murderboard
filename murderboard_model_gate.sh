@@ -124,6 +124,7 @@ case "${1:-}" in
     printf 'confirm:   %s (every call-up asks the human; MURDERBOARD_CONFIRM=0 to stop)\n' \
            "$( [ "$CONFIRM" != 0 ] && echo on || echo OFF )"
     printf '           one prompt per run, good for %ss, then it asks again\n' "$CONFIRM_TTL"
+    printf 'known good: Claude Opus 5. Other current models are likely fine.\n'
     printf 'reason:    the roster fan-out spends a usage window in minutes;\n'
     printf '           a Fable run on 2026-09-07 cost two days of access.\n'
     printf '           it is also fired too early: confirmation is about the MOMENT.\n'
@@ -452,14 +453,15 @@ murderboard_model_gate: BLOCKED — do not run the murderboard on this model.
   model:   $model
   blocked: $BLOCKED
 
-WHY. The murderboard spawns one subagent per role and every role runs; scaling to
-stakes changes how they run, never which. There is no cheap murderboard. On
-2026-09-07 a run under Fable exhausted a two-day usage window, and the review it was
-supposed to produce never arrived — the cost landed before the deliverable did.
+WHY. One subagent per role, every role, every run — there is no cheap murderboard. On
+2026-09-07 a run under Fable spent a two-day usage window and produced no review at
+all: the cost landed before the deliverable did.
 
-WHAT TO DO. Stop and tell the human. Do not quietly run a partial roster to save
-budget: a review missing roles is the exact failure this whole apparatus exists to
-prevent, and it reads identically to a clean one.
+WHAT TO RUN INSTEAD. Known good: Claude Opus 5. Other current models are likely fine.
+
+WHAT TO DO NOW. Stop and tell the human. Do not quietly run a partial roster to save
+budget — a review missing roles reads identically to a clean one, which is the exact
+failure this apparatus exists to prevent.
 
   * switch to a model outside: $BLOCKED — then re-invoke
   * or, if the human has decided to spend it here, they set:
