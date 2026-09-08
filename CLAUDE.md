@@ -1,9 +1,9 @@
 # CLAUDE.md — murderboard
 
 This repo is the canonical source of the **murderboard**: an anti-slop review process
-(`doc_review_process.md`), a literature tool (`fetch_paper.py`), four gates that keep the
+(`doc_review_process.md`), a literature tool (`fetch_paper.py`), five gates that keep the
 process honest (`murderboard_freshness.sh`, `murderboard_roster.sh`, `murderboard_prose.sh`,
-`require_commit_before_message.sh`), and the call-up skill
+`murderboard_model_gate.sh`, `require_commit_before_message.sh`), and the call-up skill
 (`skills/murderboard/SKILL.md`). It is *consumed* by other projects, which vendor copies.
 See [`README.md`](README.md).
 
@@ -96,7 +96,14 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
 > pass as a clean one. Run `tools/murderboard_prose.sh <artifact>` and **paste its output into
 > role 5** — that half of the role is a search, and a search nobody ran reads exactly like a
-> search that came back empty. **Every artifact this produces is ours and stays here** — the
+> search that came back empty. **Wire `tools/murderboard_model_gate.sh` as a `PreToolUse` hook
+> on `Skill|Agent|Task`** — the murderboard is a fan-out and every role runs, so there is no
+> cheap run, and on an expensive model one invocation can spend a usage window in minutes and
+> leave you with no review and the full bill. That gate is the only one here that must fire
+> *before* the work rather than after, which is why it is a hook and not something you
+> remember to run. **If it stops you, stop and say so — never trim the roster to fit a
+> budget:** a report missing roles is indistinguishable from a clean one, which is the defect
+> the whole process exists to catch. **Every artifact this produces is ours and stays here** — the
 > corrected document, the run record under `docs/reviews/`, any rule we add. Upstream is where
 > the process comes from, never where our reviews go.
 

@@ -595,7 +595,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.10.0</b> &middot; Updated <time datetime="2026-09-03">2026-09-03</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.11.0</b> &middot; Updated <time datetime="2026-09-08">2026-09-08</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -1068,8 +1068,9 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 
     <div class="scroller">
       <table>
-        <caption>Three gates. Each answers one question, and reports &ldquo;could not tell&rdquo;
-        rather than guessing.</caption>
+        <caption>Four gates. Each answers one question, and reports &ldquo;could not tell&rdquo;
+        rather than guessing &mdash; except the last, which <em>blocks</em> when it cannot tell,
+        for the reason given in its row.</caption>
         <thead>
           <tr><th scope="col">The question it answers</th><th scope="col">How</th><th scope="col">What it reports</th></tr>
         </thead>
@@ -1104,6 +1105,24 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
             between sessions while anything in the project is uncommitted. It cannot read the message
             and does not try &mdash; it gates on there being a commit at all. Nothing stores these
             messages, so what they describe must already be saved.</td>
+            <td class="exits">
+              <span class="pill ok">0</span>allow<br>
+              <span class="pill warn">2</span>block
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Can you afford to run this?<br><code>murderboard_<wbr>model_gate.sh</code></th>
+            <td>A review is a <em>fan&#8209;out</em>: every role runs, every time. Scaling to the
+            stakes changes how the roles run, never which &mdash; so there is no cheap review, and
+            on an expensive AI model one run can spend a whole usage allowance in minutes. When
+            that happens you do not get a partial review for a partial price; you get
+            <strong>no review and the full bill</strong>. This gate reads which model is running
+            and stops the review before it starts. It is the one gate here that <strong>blocks
+            when it cannot tell</strong>, because the two mistakes are not comparable: a wrong
+            block costs you one sentence, and a wrong allow costs days that nothing gives back.
+            You can override it deliberately, and change which models it names &mdash; that list
+            is a claim about today's prices, so it carries a review date the project's own CI
+            fails past.</td>
             <td class="exits">
               <span class="pill ok">0</span>allow<br>
               <span class="pill warn">2</span>block

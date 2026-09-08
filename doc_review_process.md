@@ -44,6 +44,40 @@ No fabricated or approximate citation. No internal contradiction. No filler.
 > still works and is the fallback for a consumer without the skill installed; it is simply the mode
 > in which each of those four steps can be silently skipped.
 
+> **Cost — know what you are about to spend, and do not spend it on the wrong model.**
+> This process is a **fan-out**. Every role runs on every deliverable, and what scales to
+> stakes is how you run them, never which ones — so there is no cheap murderboard. The
+> smallest legitimate run is still the whole roster, and on an expensive model a single
+> invocation can consume a usage window in minutes.
+>
+> **Do not start a run on a model you cannot afford to exhaust.** On **2026-09-07** a run
+> was started under **Fable** and spent a two-day usage limit; the review it was called to
+> produce never arrived, because the budget ran out before the deliverable did. That is the
+> characteristic shape of this failure — you do not get a partial review for a partial
+> price, you get no review and the full bill.
+>
+> **This is a gate, not advice.** `murderboard_model_gate.sh` is a `PreToolUse` hook that
+> reads the running model from the session transcript and blocks the call-up before the
+> fan-out starts. It ships wired in the plugin, and vendoring consumers should wire it too:
+>
+> ```
+> bash tools/murderboard_model_gate.sh --selftest           # prove it can still fire
+> bash tools/murderboard_model_gate.sh --why                # what is blocked, and why
+> bash tools/murderboard_model_gate.sh --check-review-date  # CI: is the policy still current?
+> ```
+>
+> It **fails closed** — an undetermined model blocks — because the asymmetry is not close: a
+> wrong block costs one message, and a wrong allow costs days that nothing gives back. It is
+> overridable on purpose (`MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1`), because a gate with no way
+> past it gets deleted rather than obeyed, and re-aimable (`MURDERBOARD_BLOCKED_MODELS`),
+> because which models are expensive is a fact about **this month's prices** and not about
+> the process. For that same reason the block carries a review-by date that CI enforces:
+> when it lapses, a human re-affirms the block or removes it.
+>
+> **If you are stopped by it, stop — do not economise by running fewer roles.** A review
+> missing roles is the exact defect this whole apparatus exists to prevent, and it is
+> indistinguishable in the report from a clean one. Tell the human and let them choose.
+
 0. **Preflight — confirm the process itself is current.** This file is usually **vendored** into a
    consumer repo, where it drifts behind its canonical source. Before running, verify THIS copy is up
    to date with upstream — compare its vendored stamp/commit against the canonical repo's HEAD (search

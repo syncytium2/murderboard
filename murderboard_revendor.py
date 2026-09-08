@@ -83,6 +83,8 @@ EXAMPLE_CONFIG = {
                 "tools/murderboard_freshness.sh",
                 "tools/murderboard_roster.sh",
                 "tools/murderboard_prose.sh",
+
+                "tools/murderboard_model_gate.sh",
                 "tools/murderboard_revendor.py",
                 "tools/fetch_paper.py",
                 ".claude/skills/murderboard/SKILL.md",
@@ -96,6 +98,8 @@ EXAMPLE_CONFIG = {
                 "tools/murderboard_freshness.sh": "murderboard_freshness.sh",
                 "tools/murderboard_roster.sh": "murderboard_roster.sh",
                 "tools/murderboard_prose.sh": "murderboard_prose.sh",
+
+                "tools/murderboard_model_gate.sh": "murderboard_model_gate.sh",
                 "tools/murderboard_revendor.py": "murderboard_revendor.py",
                 "tools/fetch_paper.py": "fetch_paper.py",
                 ".claude/skills/murderboard/SKILL.md": "skills/murderboard/SKILL.md",

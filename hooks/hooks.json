@@ -3,13 +3,38 @@
     "Shipped to PLUGIN INSTALLS only. This repo's own dev hooks live in .claude/settings.json",
     "and are unrelated: a contributor working in the checkout is not running the plugin.",
     "",
-    "ONE HOOK, and deliberately only one. The early-warning freshness check is the only thing",
-    "here that a user cannot reasonably be asked to remember, and it is silent when current.",
-    "The repo's other two gates are NOT wired: require_commit_before_message.sh blocks a tool",
-    "call when the tree is dirty, and no-heredoc-source.sh blocks a class of Bash command.",
-    "Both are good rules and both are somebody's opinion about how their repo should work --",
-    "installing a review harness must not silently start refusing a stranger's commands. They",
-    "ship in the plugin for anyone who wants them; see the README.",
+    "TWO HOOKS, and the second one is an exception that has to be argued for, because this",
+    "file used to say ONE and the reasoning it gave is still correct. It read:",
+    "",
+    "    The repo's other two gates are NOT wired: require_commit_before_message.sh blocks a",
+    "    tool call when the tree is dirty, and no-heredoc-source.sh blocks a class of Bash",
+    "    command. Both are good rules and both are somebody's opinion about how their repo",
+    "    should work -- installing a review harness must not silently start refusing a",
+    "    stranger's commands.",
+    "",
+    "That still holds, and those two are still not wired. murderboard_model_gate.sh is a",
+    "different KIND of object and the difference is the whole justification: the other two",
+    "refuse a stranger's command on the authors' preference about hygiene, and this one",
+    "refuses to spend the stranger's MONEY on a cost THE MURDERBOARD ITSELF INFLICTS. /murderboard",
+    "fans out one subagent per role -- every role runs, always; scaling to stakes changes how",
+    "they run and never which -- so there is no small murderboard, and on an expensive model a",
+    "single invocation can empty a usage window in minutes. On 2026-09-07 a run under Fable",
+    "cost the author two days of access and produced no review at all: the cost landed before",
+    "the deliverable did. A tool that can do that to someone who typed one slash command is not",
+    "being polite by staying quiet about it.",
+    "",
+    "So the test is not 'is this a good rule' but 'is this OUR mess'. Dirty trees and heredocs",
+    "are the user's business. The bill for our fan-out is ours.",
+    "",
+    "IT IS DEFAULT-ON AND OVERRIDABLE. MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1 lets a user who has",
+    "decided to spend it proceed, and MURDERBOARD_BLOCKED_MODELS re-aims the whole policy. A",
+    "gate with no way past it gets uninstalled rather than obeyed, and then there is no gate.",
+    "",
+    "IT HAS AN EXPIRY. The block is about PRICE, not about a model, and prices move --",
+    "MURDERBOARD_BLOCK_REVIEW_BY carries a date and this repo's CI goes red once it passes, so",
+    "a human re-affirms the block or removes it. It never expires by itself: an expired policy",
+    "still blocks, because a cost gate that silently switches itself off at midnight is worse",
+    "than one that nags.",
     "",
     "--hook never touches the network: it serves a cached verdict and refreshes detached, so",
     "session startup is never blocked on a lookup. --plugin reads the commit Claude Code",
@@ -34,6 +59,18 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/murderboard_freshness.sh\" --hook --plugin \"${CLAUDE_PLUGIN_ROOT}\"",
             "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Skill|Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/murderboard_model_gate.sh\"",
+            "timeout": 10
           }
         ]
       }

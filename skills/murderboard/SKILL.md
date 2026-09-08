@@ -18,6 +18,38 @@ in `doc_review_process.md`, which you will load in step 2 and follow.
 > outcomes looked exactly like success. The steps below are the parts that must not depend on
 > anyone remembering them.
 
+## Preflight — what this costs, before it costs it
+
+**Deliberately before step 0**, and unnumbered, because it gates whether the run happens
+at all rather than how it is done. A murderboard is a fan-out: one subagent per role,
+every role, always. On an expensive model that empties a usage window in minutes — and
+when it does, you get **no review and the full bill**, which is what happened on
+2026-09-07 under Fable.
+
+**A `PreToolUse` hook should already have stopped you** if this model is blocked —
+`murderboard_model_gate.sh`, wired in the plugin and in consumers that vendored it. If you
+are reading this line, either it allowed the call or it is not installed here. Do not
+assume the second case means "no policy":
+
+```bash
+GATE=; for p in tools/murderboard_model_gate.sh murderboard_model_gate.sh \
+                "${MB:-/nonexistent}/murderboard_model_gate.sh"; do
+  [ -r "$p" ] && GATE="$p" && break
+done
+[ -n "$GATE" ] && bash "$GATE" --why || echo "no model gate present — check the model yourself"
+```
+
+If the gate is absent, **say which model you are running on and confirm the human wants to
+spend it here** before spawning anything. That sentence is the whole of the fallback, and
+it is cheap: one line before the fan-out, rather than an apology after it.
+
+**If you are blocked, stop and hand it back.** Do not run a reduced roster to fit a budget.
+The process is explicit that scaling to stakes changes *how* roles run and never *which*,
+and a report missing roles is indistinguishable from a clean one — that is the failure this
+entire skill exists to prevent, and reproducing it to save money is still reproducing it.
+The human's options are: switch model, or set `MURDERBOARD_ALLOW_EXPENSIVE_MODEL=1` because
+they have decided to spend it. Both are theirs to pick, not yours.
+
 ## 0. Resolve the paths — do not assume a layout
 
 There are two ways these files get onto a machine, and they land in different places:
