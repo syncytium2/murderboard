@@ -257,11 +257,11 @@ never pointed at this one.
 
 So the record **opens with the problem**, shown as a figure wherever the subject is
 visual, then places the work — where it fits and why it was worth doing — then states
-what would validate it and how it generalises beyond the project that produced it. The
+what would validate it and how it generalizes beyond the project that produced it. The
 ledger and the finding list move to an appendix, where a reader who wants to audit
 coverage can still find every role.
 
-This is not a style preference. A record organised by process is read once by its author
+This is not a style preference. A record organized by process is read once by its author
 and never again, so the findings it contains stop being available to the next person —
 which is the same failure the murderboard exists to prevent, one level up.
 
@@ -461,9 +461,9 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
    - **A PASSING check can be asserting the defect. When a defect is found, read the tests that
      did not fail.** The two rules above are about a check with no power; this is about a check
      with full power, aimed at the wrong outcome. A test written beside a bug encodes the bug as
-     the specification, goes green, and then *defends* it: the next person to fix the behaviour
+     the specification, goes green, and then *defends* it: the next person to fix the behavior
      sees a red suite and reads it as their own mistake. So for any defect, ask which assertion
-     should have caught it and did not — and if an assertion covered that exact behaviour and
+     should have caught it and did not — and if an assertion covered that exact behavior and
      passed, **the fix must flip it, not add a sibling beside it.** A repair that leaves the old
      assertion standing has written the defect down twice. State in the record which assertions
      flipped; that count is evidence about how the defect survived, and it is the one number a
@@ -471,7 +471,7 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      directory deleted every file it had not itself produced. Two selftest assertions — "an
      orphaned agent file FAILS check" and "write removes the orphan" — had been green since the
      tool was written, and both were describing a consumer's own subagent on its way to being
-     unlinked. The suite was not silent about the behaviour; it was vouching for it.)
+     unlinked. The suite was not silent about the behavior; it was vouching for it.)
    - **"Can the alarm ring?" — a null result needs a test with the power to fail.** The most
      dangerous sentence in an analysis deliverable is *"we checked for X and it did not happen"*: it
      reads as evidence while resting on nothing if the check could never have registered X. For
@@ -517,10 +517,10 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      a section is about to say, no closing paragraph that recaps. Dry humour is fine where it is
      also true; cut it where it is decoration.
    - **Count first, then judge — and run the tool, do not describe it.** Role 5 owns both a
-     judgement (is this block longer than its point?) and a search (does this word appear?). The
+     judgment (is this block longer than its point?) and a search (does this word appear?). The
      architecture note above says what happens when one role holds both: *the prose answer covers
      for the file nobody opened.* So the search is a script and its **output is pasted, not
-     summarised** — `murderboard_prose.sh <artifact>`, one row per hit and one row per block:
+     summarized** — `murderboard_prose.sh <artifact>`, one row per hit and one row per block:
      **line · construction · kind**, then **block · words · sentences**. **"Not run" is a failure,
      not a clean result.** The tool cannot judge and does not try: it reports that a block is 220
      words, never that the block is too long. The columns it cannot fill — *which sentence is the
@@ -541,13 +541,13 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      wants a picture rather than a cut. Nobody is left holding the question *did this need to be
      this long* — which is why it reaches a reader as the first thing they say about the draft.
      So, per block: write the one sentence it exists to deliver, then name what the remaining
-     words buy — evidence a sceptic would actually demand, or the author's satisfaction at having
+     words buy — evidence a skeptic would actually demand, or the author's satisfaction at having
      been thorough. Cut the second kind. **The payload is usually at the end**, because the block
      was written in the order it was thought; promoting it is the fix more often than trimming is.
      (Boundary with Start With the Problem: role 11 owns the order of the sections and may not
      reach inside one; this owns the paragraph — a block in exactly the right place, three times
      longer than its point.)
-   - **Why this role gets a list where the others get judgement.** An instruction to write with
+   - **Why this role gets a list where the others get judgment.** An instruction to write with
      more wit, or in the voice of some admired author, cannot fail: nothing in the draft can
      contradict it, so it yields a different voice on every run and no reviewer can dispute the
      result. Worse, a long stack of such instructions averages out — the traits blend instead of
@@ -613,7 +613,7 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      visual grammar while assigning **different meaning to its axes** is a false friend:
      it is misread by exactly the expert audience it was drawn for, and the more fluent
      the reader, the more confidently they misread it. Labels do not save it, because the
-     idiom is recognised before a label is read.
+     idiom is recognized before a label is read.
      Ask three questions, in this order, with the render open and the caption covered:
      *what does this resemble · in that idiom what do the axes mean · do they mean the
      same thing here?* If the answer to the third is no, the finding is **not** "clarify
@@ -869,7 +869,7 @@ second copy of a rule, which is how a roster stops describing the review that ac
 
 **Every role runs on every deliverable.** The matrix below records what each role is *for*, not a
 menu to choose from. A reviewer may not drop a role because it judges the role inapplicable — that
-judgement is made with the same context that produced the draft, and it fails in one direction:
+judgment is made with the same context that produced the draft, and it fails in one direction:
 toward less scrutiny of the thing the author was already comfortable with.
 
 A role with genuinely nothing to check returns **"no findings, and here is what I checked"** — a
@@ -1240,7 +1240,7 @@ seriously than a rule stated in the abstract.
   problem looks like was **slide 6**; the PI moved it to the front. No role in the team read the
   sequence.
 - **The team is not optional** (a 2026-07 15-slide status deck) — the reviewer **dropped two roles on
-  its own judgement**, including role 8 because "the audience is the project owner, who is an
+  its own judgment**, including role 8 because "the audience is the project owner, who is an
   expert". Role 8's actual content is *self-contained slides*, *define every term where it first
   appears*, and *keep internal code identifiers out of audience-facing text* — none of which is about
   expertise. The deck passed review with 13 findings fixed and shipped a "Remaining issues" slide
@@ -1289,7 +1289,7 @@ seriously than a rule stated in the abstract.
   **Sequel, 2026-08-25.** The fix was filed as a sub-bullet under role 2 and the role's opening
   sentence still read "confirm the work exists and is correctly attributed". Every summary written
   from that sentence — including this project's own briefing document and its public explainer —
-  reproduced the pre-fix rule, because a summariser reads the headline and stops. A rule filed
+  reproduced the pre-fix rule, because a summarizer reads the headline and stops. A rule filed
   below the line a reader actually reads has not been filed. **When a role gains a check, the
   role's first sentence is part of the change.**
   The reviewer verified everything present and never asked what was absent; one backward step,
@@ -1354,9 +1354,9 @@ seriously than a rule stated in the abstract.
   own subagents lost them on their first review. **Two selftest assertions had been green since the
   tool was written** — "an orphaned agent file FAILS check" and "write removes the orphan" — and
   both described a consumer's own agent on its way to being unlinked. The suite was not silent about
-  the behaviour; it was **vouching** for it, and a later maintainer fixing this would have met a red
+  the behavior; it was **vouching** for it, and a later maintainer fixing this would have met a red
   suite and read it as their own error. The repair had to **flip** those two assertions rather than
-  add safe ones beside them. Three lessons, and the second is the one that generalises: a tool
+  add safe ones beside them. Three lessons, and the second is the one that generalizes: a tool
   writing into a directory it does not own may remove **only what it can prove it wrote** (here, a
   generated banner in the file's own content — not its name, not its location); when a defect is
   found, the tests that *passed* are evidence and must be read; and an unreadable file is never

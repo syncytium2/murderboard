@@ -587,7 +587,7 @@ PLACEHOLDER_RE = re.compile(r"<[^>]*>")
 
 
 def tool_set(raw):
-    """A comma-separated tool list, normalised for set comparison."""
+    """A comma-separated tool list, normalized for set comparison."""
     return frozenset(t.strip().lower() for t in raw.split(",") if t.strip())
 
 

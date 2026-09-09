@@ -80,10 +80,10 @@ exactly one true thing.
   a section is about to say, no closing paragraph that recaps. Dry humour is fine where it is
   also true; cut it where it is decoration.
 - **Count first, then judge — and run the tool, do not describe it.** Role 5 owns both a
-  judgement (is this block longer than its point?) and a search (does this word appear?). The
+  judgment (is this block longer than its point?) and a search (does this word appear?). The
   architecture note above says what happens when one role holds both: *the prose answer covers
   for the file nobody opened.* So the search is a script and its **output is pasted, not
-  summarised** — `murderboard_prose.sh <artifact>`, one row per hit and one row per block:
+  summarized** — `murderboard_prose.sh <artifact>`, one row per hit and one row per block:
   **line · construction · kind**, then **block · words · sentences**. **"Not run" is a failure,
   not a clean result.** The tool cannot judge and does not try: it reports that a block is 220
   words, never that the block is too long. The columns it cannot fill — *which sentence is the
@@ -104,13 +104,13 @@ exactly one true thing.
   wants a picture rather than a cut. Nobody is left holding the question *did this need to be
   this long* — which is why it reaches a reader as the first thing they say about the draft.
   So, per block: write the one sentence it exists to deliver, then name what the remaining
-  words buy — evidence a sceptic would actually demand, or the author's satisfaction at having
+  words buy — evidence a skeptic would actually demand, or the author's satisfaction at having
   been thorough. Cut the second kind. **The payload is usually at the end**, because the block
   was written in the order it was thought; promoting it is the fix more often than trimming is.
   (Boundary with Start With the Problem: role 11 owns the order of the sections and may not
   reach inside one; this owns the paragraph — a block in exactly the right place, three times
   longer than its point.)
-- **Why this role gets a list where the others get judgement.** An instruction to write with
+- **Why this role gets a list where the others get judgment.** An instruction to write with
   more wit, or in the voice of some admired author, cannot fail: nothing in the draft can
   contradict it, so it yields a different voice on every run and no reviewer can dispute the
   result. Worse, a long stack of such instructions averages out — the traits blend instead of

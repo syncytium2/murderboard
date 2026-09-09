@@ -31,7 +31,7 @@ The one thing worth keeping is the **provenance stamp**, because
 fallen behind — and a stale gate that reports nothing is the failure this whole repo is about.
 Wire it into your `SessionStart` hook and it will announce itself.
 
-So: open a PR when you have something that **generalises**. Keep it local when it's yours.
+So: open a PR when you have something that **generalizes**. Keep it local when it's yours.
 
 ---
 
@@ -174,7 +174,7 @@ the README is explicit about the division between authorship and review.
 
 ---
 
-## Licence
+## License
 
 Apache-2.0. By contributing you agree your contribution is licensed under it. No CLA.
 

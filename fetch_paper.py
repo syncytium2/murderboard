@@ -144,7 +144,7 @@ def cache_dir():
     keeps a paper fetched once available everywhere.
 
     Sits BESIDE the curated library, never in it: these are machine-fetched copies with
-    hashed names, and mixing them into a hand-organised library would wreck it. Promote the
+    hashed names, and mixing them into a hand-organized library would wreck it. Promote the
     keepers with `--promote`.
 
     Override with $MURDERBOARD_PAPERS (or $IF2_PAPERS). Falls back to /tmp only when no
