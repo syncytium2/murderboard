@@ -61,7 +61,7 @@ text.**
 **But the page is faithful to its source, and that is the real finding.**
 `doc_review_process.md`'s own role-2 headline (line 274) still reads *"confirm the work exists
 and is correctly attributed"*, with origin-tracing added by #30 as a **sub-bullet**. Any
-summariser reading the top line reproduces the pre-fire version. The page did exactly that,
+summarizer reading the top line reproduces the pre-fire version. The page did exactly that,
 correctly.
 
 So: fix the headline upstream, not only here. A rule that survives only if the reader reaches
@@ -80,7 +80,7 @@ which is open and touching that role.
   stamp"), so the vendoring section is **not** stale after #29.
 - **Role count matches the roster**: page says eleven, `murderboard_roster.sh count` derives 11.
 - The commit message names **two claims cut rather than shipped unverified** (a vendored-set
-  file count; "no dependencies" for the lit tool). That is the behaviour the process asks for
+  file count; "no dependencies" for the lit tool). That is the behavior the process asks for
   and it is visible in the record.
 
 ## Method

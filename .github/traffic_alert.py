@@ -19,7 +19,7 @@ WHAT COUNTS AS A CHANGE, and why these and not others:
     discovery channel -- far more actionable than a count going up.
   * MORE UNIQUE PAGE VIEWERS IN A DAY THAN EVER BEFORE. The baseline is 1, which is the
     maintainer. 2 means somebody else opened the page. CI never renders a page.
-  * A NEW HIGH IN NON-CI CLONES. Deliberately the weakest of the four and labelled as such in
+  * A NEW HIGH IN NON-CI CLONES. Deliberately the weakest of the four and labeled as such in
     the issue it raises: "non-CI" only means "not this repo's own Actions jobs". It still
     counts the maintainer's own clones, mirrors, scrapers and scanners. It fires on a new
     high-water mark rather than a fixed threshold so it calibrates itself instead of relying

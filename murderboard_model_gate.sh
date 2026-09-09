@@ -410,7 +410,7 @@ esac
 [ "$is_callup" -eq 1 ] || exit 0
 
 # The deliberate override, checked only now — so that setting it does not disable the
-# gate's judgement for calls it would have allowed anyway.
+# gate's judgment for calls it would have allowed anyway.
 if [ -n "$OVERRIDE" ]; then
   echo "murderboard_model_gate: MURDERBOARD_ALLOW_EXPENSIVE_MODEL is set — allowing a murderboard run on this model." >&2
   exit 0
@@ -427,7 +427,7 @@ murderboard_model_gate: BLOCKED — could not determine which model is running.
 
 This gate fails CLOSED and that is deliberate. A murderboard run is a roster-wide
 fan-out; on a blocked model it can exhaust a usage window in minutes, and no amount
-of apologising afterwards gives the window back. A wrong block costs you one message.
+of apologizing afterwards gives the window back. A wrong block costs you one message.
 A wrong allow cost two days on 2026-09-07.
 
 Confirm your model, then either:

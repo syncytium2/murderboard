@@ -20,7 +20,7 @@ The short version, and it is the whole point of this document:
 
 This is not a new promise or a separate agreement. It is [the Apache License,
 Version 2.0](LICENSE) — under which this project is released — stated in language you can
-act on. See §7 (Disclaimer of Warranty) and §8 (Limitation of Liability) of that licence,
+act on. See §7 (Disclaimer of Warranty) and §8 (Limitation of Liability) of that license,
 which are the operative legal terms.
 
 ---
@@ -48,7 +48,7 @@ foreseeable consequence of using the thing as designed.
 ## 2. No liability for your costs — any of them, ever
 
 To the maximum extent permitted by applicable law, and in addition to and without
-limiting §8 of the Apache-2.0 licence:
+limiting §8 of the Apache-2.0 license:
 
 The authors and contributors are **not liable** to you or to anyone else for any cost,
 charge, fee, loss, or damage of any kind arising from or connected to your use of this
@@ -145,15 +145,15 @@ and terms apply and are outside our control.
 Links to third-party sites are provided for convenience. We do not control them and are
 not responsible for their content, practices, or availability.
 
-## 7. Relationship to the licence, and which one wins
+## 7. Relationship to the license, and which one wins
 
 This software is licensed to you under the [Apache License, Version 2.0](LICENSE). **That
-licence is the operative legal instrument, and this document does not add conditions or
+license is the operative legal instrument, and this document does not add conditions or
 restrictions to the rights it grants you.** Where anything here conflicts with the
-licence as it applies to the software, **the licence governs.**
+license as it applies to the software, **the license governs.**
 
 This document exists to state the warranty and liability position in plain language,
-because §7 and §8 of a licence file are, in practice, read by almost nobody — and the
+because §7 and §8 of a license file are, in practice, read by almost nobody — and the
 specific risk here is a bill.
 
 If any provision of this document is held unenforceable, the remainder continues in
@@ -162,7 +162,7 @@ than struck out.
 
 ## 8. Contributions
 
-Contributions are accepted under the Apache-2.0 licence, per §5 of that licence, unless
+Contributions are accepted under the Apache-2.0 license, per §5 of that license, unless
 you state otherwise in writing. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 9. Changes

@@ -254,9 +254,9 @@ MB
   # because a gate that only accepts one markdown dialect gets satisfied by
   # reformatting rather than by declaring.
   printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n**Mode:** standard\n' > "$tmp/bold.md"
-  t 'bolded mode line is recognised'    0 cmd_check "$tmp/bold.md"
+  t 'bolded mode line is recognized'    0 cmd_check "$tmp/bold.md"
   printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n> Mode: standard\n' > "$tmp/quoted.md"
-  t 'blockquoted mode line recognised'  0 cmd_check "$tmp/quoted.md"
+  t 'blockquoted mode line recognized'  0 cmd_check "$tmp/quoted.md"
 
   REQUIRE_MODE=1
   t '--require-mode: undeclared FAILS'  1 cmd_check "$tmp/full.md"

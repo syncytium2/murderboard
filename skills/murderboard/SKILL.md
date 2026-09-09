@@ -242,7 +242,7 @@ step 3 — if it did not, the fixes are not in the file you are about to ship.
 
 **Lead with the problem, not the ledger.** The record is a document deliverable like any
 other: open with what was at stake and — where the subject is visual — a figure showing
-it, then what was found, then what would validate it and how it generalises. The header
+it, then what was found, then what would validate it and how it generalizes. The header
 and role ledger below are an **appendix**: required, checkable, and not the first thing a
 reader meets. A record ordered by process proves the roles ran and tells nobody what was
 learned (see *The run record is a deliverable* in the process file).

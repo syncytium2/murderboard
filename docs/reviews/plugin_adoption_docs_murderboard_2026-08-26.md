@@ -41,7 +41,7 @@ is the only reason it was noticed.
 The process permits scaling *how* the roles are run, never *which*; this session was operating
 under an instruction not to spawn subagents without being asked. Every role below produced a
 result or an explicit "nothing to check, and here is what I checked". The mechanical roles (2,
-3, 10) were executed as commands rather than judgement, and their output is quoted.
+3, 10) were executed as commands rather than judgment, and their output is quoted.
 
 The cost is honest to state: a single reviewer is a weaker adversary than eleven independent
 ones, and role 4 in particular is less trustworthy when the attacker is also the author. Two of

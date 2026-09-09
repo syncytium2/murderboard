@@ -106,7 +106,7 @@ evidence-adequacy rules to agent 4. Checklist:
   visual grammar while assigning **different meaning to its axes** is a false friend:
   it is misread by exactly the expert audience it was drawn for, and the more fluent
   the reader, the more confidently they misread it. Labels do not save it, because the
-  idiom is recognised before a label is read.
+  idiom is recognized before a label is read.
   Ask three questions, in this order, with the render open and the caption covered:
   *what does this resemble · in that idiom what do the axes mean · do they mean the
   same thing here?* If the answer to the third is no, the finding is **not** "clarify

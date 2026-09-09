@@ -27,13 +27,13 @@
 #     (32 worktrees x 3s = 96s, which is the bug again).
 #   * Degrade LOUDLY. A section dropped for budget must say so, or a silent all-clear
 #     masquerades as a real one.
-# Wire a `"timeout"` into the settings.json hook entry as a second line of defence,
+# Wire a `"timeout"` into the settings.json hook entry as a second line of defense,
 # set ABOVE this budget and below the SDK's 60s.
 #
 # Tune with env vars if a consumer repo needs to: IF2_HOOK_BUDGET (seconds),
 # IF2_HOOK_DEADLINE (seconds; must match the settings.json "timeout" for this hook).
 #
-# SURVIVING A RUN THAT BLOWS THE DEADLINE. Bounding the work is the first defence; the
+# SURVIVING A RUN THAT BLOWS THE DEADLINE. Bounding the work is the first defense; the
 # second is making the failure legible, because a hook that is killed prints NOTHING and
 # therefore cannot report its own death. Three per-repo files in $HOME carry that:
 #   ~/.<repo>-hook-off       escape hatch: touch it and this briefing is skipped entirely.
@@ -244,7 +244,7 @@ MARK "live MATLAB check"
 # --- live MATLAB: the resource two sessions on one box actually contend for ---
 # Reported ALWAYS, never thresholded on RAM: a long batch can run for hours while
 # free RAM never looks tight, so a RAM threshold goes silent exactly when it matters.
-# The signal that changes behaviour is "a client WITH pool workers". That is also a
+# The signal that changes behavior is "a client WITH pool workers". That is also a
 # CORRECTNESS hazard, not merely contention — an already-open pool runs cached
 # bytecode, so editing a function that executes inside parfor silently yields wrong
 # numbers.

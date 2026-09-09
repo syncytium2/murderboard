@@ -338,7 +338,7 @@ jobs:
       # that never applied to the person who wrote it. On a push the base is the previous
       # tip, which for a merge commit covers everything the merge brought in.
       #
-      # Scoped to the files that change plugin BEHAVIOUR. A README fix or a traffic-bot
+      # Scoped to the files that change plugin BEHAVIOR. A README fix or a traffic-bot
       # commit ships in the tree too (source is "./") but changes nothing a user runs, and
       # demanding a release for those would train people to bump blindly.
       - name: the plugin version was bumped if the plugin changed

@@ -76,7 +76,7 @@ what a reviewer actually checks while the document consumers read still says the
   Weigh the ratio too, not just each addition: the vendored set is **~4,500 lines, of which
   ~2,000 are the freshness gate and the re-vendor tool** — machinery for keeping the copy
   current rather than for reviewing anything. That is defensible (a stale copy silently
-  omits rules already paid for) and it is also the shape of a tool optimising for its own
+  omits rules already paid for) and it is also the shape of a tool optimizing for its own
   distribution. Every further addition makes adoption more expensive.
 - `fetch_paper.py` has no external dependencies beyond the standard library (+ optional
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
