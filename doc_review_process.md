@@ -152,6 +152,15 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      single-pass self-review inherits the drafter's search history, so it stops in the same place
      for the same reason. Blindness is the mechanism; one pass cannot supply it. This is the only
      role the size rule may not collapse.
+   - **Confirm the fan-out is available BEFORE you use size to decide — probe, do not infer.**
+     Spawn one throwaway subagent and require an answer back. Where the Agent tool is missing,
+     denied, or forbidden, this choice is not yours to make and the run lands in the second
+     bullet by constraint; done silently, that is indistinguishable from having judged its way
+     there. **The record then says `Execution: single-pass (subagents unavailable)`** — see
+     *Output contract*. Two consequences follow immediately: the attribution exception above
+     cannot be satisfied at all, so a deliverable making an attribution claim does not proceed;
+     and the block will recur on every run in that environment until somebody changes it, which
+     is why it is worth surfacing before a review rather than after.
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
    See **"The team is not optional"** below.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
@@ -1121,6 +1130,76 @@ murderboard_roster.sh check --require-mode REPORT.md   # undeclared mode is a fa
 
 An eleven-of-eleven ledger says every role ran. It does not say the loop finished, and until the
 mode line existed there was nowhere for that difference to be recorded.
+
+**The record also declares how the roles were executed**, on a line of its own, as a
+**controlled token** followed by prose the gate never reads:
+
+```
+Execution: subagents — one per role, all eleven spawned
+Execution: single-pass (forced) — the Agent tool was unavailable
+Execution: single-pass (chosen) — a one-line caption
+```
+
+The ledger cannot carry this either. Eleven roles spawned as eleven independent reviewers, and
+eleven roles played in turn by the one agent that wrote the draft, produce the same eleven rows
+— and the second is a materially weaker adversary, most of all at role 4, where the attacker is
+also the author.
+
+**The token is stated rather than inferred, and the reason generalises past this gate.** Two
+earlier versions read the verdict out of the sentence, and both failed in the expensive
+direction — recording a degraded run as a full one. The second was defeated by a comma:
+*"parallel subagents; role 4 could not reach the web"* and the same sentence with a comma
+classified opposite ways. The diagnosis is worth carrying: textual distance was standing in for
+**grammatical attachment** — does a failure attach to the fan-out or to one role? — and
+*"parallel subagents could not start"* and *"parallel subagents, role 4 could not start"* have
+nearly the same span and opposite meanings. No threshold separates them, because distance is
+not what distinguishes them. A cheap measurable quantity standing in for the property that
+actually matters is a defect this process hunts in other people's work; it had been built into
+one of its own gates.
+
+⚠ **What the execution gate does not catch, and why it is not worth fixing.** It reads a
+declaration. A `subagents` token whose prose then denies the fan-out in words that are not
+*mode* words — *"spawned the eleven. Every one failed to start"* — records as a full run. The
+gate compares the token against mode vocabulary only (*inline*, *by hand*, *single-pass*),
+because those words can only describe how the **run** went, whereas *could not*, *failed* and
+*unavailable* describe a run **or** a single role. Catching the mislabelled head would need
+that second vocabulary, and *"subagents — 11 spawned, role 4 could not reach the web"* is a
+role-level failure in a genuinely complete run that false-positives on it. That is the
+attachment problem again, one layer in: **it would trade a stated limit for an unstated false
+positive**, which is the worse deal. A mislabelled token buys a false record, and no
+report-reading gate can take that back — the same limit `murderboard_agents.py` states about a
+reviewer that types its granted tools back without ever holding them.
+
+A single-pass declaration must say **which kind** it was, and the gate rejects a bare one:
+
+- **chosen** — the deliverable is a caption or a one-liner, and a ten-agent fan-out on one
+  sentence is waste. The process working as designed.
+- **forced** — the Agent tool was unavailable: denied by a permission rule, withheld by a
+  launch flag, forbidden by an instruction, or absent because the session was already inside a
+  subagent. An environment defect, which will recur on every run until someone changes the
+  environment, and which the reader must be able to tell from the first.
+
+Unqualified, it reads as *chosen*, because that is the reading that costs nothing to assume.
+`docs/reviews/plugin_adoption_docs_murderboard_2026-08-26.md` is the forced case, and it is
+legible only because its author wrote a "Stated deviation" section nothing asked for.
+
+```
+murderboard_roster.sh check --require-execution REPORT.md   # undeclared execution is a failure
+```
+
+Undeclared exits 0 by default, on the same terms as the mode line: this file is vendored, and a
+change that reddens every report a consumer has already written gets the gate deleted rather
+than the reports fixed.
+
+**Establish it before the run, not after.** A run that discovers mid-flight that it cannot fan
+out has already spent the roles. Probe first — spawn one throwaway subagent and require an
+answer back — and if it fails, stop and say so while a "no" is still cheap.
+`murderboard_subagents.sh` then names the blockers that are visible in files, so *"allow
+subagents"* is one edit rather than a scavenger hunt. **It cannot answer the question on its
+own**, and reports that limitation on every run including its clean one: availability is
+settled by the session's tool list, a launch flag, or an instruction injected at runtime, and
+the 2026-08-26 block was in none of the files any scan can read. The spawn is the check; the
+scan is the hint.
 
 Because the roster is derived, adding a role here propagates to every consumer's check with no
 edit anywhere else. A failing check does not mean "write more" — it means a role either never

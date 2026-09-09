@@ -82,6 +82,9 @@ done
 for p in tools/murderboard_agents.py murderboard_agents.py; do
   [ -r "$root/$p" ] && COMPILER="$root/$p" && break
 done
+for p in tools/murderboard_subagents.sh murderboard_subagents.sh; do
+  [ -r "$root/$p" ] && SUBAGENTS="$root/$p" && break
+done
 # Where the compiled agent files belong in the repo BEING REVIEWED. Claude Code scans
 # `.claude/agents/` recursively, so the eleven go in a subdirectory this tool owns — writing
 # them loose into the shared directory is how an earlier version deleted a consumer's own
@@ -106,6 +109,7 @@ if [ -z "${PROCESS:-}" ]; then
     FRESH="$MB/murderboard_freshness.sh"
     ROSTER="$MB/murderboard_roster.sh"
     COMPILER="$MB/murderboard_agents.py"
+    SUBAGENTS="$MB/murderboard_subagents.sh"
     AGENTDIR="$MB/agents"      # the plugin ships them already compiled
   fi
 fi
@@ -144,6 +148,67 @@ This is deliberately **not** the same as the SessionStart freshness check. That 
 early warning: it serves a *cached* verdict, once, at startup, for whichever worktree the
 session began in. This one fires in the worktree you are actually reviewing in, at the moment
 you review, with `--refresh` so it cannot serve a stale cache. Keep both.
+
+### 1a. Subagents — PROBE, do not infer
+
+**Ask now, while a "no" is still cheap.** The review runs eleven roles as independent
+subagents. When the Agent tool is not available this run does not fail — it *degrades*, into
+the single-pass self-review the process already permits for small deliverables, and the report
+it produces is indistinguishable from one where eleven independent reviewers agreed. That has
+happened here: `docs/reviews/plugin_adoption_docs_murderboard_2026-08-26.md` is a full
+eleven-role run in which one agent played every part. It is legible as such only because its
+author volunteered a "Stated deviation" section.
+
+**Spawn one throwaway subagent and require an answer back.** Not a settings check — an actual
+spawn:
+
+> Reply with exactly this and nothing else: `MB-PROBE-OK`
+
+Nothing else proves it. Availability is decided by the session's tool list, a launch flag, the
+permission mode, an instruction injected by the harness or the IDE, or by already being inside
+a subagent — and a subagent cannot spawn one. Several of those appear in no file on the
+machine. **The 2026-08-26 block was of exactly that kind**, so any amount of config-reading
+would have returned a clean bill of health for the one case that has actually cost this project
+a degraded run.
+
+Then act on the answer:
+
+- **Token comes back** → subagents work. The run record's `Execution:` line says
+  `subagents`. Carry on.
+
+  ⚠ **That does not mean the ROLE fan-out will be allowed.** The cost gate above is a
+  `PreToolUse` hook on `Skill|Agent|Task` that reads the prompt, and it blocks a murderboard
+  role spawn while letting an unrelated Agent call through. Verified against it: on a blocked
+  model this probe returns **0** and a role spawn returns **2**. So a green probe answers *can
+  I spawn a subagent*, never *can I spawn eleven of these* — the cost preflight is what answers
+  the second, which is why it runs first and why skipping it is not a shortcut. If the fan-out
+  is refused after a green probe, that is a **cost** refusal, not an availability one: stop and
+  hand it back, do not record `single-pass (forced)` and carry on.
+- **It does not** → **STOP, before role 1.** Say so plainly, and name the knob, which is what
+  the scanner is for:
+  ```bash
+  [ -n "${SUBAGENTS:-}" ] && bash "$SUBAGENTS" --explain ; echo "exit=$?"
+  ```
+  It reports the blockers it can see — a `permissions.deny` rule, an allow-list without
+  `Task`, a `PreToolUse` hook that runs on the Agent tool, an instruction file that forbids
+  subagents in plain English. **Its exit 0 is not an all-clear** and it says so on every run:
+  it reads files, and the answer is not always in a file. A clean scan under a failed probe
+  means the block is in the session, not on disk — which is still actionable, and is the case
+  the human can usually fix in one sentence.
+
+  Then ask, and wait. Do not start the roles on the assumption that a weaker review now beats
+  a real one shortly.
+
+**Two things the human's "go ahead anyway" cannot buy:**
+
+- **A single-pass run must be declared as forced**, on the `Execution:` line, in those terms —
+  never left to read as the chosen case. The roster gate rejects a bare `single-pass`.
+- **A deliverable that attributes a method, claims novelty, or says something is "ours" may not
+  run single-pass at all**, whatever its length. The process file makes role 2 a separate agent
+  in that case specifically because a single pass inherits the drafter's search history and so
+  stops searching in the same place for the same reason. Blindness is the mechanism, and one
+  pass cannot supply it. If subagents are unavailable and the deliverable makes an attribution
+  claim, the run does not proceed.
 
 ## 2. Load the process
 
@@ -222,6 +287,12 @@ Scale to stakes in *how* you run them, never in *which* ones:
 - **Small deliverable** (a caption, a one-liner) → a single-pass self-review that still walks
   every role's checklist in turn and still produces role 10's table.
 
+**This is a choice about stakes, and step 1a has already established whether it is available
+to make.** The two bullets above used to be the only thing said about fan-out, which left the
+degraded case with somewhere to hide: a run that *could not* spawn landed in the second bullet
+and looked like a run that had *judged* its way there. If the probe failed, you are in the
+second bullet by constraint — write it down as such.
+
 A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
 Silence is not a result.
 
@@ -257,7 +328,25 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - artifact:  <path> (<hash before> -> <hash after>)
 - roles:     <n> of <n> run (named agents | inline fallback)   # from step 4a
 - rounds:    <n> blind verify rounds to clean
+
+Execution: subagents | single-pass (forced) | single-pass (chosen)   # from step 1a
 ```
+
+The token before the dash is parsed and must be exact; everything after it is yours and is
+**never read**:
+
+```markdown
+Execution: subagents — one per role, all eleven spawned
+Execution: single-pass (forced) — the Agent tool was unavailable; step 1a's probe failed
+Execution: single-pass (chosen) — a one-line caption, not worth an eleven-agent fan-out
+```
+
+`roles:` and `Execution:` answer different questions and neither implies the other. `roles:`
+says which **prompt** each reviewer got — its compiled agent file, or the role's block inlined.
+`Execution:` says whether there was ever **more than one reviewer**. A run can spawn eleven
+named agents, or play eleven parts alone from those same eleven files; the ledger looks the
+same either way. `Execution:` goes on a line of its own, beside `Mode:`, because that is where
+the gate looks for it.
 
 Then the **role ledger** — one row per role, all of them, each with its finding count or its
 "nothing to check, here is what I checked" line — followed by the findings and their
@@ -267,13 +356,40 @@ Finally, gate your own output:
 
 ```bash
 REPORT=docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md
-bash "$ROSTER" check "$REPORT" ; echo "roster=$?"
+bash "$ROSTER" check --require-execution "$REPORT" ; echo "roster=$?"
 [ -n "${COMPILER:-}" ] && python3 "$COMPILER" --process "$PROCESS" verify "$REPORT" ; echo "grants=$?"
 ```
 
 **roster exit 1 means a role is missing from the ledger — the run is not finished.** Either that
 role never ran (run it) or it ran and left no trace (record it). Do not deliver past a failing
 check; a report that cannot show all its roles is the failure mode this skill was built for.
+
+It also fails, under `--require-execution`, on a missing or unqualified `Execution:` line — a
+bare `single-pass` is rejected until it says whether subagents were **unavailable** or
+single-pass was **chosen**. Those are not the same event: one is the process working as
+designed on a one-line deliverable, the other an environment defect that will recur silently on
+every run until somebody fixes it. Do not satisfy this by picking whichever word makes it
+green; step 1a already knows which it was.
+
+Write the token about the **eleven roles**, not about everything that happened — a triage pass
+before the fan-out, or one role re-reading its own work, does not change the mode the team ran
+in. A `subagents` token whose prose then describes an inline run is **reported, never
+resolved**: the gate refuses it rather than picking, on the same grounds the grants gate
+refuses a role that declares two verdicts.
+
+**The token is not decoration, and it replaced two parsers that tried to do without it.** Both
+inferred the verdict from the sentence and both got it wrong in the direction that costs most —
+reading a degraded run as a full one. The second was defeated by a comma:
+*"parallel subagents; role 4 could not reach the web"* and the same line with a comma
+classified opposite ways. Distance cannot tell whether a failure attaches to the fan-out or to
+one role, so the author says which and the gate stops guessing. A line with no token is refused
+with the grammar printed — a failure that teaches rather than one that misclassifies.
+
+⚠ **Which means the token has to be true, and nothing here can check that.** A `subagents`
+token above prose describing a total fan-out failure records as a full run: the gate compares
+the prose against *mode* words only, for the reason set out in the process file. This is the
+same limit the grants gate states about itself. Write the token from what step 1a actually
+returned, not from what the run was meant to be.
 
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are
