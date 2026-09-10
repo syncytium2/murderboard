@@ -239,6 +239,17 @@ jobs:
       - name: --promote refuses the form that silently discarded its filename
         run: python tests/fetch_paper_promote_args_test.py
 
+      # The library autodetect named a literal institution and a literal person until
+      # 2026-09-10 -- invisible to anyone with $MURDERBOARD_LIT set, and correct on
+      # exactly one machine. bugarach vendored the file, its secrets gate caught the
+      # names only after they had merged to a public `main`, and it deleted the tool
+      # rather than patch a vendored copy -- losing _NEEDED.md, the channel a reviewer
+      # uses to ask a human for a paper it cannot fetch. The test builds a shelf under a
+      # FICTIONAL institution and person: grepping for names already removed catches
+      # only the mistake already made. Offline: temp dirs, no network.
+      - name: the lit autodetect finds a shelf belonging to somebody else
+        run: python tests/fetch_paper_lit_root_test.py
+
       - name: revendor compiles
         run: python -m compileall -q murderboard_revendor.py
 
