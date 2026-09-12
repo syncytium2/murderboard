@@ -438,6 +438,26 @@ footer { border-top: 1px solid var(--rule); padding: clamp(2.5rem,6vw,4rem) 0 cl
   color: var(--ink-soft); padding-left: 1rem; border-left: 2px solid var(--rule);
 }
 
+/* ---------- update ticker ---------- */
+/* STATIC ON PURPOSE. This page runs no script and fetches nothing, so "ticker"
+   here means a dated strip a returning reader can scan in one pass -- not
+   something that moves. Each row is one change, one sentence saying why it was
+   made, and a link to the pull request that made it, because the reason is the
+   part a changelog usually drops and the part anyone adopting this needs. */
+.ticker-sec { padding: clamp(2rem, 4.5vw, 3rem) 0; }
+.ticker { list-style: none; margin: 0; padding: 0; max-width: 84ch;
+          border: 1px solid var(--rule); border-radius: 3px; background: var(--surface); }
+.ticker li { display: grid; grid-template-columns: 7.5rem 1fr; gap: .15rem 1.4rem;
+             padding: .9rem var(--pad) 1rem; border-top: 1px solid var(--rule-soft); }
+.ticker li:first-child { border-top: 0; }
+.ticker time { font-family: var(--f-mono); font-size: .8rem; color: var(--ink-faint);
+               white-space: nowrap; padding-top: .2rem; font-variant-numeric: tabular-nums; }
+.ticker b { font-family: var(--f-display); font-weight: 650; color: var(--ink); font-size: 1rem; }
+.ticker p { margin: .3rem 0 0; font-size: .95rem; color: var(--ink-soft); line-height: 1.5; }
+.ticker a.more { font-family: var(--f-mono); font-size: .82rem; white-space: nowrap; }
+.ticker-all { margin: 1rem 0 0; font-family: var(--f-mono); font-size: .85rem; }
+@media (max-width: 34rem) { .ticker li { grid-template-columns: 1fr; } }
+
 /* ---------- the loop diagram ---------- */
 /* The diagram is authored on a 780-unit viewBox with 10-13px labels. Scaled to
    fit a 375px phone that is a factor of 0.43, so those labels rendered at
@@ -595,7 +615,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.13.0</b> &middot; Updated <time datetime="2026-09-08">2026-09-08</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.14.0</b> &middot; Updated <time datetime="2026-09-12">2026-09-12</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -654,6 +674,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
     <em>Implementation</em> assume you work with code, and define their terms as they go.</p>
 
     <nav class="jump">
+      <a href="#changes">What&rsquo;s new</a>
       <a href="#problem">The problem</a>
       <a href="#rule">The one rule</a>
       <a href="#loop">The loop</a>
@@ -665,6 +686,48 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
       <a href="#adopt">Implement it</a>
     </nav>
   </header>
+
+  <section class="ticker-sec" id="changes">
+    <span class="eyebrow">What changed lately</span>
+    <ul class="ticker">
+      <li>
+        <time datetime="2026-09-12">2026-09-12</time>
+        <div>
+          <b>Role reports are kept, not just summarised</b>
+          <p>Three reviews folded eleven reviewers into one record and kept none of what they said; one round is gone for good. <a class="more" href="https://github.com/syncytium2/murderboard/pull/72">Details &#8250; #72</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="2026-09-08">2026-09-08</time>
+        <div>
+          <b>A cost gate that fires before the run, not after</b>
+          <p>Every role runs every time, so one run on an expensive model can spend a usage window in minutes. <a class="more" href="https://github.com/syncytium2/murderboard/pull/65">Details &#8250; #65</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="2026-09-04">2026-09-04</time>
+        <div>
+          <b>An admission test for anything added here</b>
+          <p>Does a stranger reviewing a document need this? A fix two sessions liked turned out to repair the tooling, not any review. <a class="more" href="https://github.com/syncytium2/murderboard/pull/61">Details &#8250; #61</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="2026-09-04">2026-09-04</time>
+        <div>
+          <b>The eleven reviewers are compiled, never hand-written</b>
+          <p>A reviewer spawned without the means to do its check still returns prose that reads exactly like the check. <a class="more" href="https://github.com/syncytium2/murderboard/pull/49">Details &#8250; #49</a></p>
+        </div>
+      </li>
+      <li>
+        <time datetime="2026-09-03">2026-09-03</time>
+        <div>
+          <b>A review of something already published says so</b>
+          <p>A run against something already published cannot repair, stops after one round, and used to read as complete. <a class="more" href="https://github.com/syncytium2/murderboard/pull/57">Details &#8250; #57</a></p>
+        </div>
+      </li>
+    </ul>
+    <p class="ticker-all"><a href="https://github.com/syncytium2/murderboard/commits/main">Every change, with its reasoning &#8250;</a></p>
+  </section>
 
   <section>
     <details class="sec">
