@@ -244,7 +244,9 @@ No fabricated or approximate citation. No internal contradiction. No filler.
    floor, or round cap), the verify-pass result, and any residual `⚠` flags the human must resolve
    before release. **A run stopped at the cap is delivered as unconverged**, with the open items
    named — a capped run and a clean run must not read alike. For a generated deliverable, state that the shipped file
-   was **rebuilt after the last fix** and verified in that state. A document with unresolved `⚠`
+   was **rebuilt after the last fix** and verified in that state. **The per-role reports are
+   part of the delivery**, written verbatim as each arrives — see *The role reports are the
+   evidence*. A document with unresolved `⚠`
    flags is **not "done."**
 
 ### The run record is a deliverable, and this process applies to it
@@ -264,6 +266,41 @@ coverage can still find every role.
 This is not a style preference. A record organised by process is read once by its author
 and never again, so the findings it contains stop being available to the next person —
 which is the same failure the murderboard exists to prevent, one level up.
+
+### The role reports are the evidence — preserve them verbatim
+
+**Write each role's output to disk as it arrives, before synthesis.** The run record is a
+summary of the reports; it is not the reports. A finding that synthesis dropped, softened or
+merged is unrecoverable from the record, and so is the evidence that a role which reported
+"nothing to check" actually checked anything.
+
+Three rules, and the order matters:
+
+1. **As it arrives, not at the end.** A review that spawns eleven roles and writes one file at
+   the end has a window — the whole synthesis, and every interruption in it — where the only
+   copy of the work is in the session. Sessions end.
+2. **Verbatim, in a file per role**, named so the roster can find it: the role's number, then
+   its slug. A paraphrase written later from memory is not an archive, and a record that
+   reconstructs its reports after the fact should say so rather than present them as kept.
+3. **Never trust the harness's own per-agent output files.** Whatever a tool writes on your
+   behalf, open it and check its size before you rely on it having worked.
+
+If the reports were not preserved, **the record says so on its own line** — the same discipline
+the mode line uses. An absent archive that is declared is a known limit; an absent archive that
+is silent is indistinguishable from a complete run, which is the defect this whole process
+exists to remove.
+
+The gate reads the declaration:
+
+```
+murderboard_roster.sh check REPORT.md                    # reports: undeclared -> reported, exits 0
+murderboard_roster.sh check --require-reports REPORT.md  # undeclared or unpreserved is a failure
+```
+
+It resolves the directory the record names, matches a file to every role in the roster, and
+**fails on a file of zero bytes** — because that is not a hypothetical (see the appendix, 2026-09).
+A file that exists and a file that has content are different facts, the same distinction the
+grants gate draws between a tool that was written down and a tool that arrived.
 
 ### What a clean run does NOT warrant — state it in the record
 
@@ -1085,7 +1122,9 @@ with the `MURDERBOARD_LIT` environment variable (see the tool's header). Three s
 Deliver **(1)** the corrected document, **(2)** a short plain-language summary — dimensions
 checked, issues found / fixed, verify rounds, any remaining `⚠` flags — and **(3)** a **role
 ledger: one row per role in the roster, all of them**, each carrying either its findings or
-its "no findings, and here is what I checked" line. If nothing survived review, say so
+its "no findings, and here is what I checked" line. and **(4)** the **verbatim role reports**,
+one file per role, written as each arrived — the ledger says a role ran, the report is what it
+said. If nothing survived review, say so
 plainly — do not manufacture findings to look thorough.
 
 The summary **must carry the calibration line** from *"What a clean run does NOT warrant"* above:
@@ -1118,6 +1157,13 @@ project that wants the declaration enforced opts in:
 ```
 murderboard_roster.sh check --require-mode REPORT.md   # undeclared mode is a failure
 ```
+
+**The record also declares where its role reports are**, on a line of its own: `reports:
+<dir>/` or `reports: not preserved`. The gate resolves the directory, matches a file to every
+role, and fails on an empty one; undeclared is reported as undeclared and still exits 0, and
+`--require-reports` is how a project opts into enforcement. See *The role reports are the
+evidence*.
+
 
 An eleven-of-eleven ledger says every role ran. It does not say the loop finished, and until the
 mode line existed there was nowhere for that difference to be recorded.
@@ -1362,3 +1408,16 @@ seriously than a rule stated in the abstract.
   found, the tests that *passed* are evidence and must be read; and an unreadable file is never
   evidence that it is yours to delete. Reported by the review team's own role 6 and role 3 running
   against the branch that introduced it, and reproduced before repair: two files in, zero out.
+- **The reports existed in exactly one place** (a coordination-detection project, 2026-09-10 to
+  2026-09-12) — three murderboards in one thread summarised their per-role reports into the run
+  record and archived none of them. The records were written, committed and correct; the eleven
+  role reports behind each were left in the session. Two were recovered only because the harness
+  happened to keep verbatim subagent transcripts; **one round is permanently gone**, and its own
+  run record says so and declines to reconstruct it from memory. The sharpest detail is the one
+  that looks like a fix: for one of those runs **the harness did write each agent's output to a
+  file, and every one of those files was 0 bytes** — the archive existed, was never opened, and
+  held nothing. A fourth record was cited from the project's document index and did not exist at
+  all. Every roster and grants check on these runs passed, correctly: both gates read the record,
+  and the record was fine. Lesson: the summary is not the evidence, the evidence must be written
+  as it arrives rather than at the end, and a file a tool wrote on your behalf is not a file with
+  content in it until you look.

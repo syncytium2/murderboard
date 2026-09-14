@@ -103,7 +103,9 @@ A rule that depends on being remembered is not a rule. So:
 
 - **Coverage** — after a review, `bash murderboard_roster.sh check REPORT.md` exits `1` if the
   report is missing a role. A run that fired 7 of 11 roles and a clean run otherwise look
-  identical.
+  identical. Add `--require-reports` and it also insists the **role reports themselves** are on
+  disk and non-empty: the record is a summary of what the reviewers said, and a summary is the
+  one thing that cannot be re-read later.
 - **Freshness** — `bash murderboard_freshness.sh --hook` tells you when your copy has fallen
   behind this repo. Wire it into your `SessionStart` hook. A stale process silently omits rules
   you already paid for.
