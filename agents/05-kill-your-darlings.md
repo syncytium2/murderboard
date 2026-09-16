@@ -97,6 +97,14 @@ exactly one true thing.
   ___"*. Report each hit with its location. A hit is a defect unless the author states why it
   stays. **This list is a house convention, not a finding about English** — a consuming
   project should edit it, and a role that cites it must say which list it ran.
+- **"Data" is plural.** Its verbs and pronouns follow: *the data are*, *the data show*, *the
+  data were*, *the data have*, *the data themselves*, *these data*. *Metadata* and *dataset*
+  are separate words and keep their own grammar ("the dataset is"). Words inside a quotation
+  keep the speaker's grammar, so a singular *data* in someone else's sentence is not a
+  finding. `murderboard_prose.sh` searches for the form **the data is**: a determiner, then
+  *data*, then a singular verb. The determiner is what keeps it off code such as
+  `data is None`. A match split across a line break is missed, so read for it as well. Like
+  the banned list, this is a house convention: a consuming project may drop it, and says so.
 - **The passage test — what does this block assert that its last sentence does not?** A block
   can be true, correctly placed, and clean line by line, and still spend four hundred words
   arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11

@@ -94,6 +94,7 @@ not just X, but Y::not (just|only) [^,.]{1,40}, but
 it's not about A, it's about B::(it.s|this is) not about [^,.]{1,40}, (it.s|it is) about
 it's worth noting::(it.s|it is) worth noting|worth noting that
 In today's ___::[Ii]n today.s [a-z]
+the data is::\b(the|this|that|these|our|their|its|your|my|his|her|raw|real|input|source|new|more|less|much|enough|all|any|same|such|which|whose|no|observed|recorded|simulated|synthetic) data (is|was|has|does|doesn.t|isn.t|wasn.t|hasn.t|shows|says|suggests|indicates|contains|supports|refutes|means|needs|makes|gives|exists|remains|seems|appears|requires|proves|confirms|reveals|lives|sits|comes|looks|reads|tells|agrees|matches|fits|lacks|holds|itself)\b
 FORMS
 }
 
@@ -213,6 +214,14 @@ selftest() {
 
   printf 'It is not just faster, but cheaper too.\n' > "$tmp/b.md"
   run "$tmp/b.md" >/dev/null 2>&1 && bad "a banned FORM did not trip it" || ok "a banned form trips it"
+
+  printf 'The data is noisy.\n' > "$tmp/p.md"
+  run "$tmp/p.md" 2>/dev/null | grep -q 'the data is' && ok "a singular verb after \"data\" trips it" \
+    || bad "\"the data is\" did not trip it"
+
+  printf 'The data are noisy, and these data show a gap.\nif data is None: return\n' > "$tmp/q.md"
+  run "$tmp/q.md" >/dev/null 2>&1 && ok "plural \"data\" and code without a determiner pass" \
+    || bad "plural \"data\" or code without a determiner was flagged"
 
   printf 'A clean sentence about cells.\n' > "$tmp/c.md"
   run "$tmp/c.md" >/dev/null 2>&1 && ok "clean prose passes" || bad "clean prose was flagged"

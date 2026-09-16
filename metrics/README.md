@@ -1,6 +1,6 @@
 # metrics/
 
-**The data is on the [`metrics`](../../tree/metrics) branch, not here.** This directory holds
+**The data are on the [`metrics`](../../tree/metrics) branch, not here.** This directory holds
 only the explainer, because the numbers are easy to misread and should not travel without it.
 
 `traffic.csv` is a permanent record of a number GitHub throws away.
