@@ -136,7 +136,7 @@ evidence-adequacy rules to agent 4. Checklist:
   If you cannot write that sentence, the panel is a defect — say so. The panel you could not
   explain is the finding, not the one to skip. Watch for renderings that manufacture phantom
   structure: a mask with an interior hole outlines as **two nested contours** and reads as two
-  objects; a threshold contour reads as a boundary the data does not have; overlapping
+  objects; a threshold contour reads as a boundary the data do not have; overlapping
   translucent masks read as a third category. (Boundary with Ship It: agent 10 asks whether the
   panel is present, labeled, and clear of its neighbors; this asks whether, having looked at it,
   a stranger can say what it IS. Incident: an annular footprint that rendered as two concentric
