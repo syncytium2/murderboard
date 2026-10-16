@@ -10,14 +10,12 @@ Pick the level that matches you. Level 1 takes two minutes and needs nothing but
 > Want the longer version first — why this exists, the eleven roles, and what a finished review
 > looks like? **[murderboard.tonydefazio.com](https://murderboard.tonydefazio.com/)**
 
-> **⚠ Before you go past Level 1: you pay for the tokens, and we are not responsible for any
-> cost you incur — ever.**
-> Level 1 is one chat conversation and costs about what any other question costs. **Levels 2
-> and 3 are different in kind:** they spawn one AI agent per reviewer role, every role, every
-> run — so there is no cheap run, and on an expensive model a single one can exhaust a usage
-> allowance outright and leave you with **no review and the full bill**. A gate ships that
-> tries to stop exactly that, but it is a safeguard and **not a spending cap** — set real
-> limits with whoever bills you. Full terms: **[TERMS.md](TERMS.md)**.
+> **⚠ What it costs.** Level 1 is one chat conversation — about what any other question costs.
+> **Levels 2 and 3 fan out one agent per reviewer role**, so they are not cheap. **Known good:
+> Claude Opus 5**; other current models are likely fine. **Fable is blocked by default** — one
+> run there spent a two-day allowance and returned no review. You pay for the tokens and we are
+> not liable for any cost, ever; the gate is a safeguard, **not a spending cap**.
+> **[TERMS.md](TERMS.md)**
 
 ---
 
@@ -105,7 +103,9 @@ A rule that depends on being remembered is not a rule. So:
 
 - **Coverage** — after a review, `bash murderboard_roster.sh check REPORT.md` exits `1` if the
   report is missing a role. A run that fired 7 of 11 roles and a clean run otherwise look
-  identical.
+  identical. Add `--require-reports` and it also insists the **role reports themselves** are on
+  disk and non-empty: the record is a summary of what the reviewers said, and a summary is the
+  one thing that cannot be re-read later.
 - **Freshness** — `bash murderboard_freshness.sh --hook` tells you when your copy has fallen
   behind this repo. Wire it into your `SessionStart` hook. A stale process silently omits rules
   you already paid for.

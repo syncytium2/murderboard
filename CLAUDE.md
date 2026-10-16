@@ -128,13 +128,15 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > skill, follow `docs/doc_review_process.md` by hand: draft, run the review team (**every role
 > runs** — scale *how* you run them to stakes, never *which* ones), apply the fixes,
 > **re-review the repaired artifact — blind pass first**, and deliver the corrected document
-> **plus a summary and a role ledger** with any residual `⚠` flags. When an agent needs a paper,
+> **plus a summary and a role ledger** with any residual `⚠` flags — and **keep each
+> role's report verbatim, written as it arrives**, not summarised at the end and thrown away. When an agent needs a paper,
 > use `tools/fetch_paper.py` with `MURDERBOARD_LIT` set — check `--have` first, `--need`
 > what you can't reach. Vendored from `syncytium2/murderboard` — put
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
-> `tools/murderboard_roster.sh check <report>` on the finished report so a dropped role cannot
-> pass as a clean one — and `tools/murderboard_agents.py verify <report>` beside it, so a report
+> `tools/murderboard_roster.sh check --require-reports <report>` on the finished report so a
+> dropped role cannot pass as a clean one, and so a run whose role reports were summarised and
+> then lost cannot pass as one that kept them — and `tools/murderboard_agents.py verify <report>` beside it, so a report
 > that does not carry a grant declaration for every role, naming the tools that role was granted,
 > cannot pass as one that does. The two ask different questions: *did every role leave a trace*
 > and *did every role state what it held*. `verify` set-compares each `ok` against the grants

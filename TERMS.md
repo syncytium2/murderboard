@@ -4,6 +4,11 @@
 
 The short version, and it is the whole point of this document:
 
+> **Practical guidance first, because it is more useful than the disclaimer:** a run fans out
+> one agent per reviewer role, so it is never cheap. **Known good: Claude Opus 5.** Other
+> current models are likely fine. **Fable is blocked by default** — one run there spent a
+> two-day allowance and returned no review. Now the disclaimer.
+>
 > ## ⚠ YOU PAY FOR EVERY TOKEN THIS SOFTWARE CAUSES YOU TO SPEND.
 >
 > **Under no circumstances are the authors or contributors of the murderboard responsible
