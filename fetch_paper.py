@@ -59,6 +59,7 @@ Prints extracted text to stdout so an agent reads it directly from the tool resu
 PDFs are extracted with pypdf if available, else `pdftotext`.
 """
 import argparse
+import glob
 import hashlib
 import json
 import os
@@ -114,24 +115,51 @@ def _lit_root():
     Resolution order:
       1. $MURDERBOARD_LIT           — the portable way to point at your library.
       2. $IF2_LIT                   — back-compat for the project this tool originated in.
-      3. a `01-lit/` dir under a known Dropbox root — back-compat autodetect.
+      3. a `01-lit/` dir under a synced Dropbox root — back-compat autodetect, by SHAPE.
     Returns None (NOT a /tmp fallback) when nothing is found: `--have`/`--promote`/the
     want-list are meaningless without a real library, and a stand-in would silently hide
     papers you actually have. `--have`/`--promote`/`--need` report the miss instead.
+
+    THE AUTODETECT MATCHES A SHAPE, NEVER A NAME. Until 2026-09-10 it named a literal
+    institution and a literal person — the back-compat convenience of the project this
+    tool came from. That is fine to *keep* and fatal to *ship*: a consumer vendored this
+    file into a public repo, its own secrets gate caught the two names only after they had
+    merged to a public `main`, and it removed the whole file rather than patch a vendored
+    one. Removing it dropped something that mattered with it — `_NEEDED.md`, the only
+    channel by which a reviewer that cannot reach a paper asks a human for it — and a
+    month later that repo drafted a proposal whose central mechanism was already refuted
+    in a literature its shelf held none of. So the branch stays and the names go: the glob
+    below finds the same directory on the machine this was written for, finds the
+    equivalent one for any other institution or person, and carries nobody's name into a
+    stranger's checkout.
+
+    An autodetected hit is returned CANONICALIZED, and only an autodetected one — a path
+    you set explicitly comes back exactly as you set it. A Dropbox root is routinely
+    reachable under several names (the macOS client leaves symlinks in `$HOME` pointing at
+    the real `Library/CloudStorage/…` mount, so the machine this was written for matches
+    three of the patterns below and all three are one directory). Resolving the link makes
+    those spellings collapse to one answer, which is what keeps `--have` hits, cache paths
+    and `_NEEDED.md` from moving between runs. Where two *different* libraries still match,
+    the first sorted one wins, and setting $MURDERBOARD_LIT is the answer to the ambiguity.
     """
     for var in ("MURDERBOARD_LIT", "IF2_LIT"):
         p = os.environ.get(var)
         if p:
             return p if os.path.isdir(p) else None
-    home = os.path.expanduser("~")
-    for cand in (
-        os.path.join(home, "University of Michigan Dropbox", "Richard DeFazio"),
-        os.path.join(home, "Library", "CloudStorage",
-                     "Dropbox-UniversityofMichigan", "Richard DeFazio"),
+    # glob.escape, because the wildcards below must be OURS: a `[` or `*` in the home
+    # directory's own name would otherwise be read as a pattern and match nothing.
+    home = glob.escape(os.path.expanduser("~"))
+    for pattern in (
+        # "<home>/Dropbox/01-lit", "<home>/<Org> Dropbox/<Member>/01-lit", and the macOS
+        # CloudStorage mounts of both. A `*` stands where a name used to be spelled out.
+        os.path.join(home, "*Dropbox*", "01-lit"),
+        os.path.join(home, "*Dropbox*", "*", "01-lit"),
+        os.path.join(home, "Library", "CloudStorage", "Dropbox*", "01-lit"),
+        os.path.join(home, "Library", "CloudStorage", "Dropbox*", "*", "01-lit"),
     ):
-        lit = os.path.join(cand, "01-lit")
-        if os.path.isdir(lit):
-            return lit
+        for lit in sorted(glob.glob(pattern)):
+            if os.path.isdir(lit):
+                return os.path.realpath(lit)
     return None
 
 

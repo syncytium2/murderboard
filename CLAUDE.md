@@ -59,6 +59,16 @@ what a reviewer actually checks while the document consumers read still says the
   in the core — the calcium-imaging origin lives only in the appendix of
   `doc_review_process.md` and in explicit back-compat branches of `fetch_paper.py`
   (`IF2_LIT`/`IF2_PAPERS`, the `01-lit` autodetect). New machinery is env-driven.
+  **A back-compat branch may keep a convention; it may not keep a name.** Until 2026-09-10
+  that autodetect spelled out one institution and one person, and it cost a consumer real
+  work: bugarach vendored the file, its own secrets gate flagged the two names *after* they
+  had merged to a public `main`, and it deleted the tool rather than patch a vendored copy
+  — losing `_NEEDED.md` with it, the channel a reviewer uses to ask a human for a paper it
+  cannot fetch. A month later that repo drafted a proposal whose central mechanism was
+  already refuted in a literature its shelf held none of. The autodetect now globs for the
+  same *shape* (`~/*Dropbox*/*/01-lit` and the macOS `CloudStorage` mounts), so it still
+  lands on the machine it was written for and ships nobody's name. Any future back-compat
+  branch is held to that: match the layout, never the person.
 - **The admission test, for anything proposed for this repo: _does a stranger reviewing a
   document need this?_** Not "is it good", not "did it solve a real problem here" — both can
   be true of something that has no business shipping to consumers.
@@ -130,13 +140,15 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > skill, follow `docs/doc_review_process.md` by hand: draft, run the review team (**every role
 > runs** — scale *how* you run them to stakes, never *which* ones), apply the fixes,
 > **re-review the repaired artifact — blind pass first**, and deliver the corrected document
-> **plus a summary and a role ledger** with any residual `⚠` flags. When an agent needs a paper,
+> **plus a summary and a role ledger** with any residual `⚠` flags — and **keep each
+> role's report verbatim, written as it arrives**, not summarised at the end and thrown away. When an agent needs a paper,
 > use `tools/fetch_paper.py` with `MURDERBOARD_LIT` set — check `--have` first, `--need`
 > what you can't reach. Vendored from `syncytium2/murderboard` — put
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
-> `tools/murderboard_roster.sh check --require-execution <report>` on the finished report so a
-> dropped role cannot pass as a clean one, **and so a run that could not spawn subagents cannot
+> `tools/murderboard_roster.sh check --require-execution --require-reports <report>` on the
+> finished report so a dropped role cannot pass as a clean one, so a run whose role reports were
+> summarised and then lost cannot pass as one that kept them, **and so a run that could not spawn subagents cannot
 > pass as one that chose not to** — eleven roles played by the agent that wrote the draft
 > produce the same eleven ledger rows as eleven independent reviewers, and are a much weaker
 > adversary at role 4, where the attacker is otherwise the author. The skill settles that
