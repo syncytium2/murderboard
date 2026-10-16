@@ -571,6 +571,14 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      ___"*. Report each hit with its location. A hit is a defect unless the author states why it
      stays. **This list is a house convention, not a finding about English** — a consuming
      project should edit it, and a role that cites it must say which list it ran.
+   - **"Data" is plural.** Its verbs and pronouns follow: *the data are*, *the data show*, *the
+     data were*, *the data have*, *the data themselves*, *these data*. *Metadata* and *dataset*
+     are separate words and keep their own grammar ("the dataset is"). Words inside a quotation
+     keep the speaker's grammar, so a singular *data* in someone else's sentence is not a
+     finding. `murderboard_prose.sh` searches for the form **the data is**: a determiner, then
+     *data*, then a singular verb. The determiner is what keeps it off code such as
+     `data is None`. A match split across a line break is missed, so read for it as well. Like
+     the banned list, this is a house convention: a consuming project may drop it, and says so.
    - **The passage test — what does this block assert that its last sentence does not?** A block
      can be true, correctly placed, and clean line by line, and still spend four hundred words
      arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11
@@ -680,7 +688,7 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      If you cannot write that sentence, the panel is a defect — say so. The panel you could not
      explain is the finding, not the one to skip. Watch for renderings that manufacture phantom
      structure: a mask with an interior hole outlines as **two nested contours** and reads as two
-     objects; a threshold contour reads as a boundary the data does not have; overlapping
+     objects; a threshold contour reads as a boundary the data do not have; overlapping
      translucent masks read as a third category. (Boundary with Ship It: agent 10 asks whether the
      panel is present, labeled, and clear of its neighbors; this asks whether, having looked at it,
      a stranger can say what it IS. Incident: an annular footprint that rendered as two concentric
@@ -978,8 +986,8 @@ violation):
   When a deliverable rests on a dataset (real or synthetic), include a view of the **real
   underlying records** — a sample of rows, a trace, a raster of events — so a human can *see* what
   an aggregate or a schematic hides. A diagram of how the data *should* look, or a bar of summary
-  statistics, is **not a substitute** for the data itself: a summary can be exactly right while the
-  data is wrong (a spacing, a density, a jitter, an outlier, an artifact) in a way visible only
+  statistics, is **not a substitute** for the data themselves: a summary can be exactly right while the
+  data are wrong (a spacing, a density, a jitter, an outlier, an artifact) in a way visible only
   when a person looks at the records. Flag any data-driven figure/deliverable that shows only
   schematics or aggregates and never lets the reader see the data.
 - **Overlap check covers the whole page/slide, not only inside a figure.** The zoom-crop overlap
