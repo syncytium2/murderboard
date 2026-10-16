@@ -76,7 +76,7 @@ OVERRIDE="${MURDERBOARD_ALLOW_EXPENSIVE_MODEL:-}"
 # Claude Code's own permission prompt rather than through the model's good intentions.
 # This is a SECOND failure mode from the model block above — not "wrong model" but
 # "wrong moment" — and it is the more common one. CONFIRM_TTL is how long one
-# confirmation covers the fan-out it authorised, in seconds; long enough for a roster to
+# confirmation covers the fan-out it authorized, in seconds; long enough for a roster to
 # spawn, short enough that a later run in the same session asks again.
 CONFIRM="${MURDERBOARD_CONFIRM:-1}"
 CONFIRM_TTL="${MURDERBOARD_CONFIRM_TTL:-900}"
@@ -302,8 +302,8 @@ if [ "${1:-}" = "--selftest" ]; then
 
   rm -rf "$TMP/state2"
   tout '"permissionDecision":"ask"' "a call-up ASKS the human first" "$(SESS s1 "$OPUS")"
-  # ONE PROMPT PER RUN, NOT ELEVEN. The fan-out this authorised must not re-interrogate.
-  tout NONE "the fan-out it authorised does not ask again" \
+  # ONE PROMPT PER RUN, NOT ELEVEN. The fan-out this authorized must not re-interrogate.
+  tout NONE "the fan-out it authorized does not ask again" \
        "$(printf '{"session_id":"s1","tool_name":"Agent","transcript_path":"%s","tool_input":{"prompt":"role 4 murderboard checklist"}}' "$OPUS")"
   # A DIFFERENT session is a different run and must ask on its own account.
   tout '"permissionDecision":"ask"' "a different session asks on its own account" "$(SESS s2 "$OPUS")"
@@ -486,7 +486,7 @@ fi
 #
 # ONE PROMPT PER RUN, NOT ELEVEN. This hook fires on every Agent spawn, so a naive ask
 # would interrogate the human once per role. A short-lived marker keyed on the session
-# suppresses the follow-ups: the first call-up asks, the fan-out it authorises does not.
+# suppresses the follow-ups: the first call-up asks, the fan-out it authorizes does not.
 # The marker is written when we ASK rather than when the human answers, because a hook
 # is never told what the human chose.
 #

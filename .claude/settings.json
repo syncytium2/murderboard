@@ -8,6 +8,11 @@
             "type": "command",
             "command": "bash .claude/hooks/session-start.sh",
             "timeout": 45
+          },
+          {
+            "type": "command",
+            "command": "bash murderboard_subagents.sh --hook --explain",
+            "timeout": 10
           }
         ]
       },
@@ -18,6 +23,11 @@
             "type": "command",
             "command": "bash .claude/hooks/session-start.sh",
             "timeout": 45
+          },
+          {
+            "type": "command",
+            "command": "bash murderboard_subagents.sh --hook --explain",
+            "timeout": 10
           }
         ]
       }

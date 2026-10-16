@@ -152,6 +152,15 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      single-pass self-review inherits the drafter's search history, so it stops in the same place
      for the same reason. Blindness is the mechanism; one pass cannot supply it. This is the only
      role the size rule may not collapse.
+   - **Confirm the fan-out is available BEFORE you use size to decide — probe, do not infer.**
+     Spawn one throwaway subagent and require an answer back. Where the Agent tool is missing,
+     denied, or forbidden, this choice is not yours to make and the run lands in the second
+     bullet by constraint; done silently, that is indistinguishable from having judged its way
+     there. **The record then says `Execution: single-pass (subagents unavailable)`** — see
+     *Output contract*. Two consequences follow immediately: the attribution exception above
+     cannot be satisfied at all, so a deliverable making an attribution claim does not proceed;
+     and the block will recur on every run in that environment until somebody changes it, which
+     is why it is worth surfacing before a review rather than after.
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
    See **"The team is not optional"** below.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
@@ -244,7 +253,9 @@ No fabricated or approximate citation. No internal contradiction. No filler.
    floor, or round cap), the verify-pass result, and any residual `⚠` flags the human must resolve
    before release. **A run stopped at the cap is delivered as unconverged**, with the open items
    named — a capped run and a clean run must not read alike. For a generated deliverable, state that the shipped file
-   was **rebuilt after the last fix** and verified in that state. A document with unresolved `⚠`
+   was **rebuilt after the last fix** and verified in that state. **The per-role reports are
+   part of the delivery**, written verbatim as each arrives — see *The role reports are the
+   evidence*. A document with unresolved `⚠`
    flags is **not "done."**
 
 ### The run record is a deliverable, and this process applies to it
@@ -264,6 +275,41 @@ coverage can still find every role.
 This is not a style preference. A record organized by process is read once by its author
 and never again, so the findings it contains stop being available to the next person —
 which is the same failure the murderboard exists to prevent, one level up.
+
+### The role reports are the evidence — preserve them verbatim
+
+**Write each role's output to disk as it arrives, before synthesis.** The run record is a
+summary of the reports; it is not the reports. A finding that synthesis dropped, softened or
+merged is unrecoverable from the record, and so is the evidence that a role which reported
+"nothing to check" actually checked anything.
+
+Three rules, and the order matters:
+
+1. **As it arrives, not at the end.** A review that spawns eleven roles and writes one file at
+   the end has a window — the whole synthesis, and every interruption in it — where the only
+   copy of the work is in the session. Sessions end.
+2. **Verbatim, in a file per role**, named so the roster can find it: the role's number, then
+   its slug. A paraphrase written later from memory is not an archive, and a record that
+   reconstructs its reports after the fact should say so rather than present them as kept.
+3. **Never trust the harness's own per-agent output files.** Whatever a tool writes on your
+   behalf, open it and check its size before you rely on it having worked.
+
+If the reports were not preserved, **the record says so on its own line** — the same discipline
+the mode line uses. An absent archive that is declared is a known limit; an absent archive that
+is silent is indistinguishable from a complete run, which is the defect this whole process
+exists to remove.
+
+The gate reads the declaration:
+
+```
+murderboard_roster.sh check REPORT.md                    # reports: undeclared -> reported, exits 0
+murderboard_roster.sh check --require-reports REPORT.md  # undeclared or unpreserved is a failure
+```
+
+It resolves the directory the record names, matches a file to every role in the roster, and
+**fails on a file of zero bytes** — because that is not a hypothetical (see the appendix, 2026-09).
+A file that exists and a file that has content are different facts, the same distinction the
+grants gate draws between a tool that was written down and a tool that arrived.
 
 ### What a clean run does NOT warrant — state it in the record
 
@@ -534,6 +580,14 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      ___"*. Report each hit with its location. A hit is a defect unless the author states why it
      stays. **This list is a house convention, not a finding about English** — a consuming
      project should edit it, and a role that cites it must say which list it ran.
+   - **"Data" is plural.** Its verbs and pronouns follow: *the data are*, *the data show*, *the
+     data were*, *the data have*, *the data themselves*, *these data*. *Metadata* and *dataset*
+     are separate words and keep their own grammar ("the dataset is"). Words inside a quotation
+     keep the speaker's grammar, so a singular *data* in someone else's sentence is not a
+     finding. `murderboard_prose.sh` searches for the form **the data is**: a determiner, then
+     *data*, then a singular verb. The determiner is what keeps it off code such as
+     `data is None`. A match split across a line break is missed, so read for it as well. Like
+     the banned list, this is a house convention: a consuming project may drop it, and says so.
    - **The passage test — what does this block assert that its last sentence does not?** A block
      can be true, correctly placed, and clean line by line, and still spend four hundred words
      arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11
@@ -581,11 +635,28 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
 8. **Naive-reader accessibility — "You Lost Me."** *Spawn for any deliverable meant to be understood by a
    reader NOT already steeped in the work — an explainer, a slide deck, a figure a colleague
    must read cold.* Read each slide/panel with ZERO prior context and flag every place such a
-   reader is lost. It exists because a deliverable can be every-number-correct, honest, and
-   craft-clean and still be **unreadable to the audience it is for** — a gap the rest of the
-   team does not cover. This role holds only the checks that require **reading as a stranger**;
+   reader is **lost, or misled by a line they follow perfectly**. It exists because a deliverable
+   can be every-number-correct, honest, and craft-clean and still be **unreadable to the audience
+   it is for — or read without difficulty and understood to mean something false** — a gap the
+   rest of the team does not cover. This role holds only the checks that require **reading as a stranger**;
    its mechanical figure rules moved to agent 10, its cross-figure rules to agent 3, and its
    evidence-adequacy rules to agent 4. Checklist:
+   - **What a true sentence will be TAKEN to mean.** Every other role establishes whether a claim
+     is *supported*; none asks what a supported claim invites the reader to *infer*. The two come
+     apart on any term that carries different weight inside the field and outside it: a role held
+     on someone else's grant, a title whose seniority does not translate, a "review" performed by
+     an agent rather than a colleague, an internal course or protocol number, a standard
+     attribution that credits the wrong group. Ask of each, in the reader's vocabulary rather than
+     the author's: **what does this sentence grant or credit its subject, and is that true?** Where
+     the honest answer cannot be said in the reader's vocabulary in the same space, the line is
+     cut rather than softened; where the fact is worth keeping, restate it as **work done** rather
+     than as **standing held**. Unlike the rest of this role's checklist, the term list for a given
+     audience is fixed and searchable, so a consumer can put it behind a gate — the judgment of
+     *which* terms mislead *this* reader stays here, because it is a judgment.
+     (Boundary with Prove It and DOI or Die: those verify that the claim and the citation are
+     correct; a line can pass both and still be read as something else. Boundary with the
+     three-undefined-terms rule below: that one is about a reader who cannot follow; this is about
+     a reader who follows and arrives somewhere false.)
    - **Output contract: a per-slide verdict, not a deck-wide list of terms.** One row per
      slide/panel: *terms and identifiers first used here · which are defined on the slide · can a
      cold reader follow it (yes / no / blocking)*. A pooled list of undefined terms lets the worst
@@ -643,7 +714,7 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      If you cannot write that sentence, the panel is a defect — say so. The panel you could not
      explain is the finding, not the one to skip. Watch for renderings that manufacture phantom
      structure: a mask with an interior hole outlines as **two nested contours** and reads as two
-     objects; a threshold contour reads as a boundary the data does not have; overlapping
+     objects; a threshold contour reads as a boundary the data do not have; overlapping
      translucent masks read as a third category. (Boundary with Ship It: agent 10 asks whether the
      panel is present, labeled, and clear of its neighbors; this asks whether, having looked at it,
      a stranger can say what it IS. Incident: an annular footprint that rendered as two concentric
@@ -941,8 +1012,8 @@ violation):
   When a deliverable rests on a dataset (real or synthetic), include a view of the **real
   underlying records** — a sample of rows, a trace, a raster of events — so a human can *see* what
   an aggregate or a schematic hides. A diagram of how the data *should* look, or a bar of summary
-  statistics, is **not a substitute** for the data itself: a summary can be exactly right while the
-  data is wrong (a spacing, a density, a jitter, an outlier, an artifact) in a way visible only
+  statistics, is **not a substitute** for the data themselves: a summary can be exactly right while the
+  data are wrong (a spacing, a density, a jitter, an outlier, an artifact) in a way visible only
   when a person looks at the records. Flag any data-driven figure/deliverable that shows only
   schematics or aggregates and never lets the reader see the data.
 - **Overlap check covers the whole page/slide, not only inside a figure.** The zoom-crop overlap
@@ -1085,7 +1156,9 @@ with the `MURDERBOARD_LIT` environment variable (see the tool's header). Three s
 Deliver **(1)** the corrected document, **(2)** a short plain-language summary — dimensions
 checked, issues found / fixed, verify rounds, any remaining `⚠` flags — and **(3)** a **role
 ledger: one row per role in the roster, all of them**, each carrying either its findings or
-its "no findings, and here is what I checked" line. If nothing survived review, say so
+its "no findings, and here is what I checked" line. and **(4)** the **verbatim role reports**,
+one file per role, written as each arrived — the ledger says a role ran, the report is what it
+said. If nothing survived review, say so
 plainly — do not manufacture findings to look thorough.
 
 The summary **must carry the calibration line** from *"What a clean run does NOT warrant"* above:
@@ -1119,8 +1192,85 @@ project that wants the declaration enforced opts in:
 murderboard_roster.sh check --require-mode REPORT.md   # undeclared mode is a failure
 ```
 
+**The record also declares where its role reports are**, on a line of its own: `reports:
+<dir>/` or `reports: not preserved`. The gate resolves the directory, matches a file to every
+role, and fails on an empty one; undeclared is reported as undeclared and still exits 0, and
+`--require-reports` is how a project opts into enforcement. See *The role reports are the
+evidence*.
+
+
 An eleven-of-eleven ledger says every role ran. It does not say the loop finished, and until the
 mode line existed there was nowhere for that difference to be recorded.
+
+**The record also declares how the roles were executed**, on a line of its own, as a
+**controlled token** followed by prose the gate never reads:
+
+```
+Execution: subagents — one per role, all eleven spawned
+Execution: single-pass (forced) — the Agent tool was unavailable
+Execution: single-pass (chosen) — a one-line caption
+```
+
+The ledger cannot carry this either. Eleven roles spawned as eleven independent reviewers, and
+eleven roles played in turn by the one agent that wrote the draft, produce the same eleven rows
+— and the second is a materially weaker adversary, most of all at role 4, where the attacker is
+also the author.
+
+**The token is stated rather than inferred, and the reason generalizes past this gate.** Two
+earlier versions read the verdict out of the sentence, and both failed in the expensive
+direction — recording a degraded run as a full one. The second was defeated by a comma:
+*"parallel subagents; role 4 could not reach the web"* and the same sentence with a comma
+classified opposite ways. The diagnosis is worth carrying: textual distance was standing in for
+**grammatical attachment** — does a failure attach to the fan-out or to one role? — and
+*"parallel subagents could not start"* and *"parallel subagents, role 4 could not start"* have
+nearly the same span and opposite meanings. No threshold separates them, because distance is
+not what distinguishes them. A cheap measurable quantity standing in for the property that
+actually matters is a defect this process hunts in other people's work; it had been built into
+one of its own gates.
+
+⚠ **What the execution gate does not catch, and why it is not worth fixing.** It reads a
+declaration. A `subagents` token whose prose then denies the fan-out in words that are not
+*mode* words — *"spawned the eleven. Every one failed to start"* — records as a full run. The
+gate compares the token against mode vocabulary only (*inline*, *by hand*, *single-pass*),
+because those words can only describe how the **run** went, whereas *could not*, *failed* and
+*unavailable* describe a run **or** a single role. Catching the mislabelled head would need
+that second vocabulary, and *"subagents — 11 spawned, role 4 could not reach the web"* is a
+role-level failure in a genuinely complete run that false-positives on it. That is the
+attachment problem again, one layer in: **it would trade a stated limit for an unstated false
+positive**, which is the worse deal. A mislabelled token buys a false record, and no
+report-reading gate can take that back — the same limit `murderboard_agents.py` states about a
+reviewer that types its granted tools back without ever holding them.
+
+A single-pass declaration must say **which kind** it was, and the gate rejects a bare one:
+
+- **chosen** — the deliverable is a caption or a one-liner, and a ten-agent fan-out on one
+  sentence is waste. The process working as designed.
+- **forced** — the Agent tool was unavailable: denied by a permission rule, withheld by a
+  launch flag, forbidden by an instruction, or absent because the session was already inside a
+  subagent. An environment defect, which will recur on every run until someone changes the
+  environment, and which the reader must be able to tell from the first.
+
+Unqualified, it reads as *chosen*, because that is the reading that costs nothing to assume.
+`docs/reviews/plugin_adoption_docs_murderboard_2026-08-26.md` is the forced case, and it is
+legible only because its author wrote a "Stated deviation" section nothing asked for.
+
+```
+murderboard_roster.sh check --require-execution REPORT.md   # undeclared execution is a failure
+```
+
+Undeclared exits 0 by default, on the same terms as the mode line: this file is vendored, and a
+change that reddens every report a consumer has already written gets the gate deleted rather
+than the reports fixed.
+
+**Establish it before the run, not after.** A run that discovers mid-flight that it cannot fan
+out has already spent the roles. Probe first — spawn one throwaway subagent and require an
+answer back — and if it fails, stop and say so while a "no" is still cheap.
+`murderboard_subagents.sh` then names the blockers that are visible in files, so *"allow
+subagents"* is one edit rather than a scavenger hunt. **It cannot answer the question on its
+own**, and reports that limitation on every run including its clean one: availability is
+settled by the session's tool list, a launch flag, or an instruction injected at runtime, and
+the 2026-08-26 block was in none of the files any scan can read. The spawn is the check; the
+scan is the hint.
 
 Because the roster is derived, adding a role here propagates to every consumer's check with no
 edit anywhere else. A failing check does not mean "write more" — it means a role either never
@@ -1324,6 +1474,24 @@ seriously than a rule stated in the abstract.
   > document itself — the 2026-08-24 arms had this bullet's predecessor withheld for exactly that
   > reason. When re-testing on a recorded case, redact its entry and say that you did; when
   > choosing a case, prefer one that is **not** written down here.
+- **Naive reader / what a true line is taken to mean** (a 2026-09 two-page résumé prepared for an
+  industry role; eleven roles, three blind rounds, plus a follow-up pass) — the document carried
+  *"Co-Investigator on three active NIH awards"* with the award numbers. Every element was
+  verified and every check passed: the awards exist, all three were active in the funder's public
+  database, the activity codes were right, and the author's CV designates Co-Investigator on each.
+  Inside academia the line means *contributes to funded programs*. The first reader from outside
+  it took the line as the author's **own** funding — and the correction that invites is a
+  downgrade delivered in an interview, on a document whose whole purpose is a first impression.
+  Three rounds of eleven roles passed it because every role asked whether the sentence was
+  **true**. This role owns the outside reader, and its checklist asked only whether that reader
+  could **follow** the line; nobody was asked what they would **conclude** from it. The same run
+  produced a second instance of the identical shape: a correct, resolvable, conventionally-used
+  attribution that credited the wrong laboratory — which is the 2026-08 entry above, arriving a
+  second time in a different document. Lesson: *what a sentence will be taken to mean* is a
+  different question from *whether it is true*, it is invisible to every check that asks only the
+  second, and until it has an owner it is found by the first outsider who reads the document — if
+  the document is still a draft when they do.
+
 - **A green check that had stopped measuring what its name claimed** (the freshness gate's own
   selftest, 2026-08) — the case named `clone guesses are slug-scoped` existed to prove the gate's
   built-in clone guesses are admissible for its own upstream and refused for anyone else's. It
@@ -1362,3 +1530,16 @@ seriously than a rule stated in the abstract.
   found, the tests that *passed* are evidence and must be read; and an unreadable file is never
   evidence that it is yours to delete. Reported by the review team's own role 6 and role 3 running
   against the branch that introduced it, and reproduced before repair: two files in, zero out.
+- **The reports existed in exactly one place** (a coordination-detection project, 2026-09-10 to
+  2026-09-12) — three murderboards in one thread summarized their per-role reports into the run
+  record and archived none of them. The records were written, committed and correct; the eleven
+  role reports behind each were left in the session. Two were recovered only because the harness
+  happened to keep verbatim subagent transcripts; **one round is permanently gone**, and its own
+  run record says so and declines to reconstruct it from memory. The sharpest detail is the one
+  that looks like a fix: for one of those runs **the harness did write each agent's output to a
+  file, and every one of those files was 0 bytes** — the archive existed, was never opened, and
+  held nothing. A fourth record was cited from the project's document index and did not exist at
+  all. Every roster and grants check on these runs passed, correctly: both gates read the record,
+  and the record was fine. Lesson: the summary is not the evidence, the evidence must be written
+  as it arrives rather than at the end, and a file a tool wrote on your behalf is not a file with
+  content in it until you look.
