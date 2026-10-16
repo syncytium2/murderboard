@@ -57,6 +57,16 @@ what a reviewer actually checks while the document consumers read still says the
   in the core — the calcium-imaging origin lives only in the appendix of
   `doc_review_process.md` and in explicit back-compat branches of `fetch_paper.py`
   (`IF2_LIT`/`IF2_PAPERS`, the `01-lit` autodetect). New machinery is env-driven.
+  **A back-compat branch may keep a convention; it may not keep a name.** Until 2026-09-10
+  that autodetect spelled out one institution and one person, and it cost a consumer real
+  work: bugarach vendored the file, its own secrets gate flagged the two names *after* they
+  had merged to a public `main`, and it deleted the tool rather than patch a vendored copy
+  — losing `_NEEDED.md` with it, the channel a reviewer uses to ask a human for a paper it
+  cannot fetch. A month later that repo drafted a proposal whose central mechanism was
+  already refuted in a literature its shelf held none of. The autodetect now globs for the
+  same *shape* (`~/*Dropbox*/*/01-lit` and the macOS `CloudStorage` mounts), so it still
+  lands on the machine it was written for and ships nobody's name. Any future back-compat
+  branch is held to that: match the layout, never the person.
 - **The admission test, for anything proposed for this repo: _does a stranger reviewing a
   document need this?_** Not "is it good", not "did it solve a real problem here" — both can
   be true of something that has no business shipping to consumers.

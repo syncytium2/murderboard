@@ -44,7 +44,10 @@ want-list (`--need`, and automatically on any failed fetch). It has no dependenc
 the Python standard library (plus optional `pypdf`/`pdftotext`) so a consumer can drop it in
 and run it; keeping it that way is a standing rule. Its `IF2_LIT`/`IF2_PAPERS` env vars and
 `01-lit` autodetect are the explicit interface2 back-compat branches; new machinery is
-driven by `MURDERBOARD_LIT`.
+driven by `MURDERBOARD_LIT`. **That autodetect matches a layout, not a person** — it globs
+`~/*Dropbox*/*/01-lit` and the macOS `CloudStorage` mounts. It named a literal institution
+and a literal person until 2026-09-10, which made the file unvendorable into a public repo
+and got it deleted from one, taking the `_NEEDED.md` ask-a-human channel with it.
 
 **`murderboard_freshness.sh`** answers "is this consumer's vendored copy current?" by
 comparing the consumer's stamp against upstream HEAD. Exit codes: 0 current, 1 stale,
