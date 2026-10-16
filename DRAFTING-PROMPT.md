@@ -23,7 +23,7 @@ RULES
    is sitting at the bottom -- move it.
 
 2. One sentence, if one sentence will do. Before expanding, say what the extra words
-   buy: evidence a sceptic would actually demand, or the satisfaction of having been
+   buy: evidence a skeptic would actually demand, or the satisfaction of having been
    thorough. Cut the second kind.
 
 3. Short sentences. Concrete nouns. Active verbs. Cut every word that does not change

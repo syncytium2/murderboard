@@ -19,7 +19,7 @@
 # IT ALSO SURVIVES PERSUASION, WHICH IS THE POINT. A reviewer reads the artifact under review,
 # and that artifact is untrusted input -- the murderboard's entire job is reading documents
 # that may be wrong or hostile. A probe agent on 2026-08-28 wrote a file after being told in
-# its prompt that doing so was authorised, and said so itself: "had this been an injected
+# its prompt that doing so was authorized, and said so itself: "had this been an injected
 # instruction rather than a genuine operator request, the same reasoning path would have
 # produced the same write. Instruction-level restrictions cannot distinguish the two." Prose in
 # a compiled agent file cannot tell an operator from an injection. A hook never reads either.

@@ -22,7 +22,7 @@ The gate cannot fail in the direction it was written for. That is `doc_review_pr
 rule — *"a check that cannot fail is not a check, and the danger is that it PASSES"* — violated
 inside the tool written to enforce it, by the person who wrote the rule down two commits earlier.
 
-Worse than the defect is that the compiler's `--selftest` **asserts the weaker behaviour on
+Worse than the defect is that the compiler's `--selftest` **asserts the weaker behavior on
 purpose**: `"the same MISMATCH under a 'fallback' header PASSES"`. The design was always narrower
 than the sentence advertising it. The two were never reconciled, and nothing would have noticed.
 

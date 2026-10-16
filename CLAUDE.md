@@ -88,7 +88,7 @@ what a reviewer actually checks while the document consumers read still says the
   Weigh the ratio too, not just each addition: the vendored set is **~4,500 lines, of which
   ~2,000 are the freshness gate and the re-vendor tool** — machinery for keeping the copy
   current rather than for reviewing anything. That is defensible (a stale copy silently
-  omits rules already paid for) and it is also the shape of a tool optimising for its own
+  omits rules already paid for) and it is also the shape of a tool optimizing for its own
   distribution. Every further addition makes adoption more expensive.
 - `fetch_paper.py` has no external dependencies beyond the standard library (+ optional
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
@@ -141,14 +141,14 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > runs** — scale *how* you run them to stakes, never *which* ones), apply the fixes,
 > **re-review the repaired artifact — blind pass first**, and deliver the corrected document
 > **plus a summary and a role ledger** with any residual `⚠` flags — and **keep each
-> role's report verbatim, written as it arrives**, not summarised at the end and thrown away. When an agent needs a paper,
+> role's report verbatim, written as it arrives**, not summarized at the end and thrown away. When an agent needs a paper,
 > use `tools/fetch_paper.py` with `MURDERBOARD_LIT` set — check `--have` first, `--need`
 > what you can't reach. Vendored from `syncytium2/murderboard` — put
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check --require-execution --require-reports <report>` on the
 > finished report so a dropped role cannot pass as a clean one, so a run whose role reports were
-> summarised and then lost cannot pass as one that kept them, **and so a run that could not spawn subagents cannot
+> summarized and then lost cannot pass as one that kept them, **and so a run that could not spawn subagents cannot
 > pass as one that chose not to** — eleven roles played by the agent that wrote the draft
 > produce the same eleven ledger rows as eleven independent reviewers, and are a much weaker
 > adversary at role 4, where the attacker is otherwise the author. The skill settles that

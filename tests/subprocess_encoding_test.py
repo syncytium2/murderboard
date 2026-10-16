@@ -170,7 +170,7 @@ for name in ("murderboard_revendor.py", "fetch_paper.py"):
 check("the shipped tools name an encoding at every decoding subprocess call",
       not offenders, "" if not offenders else "BARE: " + ", ".join(offenders))
 
-# The alarm must be able to ring. If the walker ever stops recognising these calls it
+# The alarm must be able to ring. If the walker ever stops recognizing these calls it
 # would report a clean sheet forever, which is the same silence the defect had.
 seen = sum(1 for name in ("murderboard_revendor.py", "fetch_paper.py")
            for node in ast.walk(ast.parse((ROOT / name).read_text(encoding="utf-8")))

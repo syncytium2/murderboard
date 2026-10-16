@@ -90,8 +90,8 @@ evidence-adequacy rules to agent 4. Checklist:
   the honest answer cannot be said in the reader's vocabulary in the same space, the line is
   cut rather than softened; where the fact is worth keeping, restate it as **work done** rather
   than as **standing held**. Unlike the rest of this role's checklist, the term list for a given
-  audience is fixed and searchable, so a consumer can put it behind a gate — the judgement of
-  *which* terms mislead *this* reader stays here, because it is a judgement.
+  audience is fixed and searchable, so a consumer can put it behind a gate — the judgment of
+  *which* terms mislead *this* reader stays here, because it is a judgment.
   (Boundary with Prove It and DOI or Die: those verify that the claim and the citation are
   correct; a line can pass both and still be read as something else. Boundary with the
   three-undefined-terms rule below: that one is about a reader who cannot follow; this is about
@@ -123,7 +123,7 @@ evidence-adequacy rules to agent 4. Checklist:
   visual grammar while assigning **different meaning to its axes** is a false friend:
   it is misread by exactly the expert audience it was drawn for, and the more fluent
   the reader, the more confidently they misread it. Labels do not save it, because the
-  idiom is recognised before a label is read.
+  idiom is recognized before a label is read.
   Ask three questions, in this order, with the render open and the caption covered:
   *what does this resemble · in that idiom what do the axes mean · do they mean the
   same thing here?* If the answer to the third is no, the finding is **not** "clarify

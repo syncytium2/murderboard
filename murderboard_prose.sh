@@ -3,7 +3,7 @@
 #
 # THE GAP THIS CLOSES. Role 5 ("Kill Your Darlings") now carries a list of banned
 # constructions. That list is greppable -- and it sits inside a role whose other work is
-# judgement. The process file names this exact hazard in its own architecture section:
+# judgment. The process file names this exact hazard in its own architecture section:
 #
 #     "a judgment call can be satisfied by thinking and a mechanical one cannot, so when
 #      the two share a checklist the prose answer covers for the file nobody opened"
@@ -16,8 +16,8 @@
 #
 # WHAT IT DOES NOT DO -- deliberately. It does not decide whether a block is too long for
 # its point, which sentence carries the payload, or whether a hit should stay. Those are
-# role 5's judgement and stay with role 5. This prints counts and locations so that
-# judgement has something to sit on, and so that "no findings" becomes falsifiable.
+# role 5's judgment and stay with role 5. This prints counts and locations so that
+# judgment has something to sit on, and so that "no findings" becomes falsifiable.
 #
 # A DOCUMENT THAT QUOTES THE LIST TRIPS ON IT. Run this on doc_review_process.md and role 5
 # reports seven hits: it is the file that states the words. Same for a style guide, a review

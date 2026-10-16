@@ -152,7 +152,7 @@ Once it resolves: set the repo **homepage** field, and add the URL to `README.md
    outside review beside it. They are dated records of a review that happened.
 4. **`murderboard_roster.sh check` must still pass** on the run record if you touch anything it
    parses.
-5. **Accessibility floor already met.** Every text colour clears WCAG AA 4.5:1 against every
+5. **Accessibility floor already met.** Every text color clears WCAG AA 4.5:1 against every
    surface it can sit on, in both themes, computed — minimum 4.53:1. If you touch the palette,
    recompute; do not eyeball.
 

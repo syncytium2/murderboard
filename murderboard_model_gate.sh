@@ -76,7 +76,7 @@ OVERRIDE="${MURDERBOARD_ALLOW_EXPENSIVE_MODEL:-}"
 # Claude Code's own permission prompt rather than through the model's good intentions.
 # This is a SECOND failure mode from the model block above — not "wrong model" but
 # "wrong moment" — and it is the more common one. CONFIRM_TTL is how long one
-# confirmation covers the fan-out it authorised, in seconds; long enough for a roster to
+# confirmation covers the fan-out it authorized, in seconds; long enough for a roster to
 # spawn, short enough that a later run in the same session asks again.
 CONFIRM="${MURDERBOARD_CONFIRM:-1}"
 CONFIRM_TTL="${MURDERBOARD_CONFIRM_TTL:-900}"
@@ -302,8 +302,8 @@ if [ "${1:-}" = "--selftest" ]; then
 
   rm -rf "$TMP/state2"
   tout '"permissionDecision":"ask"' "a call-up ASKS the human first" "$(SESS s1 "$OPUS")"
-  # ONE PROMPT PER RUN, NOT ELEVEN. The fan-out this authorised must not re-interrogate.
-  tout NONE "the fan-out it authorised does not ask again" \
+  # ONE PROMPT PER RUN, NOT ELEVEN. The fan-out this authorized must not re-interrogate.
+  tout NONE "the fan-out it authorized does not ask again" \
        "$(printf '{"session_id":"s1","tool_name":"Agent","transcript_path":"%s","tool_input":{"prompt":"role 4 murderboard checklist"}}' "$OPUS")"
   # A DIFFERENT session is a different run and must ask on its own account.
   tout '"permissionDecision":"ask"' "a different session asks on its own account" "$(SESS s2 "$OPUS")"
@@ -410,7 +410,7 @@ esac
 [ "$is_callup" -eq 1 ] || exit 0
 
 # The deliberate override, checked only now — so that setting it does not disable the
-# gate's judgement for calls it would have allowed anyway.
+# gate's judgment for calls it would have allowed anyway.
 if [ -n "$OVERRIDE" ]; then
   echo "murderboard_model_gate: MURDERBOARD_ALLOW_EXPENSIVE_MODEL is set — allowing a murderboard run on this model." >&2
   exit 0
@@ -427,7 +427,7 @@ murderboard_model_gate: BLOCKED — could not determine which model is running.
 
 This gate fails CLOSED and that is deliberate. A murderboard run is a roster-wide
 fan-out; on a blocked model it can exhaust a usage window in minutes, and no amount
-of apologising afterwards gives the window back. A wrong block costs you one message.
+of apologizing afterwards gives the window back. A wrong block costs you one message.
 A wrong allow cost two days on 2026-09-07.
 
 Confirm your model, then either:
@@ -486,7 +486,7 @@ fi
 #
 # ONE PROMPT PER RUN, NOT ELEVEN. This hook fires on every Agent spawn, so a naive ask
 # would interrogate the human once per role. A short-lived marker keyed on the session
-# suppresses the follow-ups: the first call-up asks, the fan-out it authorises does not.
+# suppresses the follow-ups: the first call-up asks, the fan-out it authorizes does not.
 # The marker is written when we ASK rather than when the human answers, because a hook
 # is never told what the human chose.
 #

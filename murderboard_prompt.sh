@@ -128,7 +128,7 @@ TAIL
 #
 # WHY THE PAGE CARRIES IT INLINE. On 2026-09-01 a first-time user asked an
 # assistant what to do with murderboard.tonydefazio.com. It fetched the page,
-# summarised it correctly, and offered to fetch PROMPT.md. It then SEARCHED
+# summarized it correctly, and offered to fetch PROMPT.md. It then SEARCHED
 # instead of fetching, found nothing (the repo is not in the search index),
 # reported that it could only fetch "URLs that show up in search results" and
 # that it would be "guessing the link" -- while the exact URL sat in an <a href>

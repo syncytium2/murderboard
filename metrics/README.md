@@ -32,7 +32,7 @@ speaks daily gets filtered into a folder and stops being read:
 | a new **star**, **fork** or **watcher** | deliberate human acts, impossible for CI to cause |
 | a **referrer that is not `github.com`** | the only signal that says *where* — someone linked to this repo somewhere |
 | **more unique page viewers in a day than ever before** | the baseline of 1 is the maintainer; CI never renders a page |
-| a **new high in non-CI clones** | the weakest, and labelled so where it is reported: "non-CI" excludes only this repo's own Actions jobs, and still counts the maintainer's clones, mirrors and scanners |
+| a **new high in non-CI clones** | the weakest, and labeled so where it is reported: "non-CI" excludes only this repo's own Actions jobs, and still counts the maintainer's clones, mirrors and scanners |
 
 `clone_uniques` is deliberately **not** a trigger. It cannot have CI netted out of it, so a
 rise in it is not attributable to anything, and waking someone for an uninterpretable number

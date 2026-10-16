@@ -181,7 +181,7 @@ execution_line() {
 #
 # The second is the one worth staring at: it defeats the bound BY BEING MORE DETAILED, so a
 # terser and less honest line passes where a fuller one fails. That is a gate rewarding the
-# wrong behaviour, not a threshold needing a tweak.
+# wrong behavior, not a threshold needing a tweak.
 #
 # THE DIAGNOSIS, which is why no setting of the bound would have worked: proximity is
 # standing in for GRAMMATICAL ATTACHMENT -- does the denial attach to the fan-out or to one
@@ -292,7 +292,7 @@ report_execution() {
 # a list of idioms while `chosen` held `small`, `short`, `caption`, `one-liner` -- words
 # describing the DELIVERABLE. A forced run also has a short deliverable, so any forced run
 # phrased outside the idiom list that mentioned its own brevity was filed as a deliberate
-# judgement call. Four of five constructed forced runs classified as `chosen`, including
+# judgment call. Four of five constructed forced runs classified as `chosen`, including
 # "Task tool errored out, small deliverable" -- a recurring environment defect recorded as
 # a choice, which is the single outcome this field exists to prevent.
 #
@@ -313,7 +313,7 @@ execution_cause() {
 # concluded. Neither is what the role actually returned, and until this existed there was
 # nowhere in a run record for that difference to show up -- so a review that archived all
 # eleven role reports and a review that archived none produced records a reader could not
-# tell apart. Observed 2026-09 (appendix): three murderboards in one thread summarised their
+# tell apart. Observed 2026-09 (appendix): three murderboards in one thread summarized their
 # role reports into the record and kept none, one round is gone for good, and for one run the
 # harness DID write a file per agent and every one of them was 0 bytes. An archive that exists
 # and an archive with content in it are different facts.
@@ -395,7 +395,7 @@ EOF
   if [ "$((missing + empty))" -gt 0 ]; then
     printf '%smurderboard: %s of %s role reports usable in %s — %s missing, %s empty%s\n' \
            "$RED" "$((total - missing - empty))" "$total" "$dir" "$missing" "$empty" "$RST" >&2
-    printf '%s  a summarised report is not an archived one, and a 0-byte file is not a report%s\n' \
+    printf '%s  a summarized report is not an archived one, and a 0-byte file is not a report%s\n' \
            "$RED" "$RST" >&2
     return 1
   fi
@@ -607,9 +607,9 @@ MB
   # because a gate that only accepts one markdown dialect gets satisfied by
   # reformatting rather than by declaring.
   printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n**Mode:** standard\n' > "$tmp/bold.md"
-  t 'bolded mode line is recognised'    0 cmd_check "$tmp/bold.md"
+  t 'bolded mode line is recognized'    0 cmd_check "$tmp/bold.md"
   printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n> Mode: standard\n' > "$tmp/quoted.md"
-  t 'blockquoted mode line recognised'  0 cmd_check "$tmp/quoted.md"
+  t 'blockquoted mode line recognized'  0 cmd_check "$tmp/quoted.md"
 
   REQUIRE_MODE=1
   t '--require-mode: undeclared FAILS'  1 cmd_check "$tmp/full.md"
@@ -644,7 +644,7 @@ MB
   t 'unrecognized execution FAILS'      1 cmd_check "$tmp/exec_junk.md"
 
   printf '%s\n**Execution:** subagents\n' "$roles" > "$tmp/exec_bold.md"
-  t 'bolded execution line recognised'  0 cmd_check "$tmp/exec_bold.md"
+  t 'bolded execution line recognized'  0 cmd_check "$tmp/exec_bold.md"
 
   # --- constructed inputs, from murderboard-b1's review, 2026-09-04 ------------
   # A peer defeated two successive matchers with lines nobody on this branch had thought
@@ -750,7 +750,7 @@ MB
   t 'reports: a full archive passes'    0 cmd_check "$tmp/rep_ok.md"
 
   printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n**reports:** roles/\n' > "$tmp/rep_bold.md"
-  t 'bolded reports line is recognised' 0 cmd_check "$tmp/rep_bold.md"
+  t 'bolded reports line is recognized' 0 cmd_check "$tmp/rep_bold.md"
 
   printf 'Prove It / DOI or Die / Kill Your Darlings — clean\nreports: roles/ (3 files)\n' > "$tmp/rep_count.md"
   t 'trailing count after the path is ignored' 0 cmd_check "$tmp/rep_count.md"
