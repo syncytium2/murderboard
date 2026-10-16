@@ -225,6 +225,36 @@ Scale to stakes in *how* you run them, never in *which* ones:
 A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
 Silence is not a result.
 
+### 4b. Write each report to disk AS IT ARRIVES — not at the end
+
+The moment a role returns, write its output verbatim to a file, before you read it and
+before you synthesize anything:
+
+```bash
+REPORTS=docs/reviews/<artifact-stem>_<YYYY-MM-DD>-roles
+mkdir -p "$REPORTS"
+# one file per role, named after that role's agent file: 01-prove-it.md, 02-doi-or-die.md, …
+```
+
+Three reasons this is a step and not a nicety, in the order they bite:
+
+1. **The window.** Between the first role returning and the run record being written sits the
+   whole synthesis — the longest, most interruptible stretch of the run. Everything eleven
+   roles said lives in the session for all of it. Sessions end, and the record you were about
+   to write is the only thing anyone would have looked for.
+2. **The record is a summary, and summaries drop things.** A finding you merged, softened, or
+   judged out of scope is gone from the record by construction, and so is the evidence that a
+   role reporting "nothing to check" checked anything. Later, nobody can tell which.
+3. **Do not trust the harness's own per-agent output files.** Observed 2026-09: a run's agent
+   outputs were each written to a file by the tooling, and **every one of those files was
+   0 bytes**. The archive existed, nobody opened it, and it held nothing. `[ -s "$f" ]` before
+   you rely on it.
+
+**If a report cannot be preserved, say `reports: not preserved` in the record and mean it** —
+do not reconstruct one from memory and file it as an archive. A paraphrase written after the
+fact is a second summary, not evidence, and it is worse than an admitted gap because it cannot
+be told apart from the real thing.
+
 ## 5. Synthesize and apply
 
 Consolidate, dedupe, rank by severity, adjudicate each finding (fix / flag-inline `⚠` /
@@ -256,6 +286,7 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - freshness: current | UNDETERMINED
 - artifact:  <path> (<hash before> -> <hash after>)
 - roles:     <n> of <n> run (named agents | inline fallback)   # from step 4a
+- reports:   <artifact-stem>_<YYYY-MM-DD>-roles/ | not preserved   # from step 4b
 - rounds:    <n> blind verify rounds to clean
 ```
 
@@ -267,13 +298,19 @@ Finally, gate your own output:
 
 ```bash
 REPORT=docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md
-bash "$ROSTER" check "$REPORT" ; echo "roster=$?"
+bash "$ROSTER" check --require-reports "$REPORT" ; echo "roster=$?"
 [ -n "${COMPILER:-}" ] && python3 "$COMPILER" --process "$PROCESS" verify "$REPORT" ; echo "grants=$?"
 ```
 
 **roster exit 1 means a role is missing from the ledger — the run is not finished.** Either that
 role never ran (run it) or it ran and left no trace (record it). Do not deliver past a failing
 check; a report that cannot show all its roles is the failure mode this skill was built for.
+
+**It also reads the `reports:` line.** With `--require-reports` the run must name an archive
+that resolves and holds a non-empty file for every role, or say `not preserved` and be refused
+for it. A named archive that does not exist fails whether the flag is set or not — that is the
+"cited but missing" shape, and it reads to anyone downstream as the complete run. **Do not make
+it green by deleting the line**; write the reports, or declare the gap and tell the human.
 
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are
@@ -299,6 +336,8 @@ where the agent is spawned, not here.
 
 ## What to hand the human
 
-The corrected deliverable, the path to the run record, and a short plain summary: what was
-checked, what was found and fixed, how many verify rounds, and every residual `⚠`. A
-deliverable with unresolved `⚠` flags is **not "done."**
+The corrected deliverable, the path to the run record, **the path to the role-report
+archive**, and a short plain summary: what was checked, what was found and fixed, how many
+verify rounds, and every residual `⚠`. A deliverable with unresolved `⚠` flags is
+**not "done."** If the reports were not preserved, say that out loud here too — it is the
+one thing the record cannot make up for later.
