@@ -209,7 +209,10 @@ code {
   color: var(--ink-soft); text-decoration: none;
   padding: .95rem 0; flex: 0 0 auto;
 }
-.topbar-links a:first-child { color: var(--blood); font-weight: 600; }
+/* "Start here" keeps the one red slot by class, not by position: the way back
+   to tonydefazio.com sits first, because a link off the far end of a row that
+   scrolls on a phone is not visible without scrolling. */
+.topbar-links a.tb-start { color: var(--blood); font-weight: 600; }
 .topbar-links a:hover { color: var(--blood); }
 /* Feedback sits second rather than last. The bar scrolls horizontally on a
    phone, so anything at the far end is off-screen until someone thinks to swipe
@@ -600,7 +603,8 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <nav class="topbar" aria-label="Project links">
   <div class="wrap">
     <div class="topbar-links">
-      <a href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
+      <a href="https://tonydefazio.com/">&larr; tonydefazio.com</a>
+      <a class="tb-start" href="https://github.com/syncytium2/murderboard/blob/main/START-HERE.md">Start here</a>
       <a class="tb-feedback" href="#contact">Feedback</a>
       <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>
       <a href="https://github.com/syncytium2/murderboard/blob/main/PROMPT.md">PROMPT.md</a>
@@ -615,7 +619,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.15.0</b> &middot; Updated <time datetime="2026-10-16">2026-10-16</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.15.1</b> &middot; Updated <time datetime="2026-10-19">2026-10-19</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -1615,6 +1619,7 @@ python3 tools/fetch_paper.py <span class="k">--need</span> <span class="k">"&lt;
     <a href="https://murderboard.tonydefazio.com/">murderboard.tonydefazio.com</a> and the source
     is at <a href="https://github.com/syncytium2/murderboard">github.com/syncytium2/murderboard</a>.
     Copyright 2026 Tony DeFazio, Apache-2.0.</p>
+    <p class="colophon"><a href="https://tonydefazio.com/">&larr; tonydefazio.com</a></p>
   </footer>
 
 </div>
