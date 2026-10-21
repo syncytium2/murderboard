@@ -41,6 +41,10 @@
 #   murderboard_subagents.sh                 scan and report what is readable
 #   murderboard_subagents.sh --hook          silent unless a blocker is found; never blocks
 #   murderboard_subagents.sh --explain       add the remedy for each finding
+#   murderboard_subagents.sh --lookup        scan instead for what stops roles 2 and 6
+#                                            reaching a source: a WebFetch or curl deny
+#                                            (issue #74). Same files, same exit codes, same
+#                                            limit: the lookup PROBE is the check.
 #   murderboard_subagents.sh --root PATH     repo root to scan (default: git root, else cwd)
 #   murderboard_subagents.sh --config-dir P  stand in for ~/.claude (default: CLAUDE_CONFIG_DIR)
 #   murderboard_subagents.sh --managed PATH  managed-settings.json (default: per platform)
@@ -61,6 +65,7 @@ CONFIG_DIR=
 MANAGED=
 HOOK=0
 EXPLAIN=0
+SCAN=subagents
 
 BLOCKERS=0
 UNDETERMINED=0
@@ -126,10 +131,11 @@ scan_json() {
     return 0
   fi
   local out rc
-  out=$("$PY" - "$f" <<'PYEOF'
+  out=$("$PY" - "$f" "$SCAN" <<'PYEOF'
 import json, re, sys
 
 path = sys.argv[1]
+scan = sys.argv[2] if len(sys.argv) > 2 else "subagents"
 try:
     with open(path, encoding="utf-8") as fh:
         cfg = json.load(fh)
@@ -144,6 +150,14 @@ if not isinstance(cfg, dict):
 # process file and the skill call it in prose. Match either, so a rule written from the
 # prose name is still found.
 NAMES = re.compile(r"^(task|agent)\b", re.I)
+TOOL = "Task"
+if scan == "lookup":
+    # --lookup: how roles 2 and 6 reach a source outside the repository. WebFetch, and the
+    # shell route to the same place -- a `Bash(curl ...)` deny was half of what stopped the
+    # 2026-10-14 run (issue #74). Bare `Bash` is deliberately NOT matched: denying the whole
+    # shell is a different and louder problem, and seven roles would report it.
+    NAMES = re.compile(r"^(webfetch|websearch)\b|^bash\(\s*(curl|wget)\b", re.I)
+    TOOL = "WebFetch"
 
 
 def entries(*keys):
@@ -162,12 +176,15 @@ for rule in entries(perm, "deny"):
         print("BLOCK\t%s: permissions.deny has %r" % (path, rule))
 for rule in entries(perm, "ask"):
     if NAMES.match(rule.strip()):
-        print("WARN\t%s: permissions.ask has %r — every role spawn will prompt" % (path, rule))
+        print("WARN\t%s: permissions.ask has %r — every call will prompt" % (path, rule))
 
 # An allow-list is restrictive in a way a deny-list is not: naming any tool excludes the
 # rest. Absence of Task here is therefore a finding, where absence from `deny` is not.
+# NOT applied under --lookup: a lookup has more than one route (WebFetch, a shell fetch, a
+# literature connector), so an allow-list naming none of the first two can still be one
+# whose third route works -- and the probe, not this scan, is what says whether it does.
 allow = entries(perm, "allow") + entries("allowedTools")
-if allow and not any(NAMES.match(r.strip()) for r in allow):
+if scan != "lookup" and allow and not any(NAMES.match(r.strip()) for r in allow):
     print("BLOCK\t%s: an allow-list of %d tools that does not include Task" % (path, len(allow)))
 
 for rule in entries("disallowedTools"):
@@ -190,11 +207,11 @@ if isinstance(hooks, dict):
             hit = True                        # empty/star matcher runs on every tool
         else:
             try:
-                hit = bool(re.search(m, "Task"))
+                hit = bool(re.search(m, TOOL))
             except re.error:
                 continue
         if hit:
-            print("WARN\t%s: PreToolUse matcher %r runs on the Agent tool" % (path, m or "(empty)"))
+            print("WARN\t%s: PreToolUse matcher %r runs on %s" % (path, m or "(empty)", TOOL))
 PYEOF
   ) ; rc=$?
   if [ "$rc" != 0 ]; then undet "reading $f failed (python exit $rc)"; return 0; fi
@@ -202,6 +219,14 @@ PYEOF
   local kind text
   while IFS=$'\t' read -r kind text; do
     [ -n "${kind:-}" ] || continue
+    if [ "$SCAN" = lookup ]; then
+      case "$kind" in
+        BLOCK) block "$text" "remove the rule for the review, or give roles 2 and 6 another route (a literature connector) and let the probe confirm it" ;;
+        WARN)  warn  "$text" "confirm it lets WebFetch through before relying on role 2 or role 6" ;;
+        UNDET) undet "$text" ;;
+      esac
+      continue
+    fi
     case "$kind" in
       BLOCK) block "$text" "remove the rule, or add \"Task\" to permissions.allow in that file" ;;
       WARN)  warn  "$text" "confirm it lets the Agent tool through before relying on a fan-out" ;;
@@ -221,19 +246,29 @@ EOF
 # the phrasings is also big enough to differ between BSD and GNU grep.
 NOUN='sub-?agents?|agent tool|agenttool|task tool|AgentTool'
 NEG='do not|don.t|never|avoid|without|refrain|disable|forbid|prohibit|not allowed|unless'
+# --lookup reads the same files for a ban on fetching. Reported as WARN, never BLOCK:
+# "network" and "curl" turn up in ordinary instructions about everything else ("never block
+# startup on the network"), so a hit is a line worth reading, not a verdict.
+LOOKUP_NOUN='webfetch|web fetch|curl|wget|network access|internet access|the web'
 
 scan_prose() {
   local f="$1"
   [ -f "$f" ] || return 0
   if [ ! -r "$f" ]; then undet "instruction file exists but is unreadable: $f"; return 0; fi
-  local hits
-  hits=$(grep -n -i -E "$NOUN" "$f" 2>/dev/null | grep -i -E "$NEG" 2>/dev/null | head -3)
+  local hits noun=$NOUN
+  [ "$SCAN" = lookup ] && noun=$LOOKUP_NOUN
+  hits=$(grep -n -i -E "$noun" "$f" 2>/dev/null | grep -i -E "$NEG" 2>/dev/null | head -3)
   [ -n "$hits" ] || return 0
   local line
   while IFS= read -r line; do
     [ -n "$line" ] || continue
+    if [ "$SCAN" = lookup ]; then
+      warn "$f:${line%%:*} — an instruction here may forbid fetching from the web" \
+           "read the line; if it does forbid it, lift it for the review or the probe will fail"
+    else
     block "$f:${line%%:*} — an instruction here reads as forbidding subagents" \
           "no permission system is involved; edit the line, or tell the session to allow subagents for this run"
+    fi
     say "         ${DIM}> $(printf '%s' "${line#*:}" | sed -e 's/^[0-9]*://' -e 's/^[[:space:]]*//' | cut -c1-96)${RST}"
   done <<EOF
 $hits
@@ -269,6 +304,8 @@ report() {
   # at session start — the probe will settle it, and noise here trains people to skip it.
   if [ "$HOOK" = 1 ] && [ "$BLOCKERS" = 0 ]; then return 0; fi
 
+  if [ "$SCAN" = lookup ]; then report_lookup; return 0; fi
+
   if [ "$BLOCKERS" = 0 ] && [ "$UNDETERMINED" = 0 ]; then
     printf '%smurderboard: no subagent blocker found in the readable settings and instruction files.%s\n' "$GRN" "$RST"
   else
@@ -283,6 +320,24 @@ report() {
   # above is the sentence most likely to be quoted back as "subagents are fine", which is
   # not what this script can know.
   printf '%sThis scan reads files. It cannot see the session'\''s tool list, a launch flag, or an\ninstruction injected at runtime — the block that caused this repo'\''s one degraded run\n(2026-08-26) was in none of these files. A clean scan is NOT proof subagents work; only\nspawning one and getting an answer back proves that.%s\n' "$DIM" "$RST"
+}
+
+# --lookup prints its WARN lines on the clean path too. Its prose hits are warnings by
+# design, and a warning nobody is shown is a scan that found something and said "clean".
+report_lookup() {
+  if [ "$BLOCKERS" = 0 ] && [ "$UNDETERMINED" = 0 ]; then
+    printf '%smurderboard: no lookup blocker found in the readable settings and instruction files.%s\n' "$GRN" "$RST"
+    printf '%s' "$OUT"
+  else
+    printf 'murderboard: lookup preflight (what roles 2 and 6 can reach)\n'
+    printf '%s' "$OUT"
+    if [ "$BLOCKERS" -gt 0 ]; then
+      printf '%smurderboard: %s blocker(s) — role 2 may not be able to resolve a citation here.%s\n' "$RED" "$BLOCKERS" "$RST"
+    fi
+  fi
+  # The 2026-10-14 run is the reason this caveat names the tool list first: on that machine
+  # WebFetch was simply not in the session, which no file records.
+  printf '%sThis scan reads files. It cannot see whether WebFetch is in the session'\''s tool list at\nall — on the machine behind issue #74 it was not, and no file said so — nor which\nliterature connectors are attached. A clean scan is NOT proof a citation can be resolved;\nonly the probe (resolve a known DOI, refuse a made-up one) proves that.%s\n' "$DIM" "$RST"
 }
 
 cmd_scan() {
@@ -302,10 +357,10 @@ cmd_selftest() {
   trap 'rm -rf "$MB_TMP"' EXIT
   local tmp="$MB_TMP"
 
-  t() { # t <name> <expected-exit> <root> <cfgdir>
-    local name="$1" want="$2" root="$3" cfg="$4"
+  t() { # t <name> <expected-exit> <root> <cfgdir> [scan]
+    local name="$1" want="$2" root="$3" cfg="$4" scan="${5:-subagents}"
     local got=0
-    ( ROOT="$root" CONFIG_DIR="$cfg" MANAGED=/nonexistent/managed.json HOOK=0 \
+    ( ROOT="$root" CONFIG_DIR="$cfg" MANAGED=/nonexistent/managed.json HOOK=0 SCAN="$scan" \
       BLOCKERS=0 UNDETERMINED=0 OUT= cmd_scan ) >/dev/null 2>&1 || got=$?
     if [ "$got" = "$want" ]; then pass=$((pass+1)); printf '  ok   %s\n' "$name"
     else fail=$((fail+1)); printf '  %sFAIL%s %s (want exit %s, got %s)\n' "$RED" "$RST" "$name" "$want" "$got"; fi
@@ -365,6 +420,40 @@ cmd_selftest() {
     *) fail=$((fail+1)); printf '  %sFAIL%s clean report omitted the caveat\n' "$RED" "$RST" ;;
   esac
 
+  # --- --lookup: the same surfaces, read for what roles 2 and 6 need ------------------
+  # The 2026-10-14 shape (issue #74): curl denied by a permission rule. WebFetch being absent
+  # from the session altogether is the other half, and no file records it -- which is why
+  # the probe, not this scan, is the gate.
+  t 'lookup: clean environment -> exit 0'      0 "$tmp/clean" "$tmp/cfgclean" lookup
+  mkdir -p "$tmp/curl/.claude"
+  printf '{"permissions":{"deny":["Bash(curl:*)"]}}\n' > "$tmp/curl/.claude/settings.json"
+  t 'lookup: deny Bash(curl:*) -> exit 1'      1 "$tmp/curl" "$tmp/cfgnull" lookup
+  mkdir -p "$tmp/wf/.claude"
+  printf '{"permissions":{"deny":["WebFetch"]}}\n' > "$tmp/wf/.claude/settings.json"
+  t 'lookup: deny WebFetch -> exit 1'          1 "$tmp/wf" "$tmp/cfgnull" lookup
+  mkdir -p "$tmp/wfd/.claude"
+  printf '{"permissions":{"deny":["WebFetch(domain:doi.org)"]}}\n' > "$tmp/wfd/.claude/settings.json"
+  t 'lookup: a domain-scoped WebFetch deny -> exit 1' 1 "$tmp/wfd" "$tmp/cfgnull" lookup
+  # The two scans must not bleed into each other: each one's blocker is the other's non-event.
+  t 'lookup: deny Task is not a lookup blocker'   0 "$tmp/deny" "$tmp/cfgnull" lookup
+  t 'subagents: deny WebFetch is not a subagent blocker' 0 "$tmp/wf" "$tmp/cfgnull"
+  # A bare Bash deny is a louder problem than this scan names, and must not read as one.
+  mkdir -p "$tmp/bash/.claude"
+  printf '{"permissions":{"deny":["Bash(rm:*)"]}}\n' > "$tmp/bash/.claude/settings.json"
+  t 'lookup: an unrelated Bash deny -> exit 0' 0 "$tmp/bash" "$tmp/cfgnull" lookup
+  # An allow-list is not a lookup verdict: a literature connector is a third route.
+  t 'lookup: an allow-list alone -> exit 0'    0 "$tmp/allow" "$tmp/cfgnull" lookup
+  # Prose is a WARN under --lookup, and a WARN must still be SHOWN on the clean path.
+  mkdir -p "$tmp/lprose/.claude"
+  printf '# repo\n\nNever use WebFetch on this machine.\n' > "$tmp/lprose/CLAUDE.md"
+  t 'lookup: prose hit is a warning, exit 0'   0 "$tmp/lprose" "$tmp/cfgnull" lookup
+  out=$( ROOT="$tmp/lprose" CONFIG_DIR="$tmp/cfgnull" MANAGED=/nonexistent/managed.json \
+         HOOK=0 SCAN=lookup BLOCKERS=0 UNDETERMINED=0 OUT= cmd_scan 2>&1 ); :
+  case "$out" in
+    *WARN*"is NOT proof"*) pass=$((pass+1)); printf '  ok   lookup: a prose warning is printed, with the caveat\n' ;;
+    *) fail=$((fail+1)); printf '  %sFAIL%s lookup: a prose warning was swallowed on the clean path\n' "$RED" "$RST" ;;
+  esac
+
   printf '\n%s passed, %s failed\n' "$pass" "$fail"
   [ "$fail" = 0 ]
 }
@@ -375,6 +464,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --hook)       HOOK=1; shift ;;
     --explain)    EXPLAIN=1; shift ;;
+    --lookup)     SCAN=lookup; shift ;;
     --root)       ROOT="${2:-}"; shift 2 ;;
     --config-dir) CONFIG_DIR="${2:-}"; shift 2 ;;
     --managed)    MANAGED="${2:-}"; shift 2 ;;

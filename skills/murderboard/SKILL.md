@@ -253,6 +253,51 @@ if [ -n "${COMPILER:-}" ]; then
 fi
 ```
 
+**Then probe the lookup, with role 2's own agent, before anything else is spawned.** Roles 2
+and 6 are the only roles whose sources live outside the repository, and a role that cannot
+reach them still returns a full report about them — on 2026-10-14 one did, every gate passed,
+and the citation check had not happened (issue #74). The probe is a spawn of role 2's
+`agent-name` — by the same path the review will use, so it holds exactly what role 2 will hold —
+with this prompt and nothing else:
+
+> Lookup probe, not a review. By any route you hold, resolve each DOI below and reply with one
+> line per DOI — `<doi> FOUND <title>` or `<doi> NOT FOUND` — then one line naming the route.
+> `10.1371/journal.pmed.0020124`
+> `10.1000/murderboard-probe-0000`
+
+It passes only if **both** come back right: the first `FOUND` with the title *Why Most
+Published Research Findings Are False* (Ioannidis, *PLoS Medicine*, 2005), the second `NOT
+FOUND`. The second sits under `10.1000`, the DOI Foundation's own prefix, with a suffix nobody
+registered; `doi.org` answers it with a 404. **That half is the probe**: a route that answers
+*something* for every query passes a one-sided check.
+
+Any route counts — WebFetch, a shell fetch, a literature connector — and the route goes into
+the record. Roles 2 and 6 share a grant in the process file, so one probe answers for both; if
+your copy gives them different grants, probe role 6 too.
+
+- **Both right** → record `Lookup: live — <route>` (step 7). Carry on.
+- **Anything else** → **STOP, before role 1.** Not a `MISMATCH` to carry into the ledger: a
+  stop. Say which route was tried and what came back, and name the knob:
+  ```bash
+  [ -n "${SUBAGENTS:-}" ] && bash "$SUBAGENTS" --lookup --explain ; echo "exit=$?"
+  ```
+  It reports a `WebFetch` or `Bash(curl …)` deny in the files it can read. **Its exit 0 is not
+  an all-clear**: on the 2026-10-14 machine WebFetch was absent from the session, which no file
+  records.
+
+  The remedies are the human's: lift the rule for the review, run where the web is reachable,
+  or grant roles 2 and 6 a literature connector (see *A connector reaches a role only through
+  its grant* in `$PROCESS`). Then ask, and wait.
+
+  **"Go ahead anyway" cannot buy a passing record.** The roster gate fails `Lookup:
+  unavailable` with or without a flag, because a finished run that could not look anything up
+  is the shape this probe exists to stop. The only deliverable that skips the probe honestly is
+  one with nothing to look up — no references, no named attribution, no outside method — and
+  it records `Lookup: not needed`.
+
+The probe is one spawn, which the cost gate sees like any role spawn; it runs after the cost
+preflight for that reason.
+
 Then spawn each row's `agent-name` as the subagent type. **If the named agent does not
 resolve**, fall back to spawning a generic subagent whose prompt is **the contents of that
 role's agent file**, and if there is no agent file either, the role's block from `$PROCESS`.
@@ -278,7 +323,8 @@ header takes a suffix: `11 of 11 run (named agents)` or `11 of 11 run (inline fa
 its role to open with `GRANT <n> ok — <tools held>` or `GRANT <n> MISMATCH — …`. Carry those
 lines into the role ledger verbatim; step 7 gates the header against them. A `MISMATCH` is not
 a failed run — a fallback review is a real review — it just may not be written up as something
-else.
+else. **The one exception is already behind you:** a role that cannot reach its sources is
+not a mismatch to record but a stop, and the lookup probe above is where it stops.
 
 Scale to stakes in *how* you run them, never in *which* ones:
 
@@ -361,6 +407,7 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - rounds:    <n> blind verify rounds to clean
 
 Execution: subagents | single-pass (forced) | single-pass (chosen)   # from step 1a
+Lookup: live | not needed                                            # from step 4a's probe
 ```
 
 The token before the dash is parsed and must be exact; everything after it is yours and is
@@ -370,7 +417,13 @@ The token before the dash is parsed and must be exact; everything after it is yo
 Execution: subagents — one per role, all eleven spawned
 Execution: single-pass (forced) — the Agent tool was unavailable; step 1a's probe failed
 Execution: single-pass (chosen) — a one-line caption, not worth an eleven-agent fan-out
+Lookup: live — WebFetch; probe found the Ioannidis DOI and refused the made-up one
+Lookup: live — PubMed connector; WebFetch absent from the session
+Lookup: not needed — a caption that cites nothing and names no outside method
 ```
+
+`Lookup:` has a third token, `unavailable`, and the gate fails it — if you would be writing it,
+the run should have stopped at step 4a, and the record is not the place to say so.
 
 `roles:` and `Execution:` answer different questions and neither implies the other. `roles:`
 says which **prompt** each reviewer got — its compiled agent file, or the role's block inlined.
@@ -387,7 +440,7 @@ Finally, gate your own output:
 
 ```bash
 REPORT=docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md
-bash "$ROSTER" check --require-execution --require-reports "$REPORT" ; echo "roster=$?"
+bash "$ROSTER" check --require-execution --require-reports --require-lookup "$REPORT" ; echo "roster=$?"
 [ -n "${COMPILER:-}" ] && python3 "$COMPILER" --process "$PROCESS" verify "$REPORT" ; echo "grants=$?"
 ```
 
@@ -427,6 +480,11 @@ for it. A named archive that does not exist fails whether the flag is set or not
 "cited but missing" shape, and it reads to anyone downstream as the complete run. **Do not make
 it green by deleting the line**; write the reports, or declare the gap and tell the human.
 
+**And it reads the `Lookup:` line.** `unavailable` fails always; under `--require-lookup` a
+missing line fails too. Write the token from what step 4a's probe returned — the same limit as
+`Execution:` applies, and a `live` token over a probe that never ran is a false record no
+report-reading gate can catch.
+
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are
 not the ones the process file grants it (naming none at all is this case, not a lesser one); a
@@ -445,9 +503,9 @@ verdict, break the quotation. Otherwise state, once, what the reviewer actually 
 ⚠ **What this gate still does NOT do, stated because the wording here has twice claimed more
 than was true.** It reads a report. It cannot tell you a declaration is *honest*: a reviewer
 that types its granted tools back without ever holding them passes, and so does one that could
-not perform its check. It proves that every role said what it held and that what it said matches
-the grant it was issued — not that the tools were there. Containment and equipment are enforced
-where the agent is spawned, not here.
+not perform its check (for roles 2 and 6, step 4a's lookup probe covers that). It proves that
+every role said what it held and that what it said matches the grant it was issued — not that
+the tools were there. Containment and equipment are enforced where the agent is spawned.
 
 ## What to hand the human
 

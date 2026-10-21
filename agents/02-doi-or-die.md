@@ -81,6 +81,18 @@ Existence and correct attribution are half the check.
 need the paper itself, follow the **lit-cache protocol** below — check the library
 first, fetch the OA copy, flag what you can't get. Do **not** verify a claim against a
 paper you only half-remember: get the text or flag the paper.
+- **Existence is established by resolving the identifier, not by finding it on the page.** A
+  DOI printed in the paper's own saved copy shows the identifier *belongs to* that paper. It
+  does not show the identifier resolves, that the work has not since been corrected or
+  retracted, or whether a cited preprint now has a journal version — and those are what a
+  reader clicking the link meets. Resolve each one live and say through **what** (WebFetch,
+  a shell fetch, a literature connector). Offline matching is a supplement, never the check.
+  **A lookup that returns nothing is not evidence the work does not exist** — know what the
+  route covers before reading its silence. NCBI's ID converter searches PubMed Central only,
+  so for `10.1210/endocr/bqad150`, a 2023 *Endocrinology* paper not deposited there, it
+  answers *"Identifier not found in PMC"*; PubMed indexes the same paper as PMID 37793082, and
+  a title search finds it at once (2026-10-14). Before reporting a citation as unresolvable,
+  try a second route.
 - **How to establish the origin.** Open the cited work's own references for the claim and follow
   them backwards until they stop. **Report where you stopped and why** — "the root is paywalled,
   verified to one step short" is a finding; silence is not. Prefer the root and cite later work
