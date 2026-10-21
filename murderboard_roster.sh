@@ -325,14 +325,26 @@ execution_cause() {
 #   a path that does not  -> FAILURE, always, flag or no flag
 # The last one is the "cited but missing" case: a record pointing at an archive that is not
 # there is worse than one admitting it has none, because it reads as the complete run.
+#
+# The KEY and the VALUE are cleaned differently, on purpose. Stripping `_` lets `_reports:_`
+# (italic markdown) count as the key; doing the same to the value deleted every underscore in
+# the path, so the skill's own archive name `<stem>_<date>-roles/` became `<stem><date>-roles/`
+# and resolved to nothing -- the gate then failed the record as "cited but missing" for
+# following the skill exactly. Observed 2026-10-14 (issue #74): the consumer renamed its
+# archive with a hyphen to get past it. The value keeps its underscores; only an italic
+# closer glued to the key (`_reports:_ dir/`) is dropped, so a path that genuinely begins with
+# `_` still survives when written the ordinary way, `reports: _dir/`.
 reports_decl() {
   awk '{
-    line = $0
-    gsub(/[*`_|>]/, "", line)
-    sub(/^[ \t]+/, "", line)
-    sub(/^-[ \t]+/, "", line)
-    if (tolower(substr(line, 1, 8)) == "reports:") {
-      v = substr(line, 9)
+    key = $0
+    gsub(/[*`_|>]/, "", key)
+    sub(/^[ \t]+/, "", key)
+    sub(/^-[ \t]+/, "", key)
+    if (tolower(substr(key, 1, 8)) == "reports:") {
+      val = $0
+      gsub(/[*`|>]/, "", val)
+      v = substr(val, index(tolower(val), "reports:") + 8)
+      sub(/^_+/, "", v)
       sub(/^[ \t]+/, "", v); sub(/[ \t]+$/, "", v)
       print v
       exit
@@ -754,6 +766,27 @@ MB
 
   printf 'Prove It / DOI or Die / Kill Your Darlings — clean\nreports: roles/ (3 files)\n' > "$tmp/rep_count.md"
   t 'trailing count after the path is ignored' 0 cmd_check "$tmp/rep_count.md"
+
+  # THE SKILL'S OWN NAME. SKILL.md tells the run to archive into `<stem>_<date>-roles/`, and
+  # the parser used to strip every `_` from the value, so the one name the process prescribes
+  # could never resolve (issue #74). Each line below is a form a real record uses.
+  mkdir -p "$tmp/kndy_2026-10-14-roles" "$tmp/_lead"
+  cp "$tmp/roles/"*.md "$tmp/kndy_2026-10-14-roles/"
+  cp "$tmp/roles/"*.md "$tmp/_lead/"
+  printf 'Prove It / DOI or Die / Kill Your Darlings — clean\nreports: kndy_2026-10-14-roles/\n' > "$tmp/rep_us.md"
+  t 'an underscore in the archive path survives' 0 cmd_check "$tmp/rep_us.md"
+  printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n- reports:   kndy_2026-10-14-roles/ | not preserved   # from step 4b\n' > "$tmp/rep_us_tmpl.md"
+  t 'the skill template line, filled in, resolves' 0 cmd_check "$tmp/rep_us_tmpl.md"
+  printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n**reports:** `kndy_2026-10-14-roles/`\n' > "$tmp/rep_us_md.md"
+  t 'bold key + backticked underscore path'  0 cmd_check "$tmp/rep_us_md.md"
+  printf 'Prove It / DOI or Die / Kill Your Darlings — clean\n_reports:_ kndy_2026-10-14-roles/\n' > "$tmp/rep_us_it.md"
+  t 'italic key + underscore path'           0 cmd_check "$tmp/rep_us_it.md"
+  printf 'Prove It / DOI or Die / Kill Your Darlings — clean\nreports: _lead/\n' > "$tmp/rep_us_lead.md"
+  t 'a path that begins with _ survives'     0 cmd_check "$tmp/rep_us_lead.md"
+  # And the strip must not have been doing a job: the name with its underscore REMOVED is a
+  # different directory, and naming that one still fails as cited-but-missing.
+  printf 'Prove It / DOI or Die / Kill Your Darlings — clean\nreports: kndy2026-10-14-roles/\n' > "$tmp/rep_us_gone.md"
+  t 'the underscore-less name is still absent' 1 cmd_check "$tmp/rep_us_gone.md"
 
   # THE HEADLINE CASE. The harness wrote a file per agent and every one was 0 bytes.
   # A check that only asks whether the file exists passes that run.
