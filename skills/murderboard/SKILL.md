@@ -283,81 +283,120 @@ record but a stop, and the lookup probe below is where it stops.
 
 **Before the fan-out: probe the lookup.** Roles 2 and 6 are the only roles whose sources live
 outside the repository, and a role that cannot reach them still returns a full report about
-them (issue #74 in this repository's tracker; the process file's appendix tells it).
+them ([issue #74](https://github.com/syncytium2/murderboard/issues/74); the process file's
+appendix tells it).
 
 - **Skip it only when there is nothing to look up:** no references, no named attribution, and no
-  outside method or tool. Record `Lookup: not needed` and go on to the fan-out. A probe that
-  ran and failed cannot be followed by `not needed`.
+  method, tool or library documented outside this repository. Record `Lookup: not needed` and go
+  on to the fan-out. A probe that ran and failed cannot be followed by `not needed`.
 - **Otherwise spawn role 2's `agent-name` once, by the path the roles will use** — by name, or
-  the fallback above if the name does not resolve — so it holds what role 2 will hold. In a
-  single-pass run, which has no role 2 to spawn, the main thread answers the probe itself.
+  the fallback above if the name does not resolve, and in the background if the roles will run
+  there — so it holds what role 2 will hold. A permission prompt the human answers for a
+  foreground probe can hide one a background reviewer cannot answer. In a single-pass run, the
+  main thread answers the probe itself.
 
-Fill the prompt in fresh for each run. Pick one row of the table below at random, and make the
-fake DOI from `10.1000/` plus twelve random hex characters (`openssl rand -hex 6`). Both are
-there so that the answers cannot come from memory:
+**The answer key is hashed, and that is the point.** The probing agent can read this file, so a
+key in plain text could be copied rather than looked up. Each title below is stored as the
+first 16 hex characters of the SHA-256 of its normalized form: lower case, with every run of
+characters other than letters and digits turned into one space. A title cannot be recovered
+from that, and an honest answer that differs only in case or punctuation still matches. Fill
+the prompt in fresh for each run:
 
-> Lookup probe, not a review. Use only a resolver, a registry, or a literature database —
-> doi.org, Crossref, PubMed, or similar. A search-engine result does not count.
+```bash
+doi_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))   # a row of the DOI table
+rfc_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))   # a row of the RFC table
+fake="10.1000/$(openssl rand -hex 6)"                     # a DOI made up for this run only
+key() { python3 -c 'import hashlib,re,sys,unicodedata
+t=re.sub(r"[^0-9a-z]+"," ",unicodedata.normalize("NFKD",sys.argv[1]).lower()).strip()
+print(hashlib.sha256(t.encode()).hexdigest()[:16])' "$1"; }
+```
+
+> Lookup probe, not a review. Answer each item by looking it up now, through a resolver, a
+> registry, a literature database, or a direct page fetch. A search engine does not count, and
+> neither does any file on this machine.
 >
-> 1. `<real DOI>` — reply `FOUND <title>` plus the PMID or HTTP status your route returned,
->    or `NOT FOUND`.
-> 2. `<fake DOI>` — the same.
-> 3. Fetch `https://api.crossref.org/works/<real DOI>` as a web page and quote the value of
->    `created.date-time`, or reply `CANNOT FETCH`.
+> 1. Resolve `<the DOI in row $doi_row>`. Reply `FOUND <title>` with the HTTP status or record
+>    ID your route returned, or `NOT FOUND`.
+> 2. Resolve `<$fake>` the same way.
+> 3. Fetch `https://www.rfc-editor.org/rfc/rfc<the number in row $rfc_row>.html` and reply
+>    with the document's title, or `CANNOT FETCH`.
 >
-> Then one line naming each route you used.
+> Then one line per item naming the route you used.
 
-| real DOI | title | `created.date-time` |
+| row | DOI | `key` of its title |
 |---|---|---|
-| `10.1016/j.jnutbio.2017.08.013` | Protein malnutrition after weaning disrupts peripheral clock and daily insulin secretion in mice | `2017-09-04T03:45:43Z` |
-| `10.1016/j.mimet.2018.03.010` | Real-time PCR-based method for rapid detection of Aspergillus niger and Aspergillus welwitschiae isolated from coffee | `2018-03-23T19:17:01Z` |
-| `10.1155/2016/7920631` | Small Interfering RNA Targeted to ASPP2 Promotes Progression of Experimental Proliferative Vitreoretinopathy | `2016-06-09T22:05:54Z` |
-| `10.1186/s12938-016-0298-3` | Pressure ulcer image segmentation technique through synthetic frequencies generation and contrast variation using toroidal geometry | `2017-01-13T09:21:33Z` |
-| `10.1016/j.ultsonch.2011.12.010` | Characterisation and improvement of a reference cylindrical sonoreactor | `2011-12-21T13:14:18Z` |
-| `10.4088/pcc.15l01844` | Resolution of Pathological Skin Picking With Fluvoxamine in a 74-Year-Old Dementia Patient | `2016-01-27T18:57:07Z` |
+| 1 | `10.1016/j.jnutbio.2017.08.013` | `8158b24485a47382` |
+| 2 | `10.1016/j.mimet.2018.03.010` | `c3c981a0da8ad342` |
+| 3 | `10.1155/2016/7920631` | `f2239725e003e19e` |
+| 4 | `10.1186/s12938-016-0298-3` | `4155c5c381b502f4` |
+| 5 | `10.1016/j.ultsonch.2011.12.010` | `b652e1992adf872a` |
+| 6 | `10.4088/pcc.15l01844` | `9641451be262bf12` |
 
-Every row was checked live on 2026-10-22: each DOI redirects at `doi.org`, is indexed in
-PubMed, and is little-cited enough that its title is not common knowledge. `10.1000` is the DOI
-Foundation's own prefix, and `doi.org` answers a suffix nobody registered with a 404.
-
-**What each answer proves:**
-
-| answer | proves | role it clears |
+| row | RFC | `key` of its title |
 |---|---|---|
-| real DOI `FOUND` with the table's title | the route resolves identifiers | 2 |
-| fake DOI `NOT FOUND` | the route does not answer *something* to everything | 2 |
-| the `created.date-time` matches the table | the role can read an arbitrary web page, not only a database | 6 |
+| 1 | 4691 | `9fecaf80ad677470` |
+| 2 | 5153 | `0092afed0fda5485` |
+| 3 | 6127 | `3ef3d2782e39acb6` |
+| 4 | 7058 | `b5968f1390b32c3d` |
+| 5 | 8137 | `23e9af9d35639e48` |
+| 6 | 3364 | `3033e5ed1516b9ce` |
 
-A literature connector can pass the first two and not the third. That is enough for a
-deliverable whose only outside sources are papers. It is not enough for one that rests on a
-tool's or library's documentation, which role 6 has to read. Require the halves the deliverable
-needs. Do not run the probe through `fetch_paper.py`: it fetches open-access papers rather than
+Checked live on 2026-10-22. Each DOI redirects at `doi.org`, is indexed in PubMed, is
+little-cited, and gives the same key from its Crossref and its PubMed title. Each RFC page
+serves its title. `10.1000` is the DOI Foundation's own prefix, and `doi.org` answers a suffix
+nobody registered with a 404.
+
+| item | passes when | clears |
+|---|---|---|
+| 1 | `FOUND`, and `key "<the title it gave>"` matches the row | role 2: the route resolves identifiers |
+| 2 | `NOT FOUND` | role 2: the route does not answer *something* to everything |
+| 3 | `key "<the title it gave>"` matches the row | role 6: the role can read a documentation page |
+
+A literature connector can pass items 1 and 2 and not item 3. That is enough for a deliverable
+whose outside sources are papers alone. It is not enough for one that rests on a tool's or a
+library's documentation, which role 6 has to read. Require the items the deliverable needs.
+Two limits are stated rather than hidden:
+
+- **Item 3 clears role 6 by proxy.** That holds while roles 2 and 6 have the same grant and are
+  spawned by the same path. If your copy grants them differently, give item 3 to role 6's own
+  agent.
+- **A literature database covers only itself.** Resolved through `doi.org`, items 1 and 2 test
+  every registration agency. Through Crossref or PubMed alone, a DataCite DOI (an arXiv or
+  Zenodo record) comes back missing while `doi.org` resolves it. If your route is a database,
+  name it on the `Lookup:` line, and role 2 counts identifiers outside its coverage as
+  unreached.
+
+Do not run the probe through `fetch_paper.py`. It fetches open-access papers rather than
 resolving DOIs, and the fake DOI would land on the human's `_NEEDED.md` list.
 
-- **Every half it needs comes back right** → record `Lookup: live — <route>` (step 7). Keep the
-  probe's reply, verbatim: it goes into the role-report archive (step 4b) as
-  `00-lookup-probe.md`, and the roster gate looks for it whenever a record says `live` and
-  names its archive. Then fan out.
+- **Every item it needs passes** → record `Lookup: live — <route>; roles <2 and 6 | 2>; probe
+  <$fake>` (step 7). Save the prompt as sent, your scoring of each item, and the reply to the
+  role-report archive (step 4b) as `00-lookup-probe.md` — the reply verbatim **except that
+  each title is replaced by its key**, because a plain-text title on disk answers a later run's
+  probe. The roster gate requires that file under `live`, and requires it to contain the fake
+  DOI the `Lookup:` line names, so a reply copied from an older run does not count. Then fan
+  out.
 - **Anything else** → **STOP before spawning any reviewer.** This is not a `MISMATCH` to carry
   into the ledger. It is a stop. Tell the human which route was tried and what came back, then
   look for the knob:
   ```bash
   [ -n "${SUBAGENTS:-}" ] && bash "$SUBAGENTS" --lookup --explain ; echo "exit=$?"
   ```
-  It reads the settings files for a rule that blocks a lookup: a `WebFetch` or `curl` deny, a
-  `dontAsk` mode with nothing allowed, a sandbox that denies the resolver hosts. That is the
-  shape behind #74, where the project's own settings denied `WebFetch`, `curl` and `wget`.
-  **Its exit 0 is not an all-clear.** A launch flag, or a tool missing for some other reason,
-  is in no file.
+  It reads the settings and instruction files for what blocks a lookup: a `WebFetch` or `curl`
+  deny, `dontAsk` with no lookup route allowed, a sandbox that denies the resolver hosts. That
+  is the shape behind #74, where the project's own settings denied `WebFetch`, `curl` and
+  `wget`. **Its exit 0 is not an all-clear.** A launch flag, or a tool missing for some other
+  reason, is in no file.
 
   The remedies are the human's: lift the rule for the review, run where the web is reachable,
   or grant roles 2 and 6 a literature connector (see *A connector reaches a role only through
   its grant* in `$PROCESS`). Then ask, and wait. **"Go ahead anyway" cannot buy a passing
   record**: the roster gate fails `Lookup: unavailable` however it is written.
 
-The cost gate does not count the probe as a call-up, because it carries none of the fan-out's
-vocabulary. That is harmless: it runs after the cost preflight, which has already stopped a
-blocked model.
+Spawned by name, the probe is not a call-up to the cost gate, because it carries none of the
+fan-out's vocabulary. Spawned through the fallback, its prompt is role 2's agent file, and the
+gate counts it. Both are harmless: the probe runs after the cost preflight, which has already
+stopped a blocked model.
 
 Scale to stakes in *how* you run them, never in *which* ones:
 
@@ -384,6 +423,7 @@ before you synthesize anything:
 REPORTS=docs/reviews/<artifact-stem>_<YYYY-MM-DD>-roles
 mkdir -p "$REPORTS"
 # one file per role, named after that role's agent file: 01-prove-it.md, 02-doi-or-die.md, …
+# plus 00-lookup-probe.md from step 4a. Create the directory before you save the probe's reply.
 ```
 
 Three reasons this is a step and not a nicety, in the order they bite:
@@ -455,8 +495,8 @@ The token before the dash is parsed and must be exact; everything after it is yo
 Execution: subagents — one per role, all eleven spawned
 Execution: single-pass (forced) — the Agent tool was unavailable; step 1a's probe failed
 Execution: single-pass (chosen) — a one-line caption, not worth an eleven-agent fan-out
-Lookup: live — curl to doi.org and Crossref; all three probe answers right
-Lookup: live — PubMed connector granted to role 2; a deliverable citing papers only
+Lookup: live — curl to doi.org and rfc-editor.org; roles 2 and 6; probe 10.1000/7652153ccbdc
+Lookup: live — PubMed connector granted to role 2; role 2 only; probe 10.1000/0b9e44c1d2a7
 Lookup: not needed — a caption that cites nothing and names no outside method
 ```
 

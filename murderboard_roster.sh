@@ -235,9 +235,11 @@ token_head() {
   # Strip markdown decoration left over on the far side of the label. `**Execution:**
   # subagents` keeps its closing `**` after the colon is cut, and the head would be
   # `** subagents` -- a token match away from being refused for its formatting rather
-  # than its content, which is the thing the mode line is careful not to do.
+  # than its content, which is the thing the mode line is careful not to do. The same goes
+  # for a token in backticks or bold on its own (`**Lookup: live** — x`, ``Lookup: `live` ``):
+  # decoration at either end is stripped, and the token inside is what is read.
   printf '%s' "$raw" | tr 'A-Z' 'a-z' | tr -s '[:space:]' ' ' \
-    | sed -e 's/^[]['"'"'*_|>#[:space:]]*//' -e 's/ *$//'
+    | sed -e 's/^[]['"'"'*_|>#`[:space:]]*//' -e 's/[*`[:space:]]*$//'
 }
 
 # Everything AFTER the separator. Read for exactly one purpose -- see report_execution.
@@ -339,14 +341,17 @@ execution_cause() {
 # What stops the run is the PROBE in the skill, before the fan-out. This line is the record
 # of that probe, and the gate holds the record to it:
 #
-#     Lookup: live — curl to doi.org and Crossref; all three probe answers right
-#     Lookup: live — PubMed connector granted to role 2; a deliverable citing papers only
+#     Lookup: live — curl to doi.org and rfc-editor.org; roles 2 and 6; probe 10.1000/7652153ccbdc
+#     Lookup: live — PubMed connector granted to role 2; role 2 only; probe 10.1000/0b9e44c1d2a7
 #     Lookup: not needed — the deliverable cites nothing and rests on no outside method
 #
 # `live` names no tool on purpose: any route that passes the probe is a route, and a gate
 # demanding WebFetch would fail a role 2 granted a working connector. The tool's name is not
-# the capability. What `live` must have is the probe's reply, `00-lookup-probe.md`, in the
-# archive the record names -- the one part of "the probe ran" a report-reading gate can check.
+# the capability. What `live` must have, when the record names its archive, is evidence the
+# gate can read: `00-lookup-probe.md` holding the fake DOI the Lookup: line names (so a reply
+# copied from an older run does not count), and no report from role 2 or role 6 declaring
+# sources that no route reached (`unreached: N` with N above zero), which is #74 recurring
+# after a probe that passed.
 #
 # `unavailable` FAILS, always, flag or no flag. A run that could not look anything up did
 # not do role 2's job, and the probe exists so that it stops there; a finished record that
@@ -357,13 +362,14 @@ execution_cause() {
 # is a missed failure: a list bullet (`- Lookup:`), a numbered item, a heading mark and a
 # bolded key (`**Lookup**:`) all count. And ANY Lookup: line saying `unavailable` decides it,
 # wherever it sits, so a quoted `live` earlier in the report cannot mask a real `unavailable`.
-# The reverse -- a quoted `unavailable` above a real `live` -- fails closed, and the message
-# says which line it read. Undeclared exits 0 so older records keep passing, and
-# --require-lookup is how a project opts in.
+# Two lines declaring different tokens are CONTRADICTORY and fail, as the grants gate fails a
+# role declaring two verdicts: `not needed` above `live` must not quietly drop the evidence
+# `live` requires. Every failure prints the line it read. Undeclared exits 0 so older records
+# keep passing, and --require-lookup is how a project opts in.
 lookup_grammar() {
   printf '%s  The token is parsed; everything after the dash is yours and never read:\n' "$RED" >&2
-  printf '      Lookup: live — curl to doi.org and Crossref; probe answers right\n' >&2
-  printf '      Lookup: live — PubMed connector granted to role 2\n' >&2
+  printf '      Lookup: live — <route>; roles 2 and 6; probe 10.1000/<its hex>\n' >&2
+  printf '      Lookup: live — PubMed connector; role 2 only; probe 10.1000/<its hex>\n' >&2
   printf '      Lookup: not needed — no references, attribution or outside method%s\n' "$RST" >&2
 }
 
@@ -371,22 +377,39 @@ lookup_lines() {
   grep -iE '^[[:space:]]*([-+*_|>#[:space:]]|[0-9]+\.)*Lookup[*_]*:' "$1" 2>/dev/null
 }
 
+lookup_canon() {
+  case "$1" in
+    live)                    printf 'live' ;;
+    unavailable)             printf 'unavailable' ;;
+    not\ needed|not-needed)  printf 'not needed' ;;
+    *)                       printf 'unrecognized' ;;
+  esac
+}
+
 report_lookup() {
-  local line head first=
+  local line head canon seen=
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     head=$(token_head "$line") || continue
-    [ "$head" = unavailable ] && { printf 'unavailable\n'; return; }
-    [ -n "$first" ] || first=$head
+    canon=$(lookup_canon "$head")
+    [ "$canon" = unavailable ] && { printf 'unavailable\n'; return; }
+    if [ -z "$seen" ]; then seen=$canon
+    elif [ "$seen" != "$canon" ]; then printf 'contradictory\n'; return
+    fi
   done <<EOF
 $(lookup_lines "$1")
 EOF
-  [ -n "$first" ] || { printf 'undeclared\n'; return; }
-  case "$first" in
-    live)                              printf 'live\n' ;;
-    not\ needed|not-needed)            printf 'not needed\n' ;;
-    *)                                 printf 'unrecognized\n' ;;
-  esac
+  printf '%s\n' "${seen:-undeclared}"
+}
+
+# The line a lookup verdict was read from, for the failure messages: the `unavailable` one
+# if there is one, otherwise the first.
+lookup_read_line() {
+  local all
+  all=$(lookup_lines "$1")
+  printf '%s\n' "$all" | while IFS= read -r l; do
+    [ "$(lookup_canon "$(token_head "$l")")" = unavailable ] && { printf '%s\n' "$l"; exit 0; }
+  done | head -1 | grep . || printf '%s\n' "$all" | head -1
 }
 
 # THE REPORTS LINE. The ledger says a role ran. The record's prose says what the review
@@ -582,19 +605,28 @@ EOF
     unavailable)
       # ALWAYS, flag or no flag -- see lookup_lines.
       printf '%smurderboard: a Lookup: line says unavailable — this always fails%s\n' "$RED" "$RST" >&2
-      printf '%s  Roles 2 and 6 could not reach any source outside the repository, so their\n' "$RED" >&2
+      printf '%s  read: %s\n' "$RED" "$(lookup_read_line "$report")" >&2
+      printf '  Roles 2 and 6 could not reach any source outside the repository, so their\n' >&2
       printf '  checks did not happen; a reference never looked up is not a checked one.\n' >&2
       printf '  To fix it:\n' >&2
       printf '    1. murderboard_subagents.sh --lookup --explain   (finds a blocking rule)\n' >&2
       printf '    2. give roles 2 and 6 a working route: web access, or a literature\n' >&2
       printf '       connector added to their grant (see doc_review_process.md)\n' >&2
       printf '    3. run the lookup probe again, then the whole review\n' >&2
-      printf '  If the deliverable cites nothing and uses no outside method or tool, write\n' >&2
-      printf '  "Lookup: not needed" instead.%s\n' "$RST" >&2
+      printf '  "Lookup: not needed" is for a deliverable that never needed a lookup: no\n' >&2
+      printf '  references, attribution, or outside method or tool. It is not a way out\n' >&2
+      printf '  of a probe that ran and failed.%s\n' "$RST" >&2
+      return 1
+      ;;
+    contradictory)
+      printf '%smurderboard: Lookup: lines in this report declare different tokens%s\n' "$RED" "$RST" >&2
+      printf '%s  The gate will not pick one. Keep the line that is true, and break or remove\n' "$RED" >&2
+      printf '  any quoted example; a live run and a not-needed run require different things.%s\n' "$RST" >&2
       return 1
       ;;
     unrecognized)
       printf '%smurderboard: the Lookup: line does not start with a known token%s\n' "$RED" "$RST" >&2
+      printf '%s  read: %s%s\n' "$RED" "$(lookup_read_line "$report")" "$RST" >&2
       lookup_grammar
       return 1
       ;;
@@ -636,15 +668,39 @@ EOF
     check_reports_dir "$dir" || return 1
     reports="$dir"
     # `live` claims the probe ran. Its reply is the evidence, filed beside the role reports
-    # as 00-lookup-probe.md, and an archive without it holds the claim and not the proof.
+    # under exactly this name, and it must carry the fake DOI this record's Lookup: line
+    # names -- an archive without it, or with an older run's reply, holds the claim and not
+    # the proof. And roles 2 and 6 must not have declared sources no route reached.
     if [ "$lookup" = live ]; then
-      local probe
-      if ! probe=$(role_report_file "$dir" 0) || [ ! -s "$probe" ]; then
+      local probe="$dir/00-lookup-probe.md" fake r n
+      if [ ! -s "$probe" ]; then
         printf '%smurderboard: Lookup: live, but %s holds no 00-lookup-probe.md%s\n' "$RED" "$dir" "$RST" >&2
-        printf '%s  Save the lookup probe'\''s reply there, verbatim, as the role reports are;\n' "$RED" >&2
-        printf '  without it, nothing shows that the probe ran.%s\n' "$RST" >&2
+        printf '%s  Save the probe'\''s reply there as the skill describes, if you kept it. If\n' "$RED" >&2
+        printf '  you did not, run the probe again; never reconstruct a reply.%s\n' "$RST" >&2
         return 1
       fi
+      fake=$(lookup_lines "$report" | grep -oE '10\.1000/[0-9a-fA-F]{12}' | head -1)
+      if [ -z "$fake" ]; then
+        printf '%smurderboard: Lookup: live names no probe DOI (10.1000/ + 12 hex)%s\n' "$RED" "$RST" >&2
+        printf '%s  End the line with "probe <the fake DOI this run used>" so the archived\n' "$RED" >&2
+        printf '  reply can be tied to this run.%s\n' "$RST" >&2
+        return 1
+      fi
+      if ! grep -qiF "$fake" "$probe"; then
+        printf '%smurderboard: 00-lookup-probe.md does not contain %s%s\n' "$RED" "$fake" "$RST" >&2
+        printf '%s  The reply on file is not from the probe this record names.%s\n' "$RED" "$RST" >&2
+        return 1
+      fi
+      for r in 2 6; do
+        n=$(role_report_file "$dir" "$r" 2>/dev/null) || continue
+        n=$(grep -ioE 'unreached:[[:space:]]*[0-9]+' "$n" | grep -oE '[0-9]+$' | sort -rn | head -1)
+        if [ -n "$n" ] && [ "$n" -gt 0 ]; then
+          printf '%smurderboard: role %s reports unreached: %s under Lookup: live%s\n' "$RED" "$r" "$n" "$RST" >&2
+          printf '%s  The probe passed, then the route failed during the review. That is the\n' "$RED" >&2
+          printf '  stop the probe exists for, arriving late: fix the route and re-run.%s\n' "$RST" >&2
+          return 1
+        fi
+      done
     fi
   fi
 
@@ -948,12 +1004,36 @@ MB
   # `live` with an archive must carry the probe's reply: the claim and its evidence.
   mkdir -p "$tmp/lkroles"
   cp "$tmp/roles/"*.md "$tmp/lkroles/"
-  printf '%b' "${L}Lookup: live — WebFetch\nreports: lkroles/\n" > "$tmp/lk_arch.md"
+  printf '%b' "${L}Lookup: live — curl; roles 2 and 6; probe 10.1000/0123456789ab\nreports: lkroles/\n" > "$tmp/lk_arch.md"
   t 'live + archive without 00-lookup-probe FAILS' 1 cmd_check "$tmp/lk_arch.md"
+  # The NAME is the contract: any other file numbered 0 is not the probe's reply.
+  printf 'notes\n' > "$tmp/lkroles/0-notes.md"
+  t 'a different file numbered 0 does not count' 1 cmd_check "$tmp/lk_arch.md"
+  rm -f "$tmp/lkroles/0-notes.md"
   : > "$tmp/lkroles/00-lookup-probe.md"
   t 'live + an EMPTY 00-lookup-probe FAILS' 1 cmd_check "$tmp/lk_arch.md"
-  printf 'FOUND …\nNOT FOUND\n' > "$tmp/lkroles/00-lookup-probe.md"
-  t 'live + archive with the probe reply passes' 0 cmd_check "$tmp/lk_arch.md"
+  # An older run's reply, copied in, names a different fake DOI.
+  printf '2. 10.1000/ffffffffffff NOT FOUND\n' > "$tmp/lkroles/00-lookup-probe.md"
+  t 'a reply from another probe FAILS'  1 cmd_check "$tmp/lk_arch.md"
+  printf '1. FOUND [key 8158b24485a47382]\n2. 10.1000/0123456789ab NOT FOUND\n' > "$tmp/lkroles/00-lookup-probe.md"
+  t 'live + this run'\''s probe reply passes' 0 cmd_check "$tmp/lk_arch.md"
+  printf '%b' "${L}Lookup: live — curl\nreports: lkroles/\n" > "$tmp/lk_nofake.md"
+  t 'live + archive, no probe DOI on the line FAILS' 1 cmd_check "$tmp/lk_nofake.md"
+  # #74 again, after a probe that passed: role 2 says no route reached three sources.
+  cp "$tmp/lkroles/02-doi-or-die.md" "$tmp/02.bak"
+  printf 'role 2 said things\nunreached: 3\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'role 2 unreached: 3 under live FAILS' 1 cmd_check "$tmp/lk_arch.md"
+  printf 'role 2 said things\nunreached: 0\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'role 2 unreached: 0 under live passes' 0 cmd_check "$tmp/lk_arch.md"
+  mv "$tmp/02.bak" "$tmp/lkroles/02-doi-or-die.md"
+  # Two tokens is a contradiction, never a choice.
+  printf '%b' "${L}Lookup: not needed — example\nLookup: live — curl; probe 10.1000/0123456789ab\nreports: lkroles/\n" > "$tmp/lk_two.md"
+  t 'not needed above live is contradictory' 1 cmd_check "$tmp/lk_two.md"
+  # Decoration around the token itself is formatting, not content.
+  printf '%b' "${L}**Lookup: live** — curl\n" > "$tmp/lk_boldall.md"
+  t 'a fully bolded line is read'        0 cmd_check "$tmp/lk_boldall.md"
+  printf '%b' "${L}Lookup: \`live\` — curl\n" > "$tmp/lk_tick.md"
+  t 'a backticked token is read'         0 cmd_check "$tmp/lk_tick.md"
   # not needed claims no probe, so it needs no reply on file.
   printf '%b' "${L}Lookup: not needed — nothing cited\nreports: roles/\n" > "$tmp/lk_nn_arch.md"
   t 'not needed + archive needs no probe reply' 0 cmd_check "$tmp/lk_nn_arch.md"

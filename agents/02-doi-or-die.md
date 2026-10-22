@@ -92,11 +92,15 @@ paper you only half-remember: get the text or flag the paper.
   route covers before reading its silence. NCBI's ID converter returns IDs only for articles
   in PubMed Central, so it answers *"Identifier not found in PMC"* for a paper PubMed indexes
   perfectly well; through a connector the same miss can arrive as an empty record with no
-  error at all (an instance is in the appendix). Before reporting a citation as
-  unresolvable, try a second route.
-  **Count what no route reached**, separately from what was paywalled or simply not found,
-  and report the number. Above zero, the main thread stops before synthesis: the route the
-  lookup probe confirmed did not hold for the whole review.
+  error at all (an instance is in the appendix). A database answers only for what it holds:
+  Crossref and PubMed have no record of a DataCite DOI, such as an arXiv or Zenodo one, that
+  `doi.org` resolves. Before reporting a citation as unresolvable, try a second route, and
+  prefer `doi.org`, which answers for every registration agency.
+  **Count what no route reached** — a source your route could not connect to, errored on, or
+  does not cover, as opposed to one a registry answered "no such record" for, or a paper
+  behind a paywall. Put the count on a line of its own, `unreached: N`. Above zero, the main
+  thread stops before synthesis, because a route that passed the lookup probe stopped
+  working during the review; the roster gate fails a `live` record whose archive shows it.
 - **How to establish the origin.** Open the cited work's own references for the claim and follow
   them backwards until they stop. **Report where you stopped and why** — "the root is paywalled,
   verified to one step short" is a finding; silence is not. Prefer the root and cite later work

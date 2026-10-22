@@ -43,10 +43,10 @@
 #   murderboard_subagents.sh --explain       add the remedy for each finding
 #   murderboard_subagents.sh --lookup        scan instead for what stops roles 2 and 6 from
 #                                            reaching a source: a WebFetch or curl deny,
-#                                            dontAsk with nothing allowed, a sandbox denying
-#                                            the resolvers (issue #74 was the first). Same
-#                                            files, same exit codes, same limit: the lookup
-#                                            PROBE is the check, this names the knob.
+#                                            dontAsk with no lookup route allowed, a sandbox
+#                                            denying the resolvers (issue #74 is the case on
+#                                            record). Same files, same exit codes, same limit:
+#                                            the lookup PROBE is the check; this names the knob.
 #   murderboard_subagents.sh --root PATH     repo root to scan (default: git root, else cwd)
 #   murderboard_subagents.sh --config-dir P  stand in for ~/.claude (default: CLAUDE_CONFIG_DIR)
 #   murderboard_subagents.sh --managed PATH  managed-settings.json (default: per platform)
@@ -189,13 +189,17 @@ if scan == "lookup":
             return None
         name, arg = m.group(1), m.group(2)
         if name.lower().startswith("mcp__"):
-            return "WARN" if "*" in name or "?" in name else None
+            return "WARN"                                 # a connector route, removed
         if arg is None:                                   # a whole tool, or a name glob
+            if name in ("Bash", "PowerShell"):
+                return "BLOCK"                            # the shell route goes with it
             return "BLOCK" if fnmatch.fnmatch("WebFetch", name) else None
         if name == "WebFetch":
             d = re.match(r"^\s*domain:(.+)$", arg)
             return "BLOCK" if (d is None or covers_resolver(d.group(1))) else None
         if name in ("Bash", "PowerShell"):
+            if arg.strip() in ("*", ":*", ""):
+                return "BLOCK"                            # `Bash(*)` is the whole shell
             words = arg.replace(":", " ").split()
             if not words:
                 return None
@@ -220,8 +224,11 @@ if scan == "lookup":
     # dontAsk auto-denies anything not pre-approved, so there an allow list IS restrictive.
     mode = (cfg.get("permissions") or {}).get("defaultMode") if isinstance(cfg.get("permissions"), dict) else None
     if mode == "dontAsk":
-        allow = entries("permissions", "allow")
-        if not any(lookup_verdict(a) == "BLOCK" or a.strip().startswith("mcp__") for a in allow):
+        # An allow entry is a route if, read as a deny, it would have removed one: WebFetch
+        # or a resolver domain, the shell or a fetcher in it, a connector.
+        def opens_route(a):
+            return lookup_verdict(a) is not None
+        if not any(opens_route(a) for a in entries("permissions", "allow")):
             print("BLOCK\t%s: permissions.defaultMode is dontAsk and nothing in permissions.allow "
                   "lets a lookup through (WebFetch, curl, or a connector)" % path)
 
@@ -298,8 +305,8 @@ PYEOF
     [ -n "${kind:-}" ] || continue
     if [ "$SCAN" = lookup ]; then
       case "$kind" in
-        BLOCK) block "$text" "lift the rule for the review, or grant roles 2 and 6 a literature connector (see the process file), then re-run the lookup probe" ;;
-        WARN)  warn  "$text" "confirm that rule leaves roles 2 and 6 a working route; the lookup probe settles it" ;;
+        BLOCK) block "$text" "lift it for this review, or grant roles 2 and 6 a connector" ;;
+        WARN)  warn  "$text" "check it leaves roles 2 and 6 a route; the lookup probe decides" ;;
         UNDET) undet "$text" ;;
       esac
       continue
@@ -406,7 +413,7 @@ report_lookup_scan() {
     if [ -n "$OUT" ]; then
       printf 'murderboard: no lookup blocker found, but read the warnings below.\n'
     else
-      printf '%smurderboard: no lookup blocker found in the readable settings files.%s\n' "$GRN" "$RST"
+      printf '%smurderboard: no lookup blocker found in the readable settings and instruction files.%s\n' "$GRN" "$RST"
     fi
     printf '%s' "$OUT"
   else
@@ -418,7 +425,7 @@ report_lookup_scan() {
   fi
   # Issue #74's cause WAS in a file -- the project's settings denied WebFetch, curl and wget --
   # and this scan finds that shape. What it cannot see is everything outside the files.
-  printf '%sThis scan reads files. It cannot see a launch flag, a tool missing for some other\nreason, or which literature connectors are attached. A clean scan is NOT proof a\nreference can be looked up; only the lookup probe proves that.%s\n' "$DIM" "$RST"
+  printf '%sThis scan reads files. It cannot see a launch flag, a tool missing for another\nreason, or which literature connectors are attached. A clean scan is NOT proof\na reference can be looked up; only the lookup probe proves that.%s\n' "$DIM" "$RST"
 }
 
 cmd_scan() {
@@ -517,7 +524,7 @@ cmd_selftest() {
   # The two scans must not bleed into each other: each one's blocker is the other's non-event.
   t 'lookup: deny Task is not a lookup blocker'   0 "$tmp/deny" "$tmp/cfgnull" lookup
   t 'subagents: deny WebFetch is not a subagent blocker' 0 "$tmp/wf" "$tmp/cfgnull"
-  # A bare Bash deny is a louder problem than this scan names, and must not read as one.
+  # A Bash rule scoped to something other than a fetch leaves the curl route alone.
   mkdir -p "$tmp/bash/.claude"
   printf '{"permissions":{"deny":["Bash(rm:*)"]}}\n' > "$tmp/bash/.claude/settings.json"
   t 'lookup: an unrelated Bash deny -> exit 0' 0 "$tmp/bash" "$tmp/cfgnull" lookup
@@ -530,7 +537,8 @@ cmd_selftest() {
     mkdir -p "$d/.claude"; printf '%s\n' "$3" > "$d/.claude/settings.json"
     t "lookup: $1" "$2" "$d" "$tmp/cfgnull" lookup
   }
-  # THE #74 SHAPE, as the consumer's committed settings actually had it.
+  # THE #74 SHAPE: the fetch-related entries of the consumer's committed deny list, plus one
+  # of its unrelated ones.
   lk 'the issue #74 deny list -> exit 1' 1 \
      '{"permissions":{"deny":["Bash(rm -rf:*)","Bash(curl:*)","Bash(wget:*)","WebFetch"]}}'
   # Scoped rules block only what they match (permissions documentation).
@@ -547,10 +555,20 @@ cmd_selftest() {
   # WebSearch is not a lookup route: a search hit is not a resolution.
   lk 'deny WebSearch alone -> exit 0'    0 '{"permissions":{"deny":["WebSearch"]}}'
   # dontAsk turns "not pre-approved" into "denied".
-  lk 'dontAsk with nothing allowed -> exit 1' 1 \
+  lk 'dontAsk with no lookup route allowed -> exit 1' 1 \
      '{"permissions":{"defaultMode":"dontAsk","allow":["Read"]}}'
   lk 'dontAsk with WebFetch allowed -> exit 0' 0 \
      '{"permissions":{"defaultMode":"dontAsk","allow":["WebFetch"]}}'
+  lk 'dontAsk with the whole shell allowed -> exit 0' 0 \
+     '{"permissions":{"defaultMode":"dontAsk","allow":["Bash"]}}'
+  lk 'dontAsk with curl to doi.org allowed -> exit 0' 0 \
+     '{"permissions":{"defaultMode":"dontAsk","allow":["Bash(curl https://doi.org/*)"]}}'
+  # Denying the whole shell removes the curl route with it.
+  lk 'deny the whole shell -> exit 1'    1 '{"permissions":{"deny":["Bash"]}}'
+  lk 'deny Bash(*) -> exit 1'            1 '{"permissions":{"deny":["Bash(*)"]}}'
+  # A connector named outright is a route removed: worth a warning, not a verdict.
+  lk 'deny a connector -> exit 0 (a warning)' 0 \
+     '{"permissions":{"deny":["mcp__plugin_bio-research_pubmed"]}}'
   lk 'sandbox denying doi.org -> exit 1' 1 '{"sandbox":{"network":{"deniedDomains":["doi.org"]}}}'
   # Prose is a WARN under --lookup, and a WARN must still be SHOWN on the clean path.
   mkdir -p "$tmp/lprose/.claude"

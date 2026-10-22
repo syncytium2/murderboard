@@ -88,5 +88,5 @@ looser or specially-tuned settings validates a *different* tool than the one tha
 results; re-run at the production settings and report the true score. And confirm a reported
 metric counts what the prose says it counts (e.g. "9/10 real bursts flagged" vs "9/10 mixed cases
 classified" are different claims). **Read the page, not a search snippet of it**, and count
-the sources no route reached, as role 2 does; above zero, the main thread stops before
-synthesis.
+the sources no route reached on an `unreached: N` line, as role 2 does; above zero, the main
+thread stops before synthesis.

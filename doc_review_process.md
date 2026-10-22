@@ -164,20 +164,25 @@ No fabricated or approximate citation. No internal contradiction. No filler.
    - **Confirm the lookup works BEFORE the fan-out, too — a second probe, for roles 2 and 6.**
      They are the only roles whose sources live outside the repository, and a role that cannot
      reach its sources still returns a full report about them. If the deliverable has no
-     references, no named attribution and no outside method, there is nothing to look up:
-     record `Lookup: not needed` and skip it. Otherwise give role 2's own agent (or, in a
-     single-pass run, the main thread) three tasks it cannot answer from memory:
-     1. resolve a little-cited real DOI, which must come back with its exact title;
+     references, no named attribution, and no method, tool or library documented outside this
+     repository, there is nothing to look up: record `Lookup: not needed` and skip it.
+     Otherwise give role 2's own agent (or, in a single-pass run, the main thread) three items
+     it can answer only by looking them up:
+     1. resolve a little-cited real DOI, which must come back with its title;
      2. resolve a DOI made up fresh for this run, which must come back *not found*;
-     3. read an arbitrary web page and quote a value from it.
+     3. fetch a documentation page — an obscure RFC — and return its title.
 
-     The first two clear role 2, and the third clears role 6, which reads documentation rather
-     than databases. A *route* is whatever does the looking: WebFetch, a shell fetch such as
-     `curl`, or a literature connector. Any route counts, except a search engine: a search hit
-     is not a resolution. If a half the deliverable needs fails, **the run stops before any
-     reviewer is spawned.** It is not recorded as a missing tool and carried on. The skill
-     holds the probe's prompt and its answer key; the record carries a `Lookup:` line (see
-     *Output contract*), and the appendix tells the incident behind this (issue #74).
+     Items 1 and 2 clear role 2; item 3 clears role 6, which reads documentation rather than
+     databases. A *route* is whatever does the looking: WebFetch, a shell fetch such as `curl`,
+     or a literature connector. Any route counts, except a search engine (a search hit is not a
+     resolution) and except a file on the machine. If an item the deliverable needs fails,
+     **the run stops before any reviewer is spawned**, rather than being recorded as a missing
+     tool and carried on. The prompt and its answer key are in the skill's step 4a, under
+     *Before the fan-out: probe the lookup*; a review run by hand opens the vendored skill for
+     them. The key is hashed, so the agent being probed cannot read the answers off the page.
+     The record carries a `Lookup:` line (see *Output contract*), and the appendix tells the
+     incident behind this
+     ([issue #74](https://github.com/syncytium2/murderboard/issues/74)).
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
    See **"The team is not optional"** below.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
@@ -433,11 +438,15 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      route covers before reading its silence. NCBI's ID converter returns IDs only for articles
      in PubMed Central, so it answers *"Identifier not found in PMC"* for a paper PubMed indexes
      perfectly well; through a connector the same miss can arrive as an empty record with no
-     error at all (an instance is in the appendix). Before reporting a citation as
-     unresolvable, try a second route.
-     **Count what no route reached**, separately from what was paywalled or simply not found,
-     and report the number. Above zero, the main thread stops before synthesis: the route the
-     lookup probe confirmed did not hold for the whole review.
+     error at all (an instance is in the appendix). A database answers only for what it holds:
+     Crossref and PubMed have no record of a DataCite DOI, such as an arXiv or Zenodo one, that
+     `doi.org` resolves. Before reporting a citation as unresolvable, try a second route, and
+     prefer `doi.org`, which answers for every registration agency.
+     **Count what no route reached** — a source your route could not connect to, errored on, or
+     does not cover, as opposed to one a registry answered "no such record" for, or a paper
+     behind a paywall. Put the count on a line of its own, `unreached: N`. Above zero, the main
+     thread stops before synthesis, because a route that passed the lookup probe stopped
+     working during the review; the roster gate fails a `live` record whose archive shows it.
    - **How to establish the origin.** Open the cited work's own references for the claim and follow
      them backwards until they stop. **Report where you stopped and why** — "the root is paywalled,
      verified to one step short" is a finding; silence is not. Prefer the root and cite later work
@@ -657,8 +666,8 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
    results; re-run at the production settings and report the true score. And confirm a reported
    metric counts what the prose says it counts (e.g. "9/10 real bursts flagged" vs "9/10 mixed cases
    classified" are different claims). **Read the page, not a search snippet of it**, and count
-   the sources no route reached, as role 2 does; above zero, the main thread stops before
-   synthesis.
+   the sources no route reached on an `unreached: N` line, as role 2 does; above zero, the main
+   thread stops before synthesis.
 7. **Reuse auditor — "Reinventing the Wheel."** When the analysis code **re-implements something the project already
    does in tested production code**, flag it and check two things: (a) should the new code
    just **call the existing code** instead of duplicating it? and (b) where it does
@@ -984,11 +993,15 @@ have a reason — that keeps the grant and the checklist in the same place, whic
 | 10 | Ship It | Read, Grep, Glob, Bash | inherit |
 | 11 | Start With the Problem | Read, Grep, Glob | inherit |
 
-**A connector reaches a role only through its grant.** The table names no connector, because
-their names are the consumer's, and a role compiled with an explicit tool list receives what
-the list names and nothing more. If a connector is your route, add its server to rows 2 and 6
-**in your copy** of the table, re-run `murderboard_agents.py write`, and let the lookup probe
-confirm it.
+**A connector reaches a role only through its grant.** A *connector* is an MCP server attached
+to your session — a PubMed or bioRxiv integration, say — whose tools are named
+`mcp__<server>__<tool>`. The table names none, because their names are the consumer's, and a
+role compiled with an explicit tool list receives what the list names and nothing more. If a
+connector is your route, add its server to rows 2 and 6 **in your copy** of the table, re-run
+`murderboard_agents.py write`, and let the lookup probe confirm it. ⚠ That copy is then a
+locally adapted file: `murderboard_revendor.py` will not overwrite it, and every later upstream
+change to this file has to be merged into it by hand. A grant read from the consumer's own
+configuration instead would avoid that, and it is not built.
 
 Claude Code's subagent `tools:` field takes a whole-server entry with a required trailing
 `__*`: `mcp__<server>__*`, or `mcp__plugin_<plugin>_<server>__*` for a plugin's server and
@@ -1339,39 +1352,44 @@ the 2026-08-26 block was in none of the files any scan can read. The spawn is th
 scan is the hint.
 
 **The record also declares whether roles 2 and 6 could reach their sources**, on a `Lookup:`
-line parsed the same way as `Execution:` — a stated token, then prose the gate never reads:
+line. Its token is read the way `Execution:`'s is — stated, then prose the gate never reads —
+but the line is matched more widely (a list bullet, a numbered item, a bold key all count),
+because here a missed line is a missed failure:
 
 ```
-Lookup: live — curl to doi.org and Crossref; all three probe answers right
-Lookup: live — PubMed connector granted to role 2; a deliverable citing papers only
-Lookup: not needed — the deliverable cites nothing and rests on no outside method
+Lookup: live — curl to doi.org and rfc-editor.org; roles 2 and 6; probe 10.1000/7652153ccbdc
+Lookup: live — PubMed connector granted to role 2; role 2 only; probe 10.1000/0b9e44c1d2a7
+Lookup: not needed — the deliverable cites nothing and rests on no outside method or tool
 ```
 
 | token | honest when | the gate, by default | under `--require-lookup` |
 |---|---|---|---|
-| `live` | the lookup probe passed every half the deliverable needs | passes; if the record names its archive, that archive must hold `00-lookup-probe.md` | passes, with the same condition |
-| `not needed` | no references, no named attribution, no outside method; never after a probe that failed | passes | passes |
+| `live` | the lookup probe passed every item the deliverable needs | passes; if the record names its archive, that archive must hold `00-lookup-probe.md` containing the probe DOI the line names, and no `unreached:` count above zero from role 2 or 6 | passes, with the same conditions |
+| `not needed` | no references, no named attribution, no outside method or tool; never after a probe that failed | passes | passes |
 | `unavailable` | never, in a finished record: the run should have stopped at the probe | **fails** | **fails** |
 | *(no line)* | records written before this line existed | passes, reported as undeclared | **fails** |
 
-**`live` certifies the route, not the references:** it says the probe passed, so roles 2 and 6
-could look things up. Whether each citation in the deliverable checked out is in role 2's
-report. `live` names no tool on purpose. The tool is not the capability, and a gate demanding
-WebFetch would fail a run whose role 2 was granted a working connector. `not needed` is the author's
-claim, and roles 2 and 6 can contest it in their reports. Undeclared passes by default for the
-reason the other declaration lines do: this file is vendored, and reddening every older record
-gets the gate removed rather than the records fixed.
+Two lines declaring different tokens fail, as a contradiction; the gate does not pick one.
+
+**`live` certifies the route, not the references:** it says the probe passed, so the roles the
+line names could look things up. Name them after the dash — `roles 2 and 6`, or `role 2 only`
+when the route was a literature connector that cannot open a documentation page. Whether each
+citation checked out is in role 2's report. `live` names no tool on purpose: a gate demanding
+WebFetch would fail a run whose role 2 was granted a working connector. `not needed` is the
+author's claim, and roles 2 and 6 can contest it. Undeclared passes by default for the reason
+the other declaration lines do: this file is vendored, and reddening every older record gets
+the gate removed rather than the records fixed.
 
 ```
 murderboard_roster.sh check --require-lookup REPORT.md   # undeclared lookup is a failure
 ```
 
-When the probe fails, `murderboard_subagents.sh --lookup` names the blocking rule if a
-settings file holds one: a `WebFetch` or `curl` deny, `dontAsk` mode with nothing allowed, or a
-sandbox that denies the resolver hosts. That was the shape behind issue #74, where the project's
-own settings denied `WebFetch`, `curl` and `wget`. Like the subagent scan, it reads files, and
-says so whenever it prints: a launch flag, or a tool missing for another reason, is in none of
-them.
+When the probe fails, `murderboard_subagents.sh --lookup` reads the settings and instruction
+files and names a blocking rule if one is there: a `WebFetch` or `curl` deny, a deny on the
+whole shell, `dontAsk` with no lookup route allowed, or a sandbox whose `deniedDomains` cover
+the resolvers. That was the shape behind issue #74, where the project's own settings denied
+`WebFetch`, `curl` and `wget`. Like the subagent scan, it reads files and says so whenever it
+prints: a launch flag, or a tool missing for another reason, is in none of them.
 
 Because the roster is derived, adding a role here propagates to every consumer's check with no
 edit anywhere else. A failing check does not mean "write more" — it means a role either never

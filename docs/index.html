@@ -697,8 +697,8 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
       <li>
         <time datetime="2026-10-22">2026-10-22</time>
         <div>
-          <b>A citation checker that cannot look anything up now stops the review</b>
-          <p>A review carried on after its citation checker said it had no web access, and every check still passed: the checker&rsquo;s own project settings blocked the web. Before any reviewer starts, the skill now asks for a little-known paper&rsquo;s exact title, a made-up DOI that must come back not found, and a value read off a web page. None of these can be answered from memory. The report must record the result, and &ldquo;unavailable&rdquo; always fails. <a class="more" href="https://github.com/syncytium2/murderboard/pull/80">Details &#8250; #80</a></p>
+          <b>Reviewers who cannot reach their sources now halt the review before it starts</b>
+          <p>A review carried on after its citation checker said it had no web access. The review&rsquo;s own checks still passed, though no reference had been looked up: the project&rsquo;s settings blocked the web. Before any reviewer starts, the skill now has the citation checker look up a little-known paper&rsquo;s title, confirm that a DOI made up for that run does not exist, and fetch a documentation page. The answer key is hashed, so the answers have to be looked up rather than recalled or read off the page. The report records the result, and a report saying the reviewers could not reach their sources fails the check. <a class="more" href="https://github.com/syncytium2/murderboard/pull/80">Details &#8250; #80</a></p>
         </div>
       </li>
       <li>
@@ -1193,10 +1193,10 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
             <td>Reads the list of roles out of the process document, never from memory, and checks the
             finished report accounts for all of them. Add a role upstream and every copy's check picks
             it up as soon as that copy is refreshed &mdash; with no script edit anywhere. It also
-            fails a report that says its citation checker could not reach any source.</td>
+            fails a report that says its reviewers could not reach their sources.</td>
             <td class="exits">
               <span class="pill ok">0</span>all present<br>
-              <span class="pill warn">1</span>a role is missing, or its sources were out of reach<br>
+              <span class="pill warn">1</span>a role is missing<br>
               <span class="pill unk">2</span>could not tell
             </td>
           </tr>
