@@ -138,6 +138,7 @@ import json, re, sys
 
 path = sys.argv[1]
 scan = sys.argv[2] if len(sys.argv) > 2 else "subagents"
+import os
 try:
     with open(path, encoding="utf-8") as fh:
         cfg = json.load(fh)
@@ -222,7 +223,6 @@ if scan == "lookup":
                 return "BLOCK"                            # a fetch aimed at a resolver
             return "WARN"                                 # scoped to something else
         return None
-        return None
 
     for key, kind in (("deny", None), ("ask", "ask")):
         for rule in entries("permissions", key):
@@ -244,9 +244,22 @@ if scan == "lookup":
         # probe settles whether it reaches anything.
         def opens_route(a):
             return lookup_verdict(a) == "BLOCK" or a.strip().lower().startswith("mcp__")
-        if not any(opens_route(a) for a in entries("permissions", "allow")):
-            print("BLOCK\t%s: permissions.defaultMode is dontAsk and nothing in permissions.allow "
-                  "lets a lookup through (WebFetch, curl, or a connector)" % path)
+        # Claude Code merges permissions.allow across the settings files, so a route allowed
+        # in ANY of them counts -- not only in the file that sets dontAsk.
+        allow = []
+        for other in [p for p in os.environ.get("MB_SETTINGS_FILES", "").split("\n") if p]:
+            try:
+                with open(other, encoding="utf-8") as fh:
+                    oc = json.load(fh)
+                op = oc.get("permissions") if isinstance(oc, dict) else None
+                if isinstance(op, dict) and isinstance(op.get("allow"), list):
+                    allow += [a for a in op["allow"] if isinstance(a, str)]
+            except Exception:
+                pass
+        allow += entries("permissions", "allow")
+        if not any(opens_route(a) for a in allow):
+            print("BLOCK\t%s: permissions.defaultMode is dontAsk and no settings file's "
+                  "permissions.allow lets a lookup through (WebFetch, curl, or a connector)" % path)
 
     sandbox = cfg.get("sandbox") if isinstance(cfg.get("sandbox"), dict) else {}
     net = sandbox.get("network") if isinstance(sandbox.get("network"), dict) else {}
@@ -254,6 +267,13 @@ if scan == "lookup":
         if isinstance(d, str) and covers_resolver(d):
             print("BLOCK\t%s: sandbox.network.deniedDomains has %r — a sandboxed shell "
                   "fetch cannot reach the resolvers" % (path, d))
+    # An allow list that names no resolver may leave them unreachable from a sandboxed shell.
+    # WARN, not BLOCK: whether an unlisted host is refused depends on sandbox settings this
+    # scan does not model.
+    allowed = [d for d in (net.get("allowedDomains") or []) if isinstance(d, str)]
+    if allowed and not any(covers_resolver(d) for d in allowed):
+        print("WARN\t%s: sandbox.network.allowedDomains names no resolver — a sandboxed "
+              "shell fetch may not reach them" % path)
 
     hooks = cfg.get("hooks")
     if isinstance(hooks, dict):
@@ -382,6 +402,11 @@ run_scan() {
   cfgdir="${CONFIG_DIR:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}}"
   managed="${MANAGED:-$(default_managed)}"
 
+  # Every settings file, for the checks that read them together (dontAsk's allow rules merge).
+  MB_SETTINGS_FILES=$(printf '%s\n' "$managed" "$cfgdir/settings.json" "$cfgdir/settings.local.json" \
+                      "$root/.claude/settings.json" "$root/.claude/settings.local.json")
+  export MB_SETTINGS_FILES
+
   # Precedence order, weakest last. Reported in the order a human would go looking.
   scan_json "$managed"
   scan_json "$cfgdir/settings.json"
@@ -457,6 +482,7 @@ cmd_scan() {
 # than none: it is a standing all-clear.
 cmd_selftest() {
   local pass=0 fail=0
+  SCAN=subagents   # each test names its mode; a --lookup on the command line must not leak in
   MB_TMP=$(mktemp -d) || die "selftest: mktemp failed"
   trap 'rm -rf "$MB_TMP"' EXIT
   local tmp="$MB_TMP"
@@ -586,6 +612,13 @@ cmd_selftest() {
   lk 'deny a connector -> exit 0 (a warning)' 0 \
      '{"permissions":{"deny":["mcp__plugin_bio-research_pubmed"]}}'
   lk 'sandbox denying doi.org -> exit 1' 1 '{"sandbox":{"network":{"deniedDomains":["doi.org"]}}}'
+  lk 'sandbox allow list without a resolver -> exit 0 (a warning)' 0 \
+     '{"sandbox":{"network":{"allowedDomains":["github.com"]}}}'
+  # dontAsk in one file, the route allowed in another: the allow rules merge, so no blocker.
+  mkdir -p "$tmp/merge/.claude" "$tmp/mergecfg"
+  printf '{"permissions":{"defaultMode":"dontAsk","allow":["Read"]}}\n' > "$tmp/mergecfg/settings.json"
+  printf '{"permissions":{"allow":["WebFetch"]}}\n' > "$tmp/merge/.claude/settings.json"
+  t 'lookup: dontAsk here, WebFetch allowed there -> exit 0' 0 "$tmp/merge" "$tmp/mergecfg" lookup
   # The probe's own documentation host, item 3, is a resolver for this purpose.
   lk 'WebFetch denied for rfc-editor.org -> exit 1' 1 \
      '{"permissions":{"deny":["WebFetch(domain:rfc-editor.org)"]}}'

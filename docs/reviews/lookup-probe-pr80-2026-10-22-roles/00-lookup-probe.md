@@ -2,6 +2,10 @@
 
 ## Prompt as sent (DOI row 2, RFC row 1, drawn at random; fake DOI made for this run)
 
+This probe ran on an earlier revision of the prompt. The final one in SKILL.md step 4a also asks
+for what the route returned on a miss, names a registry record as enough for items 1 and 2, and
+asks for the RFC title "in the page's heading, without the RFC number".
+
 Lookup probe, not a review. Answer each item by looking it up now, through a resolver, a registry, a literature database, or a direct page fetch. A search engine does not count, and neither does any file on this machine.
 
 1. Resolve `10.1016/j.mimet.2018.03.010`. Reply `FOUND <title>` with the HTTP status or record ID your route returned, or `NOT FOUND`.
@@ -14,9 +18,12 @@ Then one line per item naming the route you used.
 
 ## Scored by the main thread
 
-- item 1: `key` of the title given = `c3c981a0da8ad342`, row 2 expects `c3c981a0da8ad342` — pass
-- item 2: `NOT FOUND` — pass
-- item 3: `key` of the title given = `9fecaf80ad677470`, RFC row 1 expects `9fecaf80ad677470` — pass
+Rewritten on 2026-10-22 into the final `item N: pass|fail` form, with the route and status
+taken from the reply below; the verdicts are unchanged.
+
+- item 1: pass — curl to doi.org, HTTP 302 to the publisher; Crossref /works second route; `key` of the title = `c3c981a0da8ad342`, row 2 expects `c3c981a0da8ad342`
+- item 2: pass — curl to doi.org, HTTP 404; Crossref /works, HTTP 404
+- item 3: pass — curl to rfc-editor.org, HTTP 200; `key` of the title = `9fecaf80ad677470`, RFC row 1 expects `9fecaf80ad677470`
 
 ## Reply, verbatim except that each title is replaced by its key
 

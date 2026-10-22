@@ -290,9 +290,9 @@ appendix tells it).
 sources. That is the case #74 was: role 2 said it lacked WebFetch, and nothing stopped the run.
 It cannot catch an agent that guesses or invents the answers. A capable model knows many titles
 from memory, and anything kept on this machine, from the key below to the session's own
-transcript, can be read. No fixed answer key closes that gap. The drawn rows, the hashed key
-and the scored route make a careless pass harder, and they make a record of what the probe was
-asked and what came back.
+transcript, can be read. No fixed answer key closes that gap. The rows drawn below, the hashed
+key and the scored route make a careless pass harder, and they leave a record of what the probe
+was asked and what came back.
 
 - **Skip it only when there is nothing to look up:** no references, no named attribution, and no
   method, tool or library documented outside this repository. Record `Lookup: not needed` and go
@@ -301,25 +301,25 @@ asked and what came back.
   the fallback above if the name does not resolve, and in the background if the roles will run
   there — so it holds what role 2 will hold. A permission prompt the human answers for a
   foreground probe can hide one a background reviewer cannot answer. In a single-pass run, the
-  main thread answers the probe itself.
+  main thread answers the probe itself and scores its own answers, which is weaker; say so in
+  the record.
 
 Fill the prompt in fresh for each run. The block draws a row of each table and a DOI made up
-for this run only, and defines `key`, which prints a title's hash in the form the tables use:
+for this run only, and prints them. **Copy the three values into the prompt and into your draft
+of the run record now**: a later shell will not have them, and drawing again gives different
+ones, which the gate would then refuse to match.
 
 ```bash
 doi_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))
 rfc_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))
 fake="10.1000/$(openssl rand -hex 6)"
-key() { python3 -c 'import hashlib,re,sys,unicodedata
-d=unicodedata.normalize("NFKD",sys.argv[1])
-t="".join(c for c in d if not unicodedata.combining(c)).lower()
-t=re.sub(r"[^0-9a-z]+"," ",t).strip()
-print(hashlib.sha256(t.encode()).hexdigest()[:16])' "$1"; }
+echo "doi_row=$doi_row rfc_row=$rfc_row fake=$fake"
 ```
 
 > Lookup probe, not a review. Answer each item by looking it up now, through a resolver, a
 > registry, a literature database, or a direct page fetch. A search engine does not count, and
-> neither does any file on this machine.
+> neither does any file on this machine. A registry record is enough for items 1 and 2: Crossref's
+> `https://api.crossref.org/works/<DOI>`, or `doi.org` asked for CSL-JSON.
 >
 > 1. Resolve `<the DOI in row $doi_row>`. Reply `FOUND <title>` with the HTTP status or record
 >    ID your route returned, or `NOT FOUND` with what the route returned instead.
@@ -329,12 +329,24 @@ print(hashlib.sha256(t.encode()).hexdigest()[:16])' "$1"; }
 >
 > Then one line per item naming the route you used.
 
-The key is a hash so that the agent being probed cannot read the answers off this page: each
-title is stored as `key` of it, the first 16 hex characters of a SHA-256 over the title with
-accents dropped, lower-cased, and every run of other characters than `a`–`z` and `0`–`9` turned
-into one space. An honest answer that differs only in case or punctuation still matches.
+**The key is a hash, so that the agent being probed cannot read the answers off this page.**
+Each title is stored as the first 16 hex characters of a SHA-256 over the title with its accents
+dropped, lower-cased, and every run of characters other than unaccented `a`–`z` and `0`–`9`
+turned into one space, so an honest answer that differs only in case or punctuation still
+matches. To score an answer, paste its title between the two `TITLE` lines; the quoted heredoc
+keeps any `$`, backtick or quote in it literal:
 
-| row | DOI | `key` of its title |
+```bash
+python3 -c 'import hashlib,re,sys,unicodedata
+d=unicodedata.normalize("NFKD",sys.stdin.read().strip())
+t="".join(c for c in d if not unicodedata.combining(c)).lower()
+t=re.sub(r"[^0-9a-z]+"," ",t).strip()
+print(hashlib.sha256(t.encode()).hexdigest()[:16])' <<'TITLE'
+Characterisation and improvement of a reference cylindrical sonoreactor
+TITLE
+```
+
+| row | DOI | key of its title |
 |---|---|---|
 | 1 | `10.1016/j.jnutbio.2017.08.013` | `8158b24485a47382` |
 | 2 | `10.1016/j.mimet.2018.03.010` | `c3c981a0da8ad342` |
@@ -343,7 +355,7 @@ into one space. An honest answer that differs only in case or punctuation still 
 | 5 | `10.1016/j.ultsonch.2011.12.010` | `b652e1992adf872a` |
 | 6 | `10.4088/pcc.15l01844` | `9641451be262bf12` |
 
-| row | RFC | `key` of its title |
+| row | RFC | key of its title |
 |---|---|---|
 | 1 | 4691 | `9fecaf80ad677470` |
 | 2 | 5153 | `0092afed0fda5485` |
@@ -360,11 +372,17 @@ answers a suffix nobody registered with a 404.
 **Score each item on the answer and on the route.** The route must be named, and must be
 neither a search engine nor a file.
 
-| item | passes when | clears |
+| item | passes when | clears an honest route for |
 |---|---|---|
-| 1 | `FOUND`, `key "<the title given>"` matches the row, and an HTTP status or record ID is given | role 2: the route resolves identifiers |
-| 2 | `NOT FOUND`, with the route's own miss: a 404, or a database's empty result | role 2: the route does not answer *something* to everything |
-| 3 | `key "<the title given>"` matches the row | role 6: the role can read a documentation page |
+| 1 | `FOUND`, the title's key matches the row, and an HTTP status or record ID is given | role 2: resolving identifiers |
+| 2 | `NOT FOUND`, with the route's own miss: a 404, or a database's empty result | role 2: not answering *something* to everything |
+| 3 | the title's key matches the row | role 6: reading a documentation page |
+
+**A key that does not match is not yet a failure.** Look at the reply. If the route plainly
+resolved — it gave a status or record ID — the title may have come back reworded by a page
+summarizer or with markup in it: ask once more for the registry record named in the prompt, and
+score that. Never edit a title until it hashes. If the registry's title does not match either,
+the item fails.
 
 A literature connector can pass items 1 and 2 and not item 3. That is enough for a deliverable
 whose outside sources are papers alone, and not for one that rests on a tool's or a library's
@@ -382,28 +400,30 @@ documentation, which role 6 has to read. Require the items the deliverable needs
 Do not run the probe through `fetch_paper.py`. It fetches open-access papers rather than
 resolving DOIs, and the fake DOI would land on the human's `_NEEDED.md` list.
 
-- **Every item it needs passes** → record `Lookup: live — <route>; roles <2 and 6 | 2>; probe
-  <$fake>` (step 7). Save the prompt as sent, your scoring of each item, and the reply to the
-  role-report archive (step 4b) as `00-lookup-probe.md`, with each title in the reply replaced
-  by its key. When the record names its archive, the roster gate requires that file and the
-  fake DOI the `Lookup:` line names in it.
+- **Every item it needs passes** → record `Lookup: live — <route>; <roles 2 and 6 | role 2
+  only>; probe <$fake>` (step 7). Save the probe to the role-report archive (step 4b) as
+  `00-lookup-probe.md`: the prompt as sent, the reply with each title replaced by its key, and
+  one scoring line per item, `item N: pass` or `item N: fail`, followed by the route and the
+  status. When the record names its archive, the roster gate requires that file, the fake DOI
+  the `Lookup:` line names in it, and items 1 and 2 scored `pass` with no item `fail`.
 - **Anything else** → **STOP before spawning any reviewer.** This is not a `MISMATCH` to carry
   into the ledger. It is a stop. Tell the human which route was tried and what came back, then
   look for the knob:
   ```bash
   [ -n "${SUBAGENTS:-}" ] && bash "$SUBAGENTS" --lookup --explain ; echo "exit=$?"
   ```
-  It reads the settings and instruction files for what blocks a lookup: a `WebFetch` or `curl`
-  deny, `dontAsk` with no lookup route allowed, a sandbox that denies the resolver hosts. That
-  is the shape behind #74, where the project's committed settings denied `WebFetch`, `curl` and
-  `wget`. **Its exit 0 is not an all-clear.** A launch flag, or a tool missing for some other
-  reason, is in no file.
+  It reads the settings files for what blocks a lookup — a `WebFetch` or `curl` deny, a deny on
+  the whole shell, `dontAsk` with no lookup route allowed, a sandbox that denies the resolver
+  hosts — and warns on instruction-file lines that may forbid fetching. That is the shape behind
+  #74, where the project's committed settings denied `WebFetch`, `curl` and `wget`. **Its exit 0
+  is not an all-clear.** A launch flag, or a tool missing for some other reason, is in no file.
 
   The remedies are the human's: lift the rule for the review, run where the web is reachable,
   or grant roles 2 and 6 a literature connector (see *A connector reaches a role only through
   its grant* in `$PROCESS`). Then ask, and wait. **"Go ahead anyway" cannot buy a passing
-  record**: the gate fails `unavailable`, and it fails an archive in which role 2 or role 6
-  counts sources it could not reach, whatever token the record carries.
+  record**: the gate fails `unavailable`, a `live` record over a probe scored as failed, and an
+  archive in which role 2 or role 6 counts sources it could not reach, whatever token the record
+  carries.
 
 The probe is one spawn after the cost preflight. If the cost gate asks about it, that is
 expected.

@@ -147,8 +147,8 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
 > `tools/murderboard_roster.sh check --require-execution --require-reports --require-lookup
-> <report>` on the finished report so a dropped role cannot pass as a clean one, so a run whose
-> citation checker could reach no source cannot pass as one that checked, so a run whose role reports were
+> <report>` on the finished report so a dropped role cannot pass as a clean one, so a record
+> saying its citation checker could reach no source cannot pass, so a run whose role reports were
 > summarized and then lost cannot pass as one that kept them, **and so a run that could not spawn subagents cannot
 > pass as one that chose not to** — eleven roles played by the agent that wrote the draft
 > produce the same eleven ledger rows as eleven independent reviewers, and are a much weaker

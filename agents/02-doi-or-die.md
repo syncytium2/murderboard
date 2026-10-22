@@ -100,7 +100,8 @@ paper you only half-remember: get the text or flag the paper.
   does not cover, as opposed to one a registry answered "no such record" for, or a paper
   behind a paywall. Put the count on a line of its own, `unreached: N`. Above zero, the main
   thread stops before synthesis, because a route that passed the lookup probe stopped
-  working during the review; the roster gate fails a `live` record whose archive shows it.
+  working during the review; the roster gate fails any record whose archive shows it, whatever
+  its `Lookup:` token. Write the line as `unreached: N`, outside any code block.
 - **How to establish the origin.** Open the cited work's own references for the claim and follow
   them backwards until they stop. **Report where you stopped and why** — "the root is paywalled,
   verified to one step short" is a finding; silence is not. Prefer the root and cite later work

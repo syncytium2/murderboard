@@ -180,9 +180,11 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      tool and carried on. The prompt and its answer key are in the skill's step 4a, under
      *Before the fan-out: probe the lookup*; a review run by hand opens the vendored skill for
      them. **The probe catches an agent that honestly cannot reach its sources**, which is what
-     #74 was. It cannot catch one that guesses or invents its answers: a capable model knows
-     many titles, and whatever sits on the machine can be read. No fixed answer key closes that,
-     so the probe is a check on equipment, not on honesty. The record carries a `Lookup:` line (see *Output contract*), and the appendix tells the
+     #74 was: the citation reviewer ran without web access, and nothing stopped it. It cannot
+     catch one that guesses or invents its answers: a capable model knows many titles, and
+     whatever sits on the machine can be read. No fixed answer key closes that, so the probe is
+     a check on equipment, not on honesty. The record carries a `Lookup:` line (see *Output
+     contract*), and the appendix tells the
      incident behind this
      ([issue #74](https://github.com/syncytium2/murderboard/issues/74)).
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
@@ -448,7 +450,8 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      does not cover, as opposed to one a registry answered "no such record" for, or a paper
      behind a paywall. Put the count on a line of its own, `unreached: N`. Above zero, the main
      thread stops before synthesis, because a route that passed the lookup probe stopped
-     working during the review; the roster gate fails a `live` record whose archive shows it.
+     working during the review; the roster gate fails any record whose archive shows it, whatever
+     its `Lookup:` token. Write the line as `unreached: N`, outside any code block.
    - **How to establish the origin.** Open the cited work's own references for the claim and follow
      them backwards until they stop. **Report where you stopped and why** — "the root is paywalled,
      verified to one step short" is a finding; silence is not. Prefer the root and cite later work
@@ -1239,7 +1242,8 @@ Deliver **(1)** the corrected document, **(2)** a short plain-language summary �
 checked, issues found / fixed, verify rounds, any remaining `⚠` flags — and **(3)** a **role
 ledger: one row per role in the roster, all of them**, each carrying either its findings or
 its "no findings, and here is what I checked" line. and **(4)** the **verbatim role reports**,
-one file per role, written as each arrived — the ledger says a role ran, the report is what it
+one file per role (plus `00-lookup-probe.md` when the lookup probe ran), written as each
+arrived — the ledger says a role ran, the report is what it
 said. If nothing survived review, say so
 plainly — do not manufacture findings to look thorough.
 
@@ -1367,7 +1371,7 @@ Lookup: not needed — the deliverable cites nothing and rests on no outside met
 
 | token | honest when | the gate, by default | under `--require-lookup` |
 |---|---|---|---|
-| `live` | the lookup probe passed every item the deliverable needs | passes; if the record names its archive, that archive must hold `00-lookup-probe.md` containing the probe DOI the line names | passes, with the same condition |
+| `live` | the lookup probe passed every item the deliverable needs | passes; if the record names its archive, that archive must hold `00-lookup-probe.md` containing the probe DOI the line names and scoring items 1 and 2 `pass`, none `fail` | passes, with the same condition |
 | `not needed` | no references, no named attribution, no outside method or tool; never after a probe that failed | passes | passes |
 | `unavailable` | never, in a finished record: the run should have stopped at the probe | **fails** | **fails** |
 | *(no line)* | records written before this line existed | passes, reported as undeclared | **fails** |
@@ -1391,10 +1395,10 @@ the gate removed rather than the records fixed.
 murderboard_roster.sh check --require-lookup REPORT.md   # undeclared lookup is a failure
 ```
 
-When the probe fails, `murderboard_subagents.sh --lookup` reads the settings and instruction
-files and names a blocking rule if one is there: a `WebFetch` or `curl` deny, a deny on the
-whole shell, `dontAsk` with no lookup route allowed, or a sandbox whose `deniedDomains` cover
-the resolvers. That was the shape behind issue #74, where the project's own settings denied
+When the probe fails, `murderboard_subagents.sh --lookup` reads the settings files and names a
+blocking rule if one is there — a `WebFetch` or `curl` deny, a deny on the whole shell, `dontAsk`
+with no lookup route allowed, a sandbox whose `deniedDomains` cover the resolvers — and warns
+on instruction-file lines that may forbid fetching. That was the shape behind issue #74, where the project's own settings denied
 `WebFetch`, `curl` and `wget`. Like the subagent scan, it reads files and says so whenever it
 prints: a launch flag, or a tool missing for another reason, is in none of them.
 
@@ -1670,22 +1674,25 @@ seriously than a rule stated in the abstract.
   as it arrives rather than at the end, and a file a tool wrote on your behalf is not a file with
   content in it until you look.
 - **A role that could not reach its sources, and a run that continued** (a literature-survey
-  table in a consumer project, 2026-10-14; issue #74) — the project's own committed settings
-  denied `WebFetch`, `Bash(curl:*)` and `Bash(wget:*)`, and had since months before. Role 2 and
+  table in a consumer project, 2026-10-14; issue #74. Details beyond the issue come from the run
+  record, role reports and settings the consumer session shared, which are not public) — the
+  project's own committed settings denied `WebFetch`, `Bash(curl:*)` and `Bash(wget:*)`, and had
+  since months before. Role 2 and
   role 6 each declared `GRANT n MISMATCH — missing WebFetch`, honestly, on their first line, and
   the run went on, because the process said a mismatch is not a failure. Role 2 did what it
   could: it found each of the twelve DOIs printed in that paper's own saved text, which shows
   the identifier belongs to the paper and does not show it resolves; and it could not open the
   four candidate papers or the two review articles that would have tested the table's claim to
   list *every* published recording. It filed "live DOI resolution not tested" as a minor run
-  residual, and the record carried it as "DOIs not resolved live". The roster gate passed, and so did the
-  grants gate once the header stopped claiming named agents — correctly, since every role left
+  residual, and the record carried it as "DOIs not resolved live". The roster gate passed, and
+  so did the grants gate once the header stopped claiming named agents — correctly, since every role left
   a trace and declared its tools. Afterwards the main session confirmed all twelve through PubMed
   and bioRxiv connectors that role 2 had never been granted. The literature-database lookup
   showed a trap of its own: the PubMed Central ID converter has no entry for
   `10.1210/endocr/bqad150`, a 2023 *Endocrinology* paper not deposited in PMC (*"Identifier not
   found in PMC"* from its API; through the PubMed connector, a record with no PMID and no
-  error, as this repository's review of the fix observed on 2026-10-22), while PubMed indexes it
+  error, as this repository's review of the fix observed on 2026-10-22, in
+  `docs/reviews/lookup-probe-pr80-2026-10-22-roles/`), while PubMed indexes it
   as PMID 37793082 and a title search found it. **It was the second such run on that machine**,
   per the consumer session: a 2026-09-15 run there lost WebFetch the same way across two rounds,
   on a deliverable whose sources were documentation pages, and role 2 worked from search-result
@@ -1695,4 +1702,5 @@ seriously than a rule stated in the abstract.
   committed ones denied the fetch tools, and the issue attributes the refusals to permission
   settings. Reported by the consumer session that ran it, which quoted the run record and the
   role reports. (Reviewing the fix showed the probe's limit: a capable model passed a fixed
-  answer key from memory, so the probe checks equipment, not honesty.)
+  answer key from memory, so the probe checks equipment, not honesty. The drawn rows and the
+  hashed key stay, as a hurdle for a careless pass and a record of the probe, not as proof.)
