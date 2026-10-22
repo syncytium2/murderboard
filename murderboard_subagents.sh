@@ -41,10 +41,12 @@
 #   murderboard_subagents.sh                 scan and report what is readable
 #   murderboard_subagents.sh --hook          silent unless a blocker is found; never blocks
 #   murderboard_subagents.sh --explain       add the remedy for each finding
-#   murderboard_subagents.sh --lookup        scan instead for what stops roles 2 and 6
-#                                            reaching a source: a WebFetch or curl deny
-#                                            (issue #74). Same files, same exit codes, same
-#                                            limit: the lookup PROBE is the check.
+#   murderboard_subagents.sh --lookup        scan instead for what stops roles 2 and 6 from
+#                                            reaching a source: a WebFetch or curl deny,
+#                                            dontAsk with nothing allowed, a sandbox denying
+#                                            the resolvers (issue #74 was the first). Same
+#                                            files, same exit codes, same limit: the lookup
+#                                            PROBE is the check, this names the knob.
 #   murderboard_subagents.sh --root PATH     repo root to scan (default: git root, else cwd)
 #   murderboard_subagents.sh --config-dir P  stand in for ~/.claude (default: CLAUDE_CONFIG_DIR)
 #   murderboard_subagents.sh --managed PATH  managed-settings.json (default: per platform)
@@ -127,7 +129,7 @@ scan_json() {
   [ -e "$f" ] || return 0
   if [ ! -r "$f" ]; then undet "settings exist but are unreadable: $f"; return 0; fi
   if [ -z "$PY" ]; then
-    undet "no python on PATH to read $f — cannot say whether it denies the Agent tool"
+    undet "no python on PATH to read $f — cannot say what it denies"
     return 0
   fi
   local out rc
@@ -151,13 +153,6 @@ if not isinstance(cfg, dict):
 # prose name is still found.
 NAMES = re.compile(r"^(task|agent)\b", re.I)
 TOOL = "Task"
-if scan == "lookup":
-    # --lookup: how roles 2 and 6 reach a source outside the repository. WebFetch, and the
-    # shell route to the same place -- a `Bash(curl ...)` deny was half of what stopped the
-    # 2026-10-14 run (issue #74). Bare `Bash` is deliberately NOT matched: denying the whole
-    # shell is a different and louder problem, and seven roles would report it.
-    NAMES = re.compile(r"^(webfetch|websearch)\b|^bash\(\s*(curl|wget)\b", re.I)
-    TOOL = "WebFetch"
 
 
 def entries(*keys):
@@ -170,21 +165,103 @@ def entries(*keys):
     return [v for v in val if isinstance(v, str)] if isinstance(val, list) else []
 
 
+if scan == "lookup":
+    # --lookup: what stops roles 2 and 6 from reaching a source outside the repository.
+    # Issue #74's run was stopped by exactly this shape in the project's own settings:
+    # deny ["WebFetch", "Bash(curl:*)", "Bash(wget:*)"]. Rule syntax per Claude Code's
+    # permissions documentation: a bare tool name or a tool-name glob ("*", "Web*") removes
+    # the tool; a scoped rule (`WebFetch(domain:x)`, `Bash(curl -X POST *)`) blocks only the
+    # calls it matches, so it BLOCKs here only when it covers a resolver.
+    import fnmatch
+    RESOLVERS = ("doi.org", "dx.doi.org", "api.crossref.org", "crossref.org",
+                 "eutils.ncbi.nlm.nih.gov", "pubmed.ncbi.nlm.nih.gov", "ncbi.nlm.nih.gov")
+    FETCHERS = ("curl", "wget", "invoke-webrequest", "iwr", "invoke-restmethod", "irm")
+
+    def covers_resolver(pattern):
+        p = pattern.lower().strip()
+        return any(fnmatch.fnmatch(h, p) or h == p or h.endswith("." + p) for h in RESOLVERS)
+
+    def lookup_verdict(rule):
+        """BLOCK, WARN, or None for one deny/ask rule."""
+        r = rule.strip()
+        m = re.match(r"^([A-Za-z*?_\[\]-]+)\s*(?:\((.*)\))?$", r, re.S)
+        if not m:
+            return None
+        name, arg = m.group(1), m.group(2)
+        if name.lower().startswith("mcp__"):
+            return "WARN" if "*" in name or "?" in name else None
+        if arg is None:                                   # a whole tool, or a name glob
+            return "BLOCK" if fnmatch.fnmatch("WebFetch", name) else None
+        if name == "WebFetch":
+            d = re.match(r"^\s*domain:(.+)$", arg)
+            return "BLOCK" if (d is None or covers_resolver(d.group(1))) else None
+        if name in ("Bash", "PowerShell"):
+            words = arg.replace(":", " ").split()
+            if not words:
+                return None
+            cmd = words[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
+            if cmd not in FETCHERS:
+                return None
+            rest = [w for w in words[1:] if w != "*"]
+            return "BLOCK" if not rest else "WARN"         # `curl`, `curl:*`, `curl *`
+        return None
+
+    for key, kind in (("deny", None), ("ask", "ask")):
+        for rule in entries("permissions", key):
+            v = lookup_verdict(rule)
+            if v is None:
+                continue
+            if kind == "ask":
+                print("WARN\t%s: permissions.ask has %r — every lookup will prompt, and a "
+                      "background reviewer cannot answer the prompt" % (path, rule))
+            else:
+                print("%s\t%s: permissions.deny has %r" % (v, path, rule))
+
+    # dontAsk auto-denies anything not pre-approved, so there an allow list IS restrictive.
+    mode = (cfg.get("permissions") or {}).get("defaultMode") if isinstance(cfg.get("permissions"), dict) else None
+    if mode == "dontAsk":
+        allow = entries("permissions", "allow")
+        if not any(lookup_verdict(a) == "BLOCK" or a.strip().startswith("mcp__") for a in allow):
+            print("BLOCK\t%s: permissions.defaultMode is dontAsk and nothing in permissions.allow "
+                  "lets a lookup through (WebFetch, curl, or a connector)" % path)
+
+    sandbox = cfg.get("sandbox") if isinstance(cfg.get("sandbox"), dict) else {}
+    net = sandbox.get("network") if isinstance(sandbox.get("network"), dict) else {}
+    for d in (net.get("deniedDomains") or []):
+        if isinstance(d, str) and covers_resolver(d):
+            print("BLOCK\t%s: sandbox.network.deniedDomains has %r — a sandboxed shell "
+                  "fetch cannot reach the resolvers" % (path, d))
+
+    hooks = cfg.get("hooks")
+    if isinstance(hooks, dict):
+        for entry in hooks.get("PreToolUse") or []:
+            if not isinstance(entry, dict) or not isinstance(entry.get("matcher", ""), str):
+                continue
+            mt = entry.get("matcher", "")
+            try:
+                hit = mt.strip() in ("", "*") or bool(re.search(mt, "WebFetch"))
+            except re.error:
+                continue
+            if hit:
+                print("WARN\t%s: PreToolUse matcher %r runs on WebFetch" % (path, mt or "(empty)"))
+    sys.exit(0)
+
+
 perm = "permissions"
 for rule in entries(perm, "deny"):
     if NAMES.match(rule.strip()):
         print("BLOCK\t%s: permissions.deny has %r" % (path, rule))
 for rule in entries(perm, "ask"):
     if NAMES.match(rule.strip()):
-        print("WARN\t%s: permissions.ask has %r — every call will prompt" % (path, rule))
+        print("WARN\t%s: permissions.ask has %r — every role spawn will prompt" % (path, rule))
 
 # An allow-list is restrictive in a way a deny-list is not: naming any tool excludes the
 # rest. Absence of Task here is therefore a finding, where absence from `deny` is not.
-# NOT applied under --lookup: a lookup has more than one route (WebFetch, a shell fetch, a
-# literature connector), so an allow-list naming none of the first two can still be one
-# whose third route works -- and the probe, not this scan, is what says whether it does.
+# (⚠ Questioned in review, 2026-10-22: Claude Code's permissions documentation describes
+# `permissions.allow` as pre-approval, restrictive only under `dontAsk`. Left as it was here;
+# the lookup scan above applies the documented reading.)
 allow = entries(perm, "allow") + entries("allowedTools")
-if scan != "lookup" and allow and not any(NAMES.match(r.strip()) for r in allow):
+if allow and not any(NAMES.match(r.strip()) for r in allow):
     print("BLOCK\t%s: an allow-list of %d tools that does not include Task" % (path, len(allow)))
 
 for rule in entries("disallowedTools"):
@@ -221,8 +298,8 @@ PYEOF
     [ -n "${kind:-}" ] || continue
     if [ "$SCAN" = lookup ]; then
       case "$kind" in
-        BLOCK) block "$text" "remove the rule for the review, or give roles 2 and 6 another route (a literature connector) and let the probe confirm it" ;;
-        WARN)  warn  "$text" "confirm it lets WebFetch through before relying on role 2 or role 6" ;;
+        BLOCK) block "$text" "lift the rule for the review, or grant roles 2 and 6 a literature connector (see the process file), then re-run the lookup probe" ;;
+        WARN)  warn  "$text" "confirm that rule leaves roles 2 and 6 a working route; the lookup probe settles it" ;;
         UNDET) undet "$text" ;;
       esac
       continue
@@ -249,7 +326,7 @@ NEG='do not|don.t|never|avoid|without|refrain|disable|forbid|prohibit|not allowe
 # --lookup reads the same files for a ban on fetching. Reported as WARN, never BLOCK:
 # "network" and "curl" turn up in ordinary instructions about everything else ("never block
 # startup on the network"), so a hit is a line worth reading, not a verdict.
-LOOKUP_NOUN='webfetch|web fetch|curl|wget|network access|internet access|the web'
+LOOKUP_NOUN='webfetch|web ?fetch|curl|wget|network access|internet access|fetch(ing)? from the web'
 
 scan_prose() {
   local f="$1"
@@ -304,7 +381,7 @@ report() {
   # at session start — the probe will settle it, and noise here trains people to skip it.
   if [ "$HOOK" = 1 ] && [ "$BLOCKERS" = 0 ]; then return 0; fi
 
-  if [ "$SCAN" = lookup ]; then report_lookup; return 0; fi
+  if [ "$SCAN" = lookup ]; then report_lookup_scan; return 0; fi
 
   if [ "$BLOCKERS" = 0 ] && [ "$UNDETERMINED" = 0 ]; then
     printf '%smurderboard: no subagent blocker found in the readable settings and instruction files.%s\n' "$GRN" "$RST"
@@ -324,20 +401,24 @@ report() {
 
 # --lookup prints its WARN lines on the clean path too. Its prose hits are warnings by
 # design, and a warning nobody is shown is a scan that found something and said "clean".
-report_lookup() {
+report_lookup_scan() {
   if [ "$BLOCKERS" = 0 ] && [ "$UNDETERMINED" = 0 ]; then
-    printf '%smurderboard: no lookup blocker found in the readable settings and instruction files.%s\n' "$GRN" "$RST"
+    if [ -n "$OUT" ]; then
+      printf 'murderboard: no lookup blocker found, but read the warnings below.\n'
+    else
+      printf '%smurderboard: no lookup blocker found in the readable settings files.%s\n' "$GRN" "$RST"
+    fi
     printf '%s' "$OUT"
   else
-    printf 'murderboard: lookup preflight (what roles 2 and 6 can reach)\n'
+    printf 'murderboard: lookup scan — settings that could stop roles 2 and 6\n'
     printf '%s' "$OUT"
     if [ "$BLOCKERS" -gt 0 ]; then
-      printf '%smurderboard: %s blocker(s) — role 2 may not be able to resolve a citation here.%s\n' "$RED" "$BLOCKERS" "$RST"
+      printf '%smurderboard: %s blocker(s) — roles 2 and 6 may not reach their sources here.%s\n' "$RED" "$BLOCKERS" "$RST"
     fi
   fi
-  # The 2026-10-14 run is the reason this caveat names the tool list first: on that machine
-  # WebFetch was simply not in the session, which no file records.
-  printf '%sThis scan reads files. It cannot see whether WebFetch is in the session'\''s tool list at\nall — on the machine behind issue #74 it was not, and no file said so — nor which\nliterature connectors are attached. A clean scan is NOT proof a citation can be resolved;\nonly the probe (resolve a known DOI, refuse a made-up one) proves that.%s\n' "$DIM" "$RST"
+  # Issue #74's cause WAS in a file -- the project's settings denied WebFetch, curl and wget --
+  # and this scan finds that shape. What it cannot see is everything outside the files.
+  printf '%sThis scan reads files. It cannot see a launch flag, a tool missing for some other\nreason, or which literature connectors are attached. A clean scan is NOT proof a\nreference can be looked up; only the lookup probe proves that.%s\n' "$DIM" "$RST"
 }
 
 cmd_scan() {
@@ -421,9 +502,8 @@ cmd_selftest() {
   esac
 
   # --- --lookup: the same surfaces, read for what roles 2 and 6 need ------------------
-  # The 2026-10-14 shape (issue #74): curl denied by a permission rule. WebFetch being absent
-  # from the session altogether is the other half, and no file records it -- which is why
-  # the probe, not this scan, is the gate.
+  # Issue #74's cause sat in the project's own settings, which this scan reads; its fixture
+  # is below. A launch flag would not have, which is why the probe, not this scan, is the gate.
   t 'lookup: clean environment -> exit 0'      0 "$tmp/clean" "$tmp/cfgclean" lookup
   mkdir -p "$tmp/curl/.claude"
   printf '{"permissions":{"deny":["Bash(curl:*)"]}}\n' > "$tmp/curl/.claude/settings.json"
@@ -441,8 +521,37 @@ cmd_selftest() {
   mkdir -p "$tmp/bash/.claude"
   printf '{"permissions":{"deny":["Bash(rm:*)"]}}\n' > "$tmp/bash/.claude/settings.json"
   t 'lookup: an unrelated Bash deny -> exit 0' 0 "$tmp/bash" "$tmp/cfgnull" lookup
-  # An allow-list is not a lookup verdict: a literature connector is a third route.
+  # An allow-list only pre-approves (permissions documentation); outside dontAsk it
+  # restricts nothing.
   t 'lookup: an allow-list alone -> exit 0'    0 "$tmp/allow" "$tmp/cfgnull" lookup
+
+  lk() { # lk <name> <expected-exit> <settings-json>
+    local d="$tmp/lk$((pass + fail))"
+    mkdir -p "$d/.claude"; printf '%s\n' "$3" > "$d/.claude/settings.json"
+    t "lookup: $1" "$2" "$d" "$tmp/cfgnull" lookup
+  }
+  # THE #74 SHAPE, as the consumer's committed settings actually had it.
+  lk 'the issue #74 deny list -> exit 1' 1 \
+     '{"permissions":{"deny":["Bash(rm -rf:*)","Bash(curl:*)","Bash(wget:*)","WebFetch"]}}'
+  # Scoped rules block only what they match (permissions documentation).
+  lk 'WebFetch denied for an unrelated domain -> exit 0' 0 \
+     '{"permissions":{"deny":["WebFetch(domain:facebook.com)"]}}'
+  lk 'curl denied for POSTs only -> exit 0 (a warning)' 0 \
+     '{"permissions":{"deny":["Bash(curl -X POST *)"]}}'
+  lk 'curl by absolute path -> exit 1' 1 '{"permissions":{"deny":["Bash(/usr/bin/curl *)"]}}'
+  lk 'PowerShell Invoke-WebRequest -> exit 1' 1 \
+     '{"permissions":{"deny":["PowerShell(Invoke-WebRequest:*)"]}}'
+  # A tool-name glob removes every tool it matches.
+  lk 'deny "*" -> exit 1'                1 '{"permissions":{"deny":["*"]}}'
+  lk 'deny "Web*" -> exit 1'             1 '{"permissions":{"deny":["Web*"]}}'
+  # WebSearch is not a lookup route: a search hit is not a resolution.
+  lk 'deny WebSearch alone -> exit 0'    0 '{"permissions":{"deny":["WebSearch"]}}'
+  # dontAsk turns "not pre-approved" into "denied".
+  lk 'dontAsk with nothing allowed -> exit 1' 1 \
+     '{"permissions":{"defaultMode":"dontAsk","allow":["Read"]}}'
+  lk 'dontAsk with WebFetch allowed -> exit 0' 0 \
+     '{"permissions":{"defaultMode":"dontAsk","allow":["WebFetch"]}}'
+  lk 'sandbox denying doi.org -> exit 1' 1 '{"sandbox":{"network":{"deniedDomains":["doi.org"]}}}'
   # Prose is a WARN under --lookup, and a WARN must still be SHOWN on the clean path.
   mkdir -p "$tmp/lprose/.claude"
   printf '# repo\n\nNever use WebFetch on this machine.\n' > "$tmp/lprose/CLAUDE.md"

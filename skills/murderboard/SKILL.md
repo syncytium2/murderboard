@@ -239,7 +239,7 @@ bash "$ROSTER" count
 Spawn **one subagent per row returned**, no fewer. The roster is derived from the process
 file, so when upstream adds role 12 every consumer picks it up without editing this skill.
 
-### 4a. Compile the specialists, then spawn them BY NAME
+### 4a. Compile the specialists, probe the lookup, then spawn them BY NAME
 
 Each role has its own agent file — frontmatter, its own checklist, and the tool grant the
 process file gives it — compiled out of `$PROCESS`. Bring them up to date first; a stale
@@ -253,53 +253,8 @@ if [ -n "${COMPILER:-}" ]; then
 fi
 ```
 
-**Then probe the lookup, with role 2's own agent, before anything else is spawned.** Roles 2
-and 6 are the only roles whose sources live outside the repository, and a role that cannot
-reach them still returns a full report about them — on 2026-10-14 one did, every gate passed,
-and the citation check had not happened (issue #74). The probe is a spawn of role 2's
-`agent-name` — by the same path the review will use, so it holds exactly what role 2 will hold —
-with this prompt and nothing else:
-
-> Lookup probe, not a review. By any route you hold, resolve each DOI below and reply with one
-> line per DOI — `<doi> FOUND <title>` or `<doi> NOT FOUND` — then one line naming the route.
-> `10.1371/journal.pmed.0020124`
-> `10.1000/murderboard-probe-0000`
-
-It passes only if **both** come back right: the first `FOUND` with the title *Why Most
-Published Research Findings Are False* (Ioannidis, *PLoS Medicine*, 2005), the second `NOT
-FOUND`. The second sits under `10.1000`, the DOI Foundation's own prefix, with a suffix nobody
-registered; `doi.org` answers it with a 404. **That half is the probe**: a route that answers
-*something* for every query passes a one-sided check.
-
-Any route counts — WebFetch, a shell fetch, a literature connector — and the route goes into
-the record. Roles 2 and 6 share a grant in the process file, so one probe answers for both; if
-your copy gives them different grants, probe role 6 too.
-
-- **Both right** → record `Lookup: live — <route>` (step 7). Carry on.
-- **Anything else** → **STOP, before role 1.** Not a `MISMATCH` to carry into the ledger: a
-  stop. Say which route was tried and what came back, and name the knob:
-  ```bash
-  [ -n "${SUBAGENTS:-}" ] && bash "$SUBAGENTS" --lookup --explain ; echo "exit=$?"
-  ```
-  It reports a `WebFetch` or `Bash(curl …)` deny in the files it can read. **Its exit 0 is not
-  an all-clear**: on the 2026-10-14 machine WebFetch was absent from the session, which no file
-  records.
-
-  The remedies are the human's: lift the rule for the review, run where the web is reachable,
-  or grant roles 2 and 6 a literature connector (see *A connector reaches a role only through
-  its grant* in `$PROCESS`). Then ask, and wait.
-
-  **"Go ahead anyway" cannot buy a passing record.** The roster gate fails `Lookup:
-  unavailable` with or without a flag, because a finished run that could not look anything up
-  is the shape this probe exists to stop. The only deliverable that skips the probe honestly is
-  one with nothing to look up — no references, no named attribution, no outside method — and
-  it records `Lookup: not needed`.
-
-The probe is one spawn, which the cost gate sees like any role spawn; it runs after the cost
-preflight for that reason.
-
-Then spawn each row's `agent-name` as the subagent type. **If the named agent does not
-resolve**, fall back to spawning a generic subagent whose prompt is **the contents of that
+Each role is spawned by its row's `agent-name` as the subagent type. **If the named agent does
+not resolve**, fall back to spawning a generic subagent whose prompt is **the contents of that
 role's agent file**, and if there is no agent file either, the role's block from `$PROCESS`.
 
 **Expect the fallback on a repo's FIRST run, always.** Claude Code watches the agent
@@ -323,8 +278,86 @@ header takes a suffix: `11 of 11 run (named agents)` or `11 of 11 run (inline fa
 its role to open with `GRANT <n> ok — <tools held>` or `GRANT <n> MISMATCH — …`. Carry those
 lines into the role ledger verbatim; step 7 gates the header against them. A `MISMATCH` is not
 a failed run — a fallback review is a real review — it just may not be written up as something
-else. **The one exception is already behind you:** a role that cannot reach its sources is
-not a mismatch to record but a stop, and the lookup probe above is where it stops.
+else. **The one exception is roles 2 and 6 losing their sources:** that is not a mismatch to
+record but a stop, and the lookup probe below is where it stops.
+
+**Before the fan-out: probe the lookup.** Roles 2 and 6 are the only roles whose sources live
+outside the repository, and a role that cannot reach them still returns a full report about
+them (issue #74 in this repository's tracker; the process file's appendix tells it).
+
+- **Skip it only when there is nothing to look up:** no references, no named attribution, and no
+  outside method or tool. Record `Lookup: not needed` and go on to the fan-out. A probe that
+  ran and failed cannot be followed by `not needed`.
+- **Otherwise spawn role 2's `agent-name` once, by the path the roles will use** — by name, or
+  the fallback above if the name does not resolve — so it holds what role 2 will hold. In a
+  single-pass run, which has no role 2 to spawn, the main thread answers the probe itself.
+
+Fill the prompt in fresh for each run. Pick one row of the table below at random, and make the
+fake DOI from `10.1000/` plus twelve random hex characters (`openssl rand -hex 6`). Both are
+there so that the answers cannot come from memory:
+
+> Lookup probe, not a review. Use only a resolver, a registry, or a literature database —
+> doi.org, Crossref, PubMed, or similar. A search-engine result does not count.
+>
+> 1. `<real DOI>` — reply `FOUND <title>` plus the PMID or HTTP status your route returned,
+>    or `NOT FOUND`.
+> 2. `<fake DOI>` — the same.
+> 3. Fetch `https://api.crossref.org/works/<real DOI>` as a web page and quote the value of
+>    `created.date-time`, or reply `CANNOT FETCH`.
+>
+> Then one line naming each route you used.
+
+| real DOI | title | `created.date-time` |
+|---|---|---|
+| `10.1016/j.jnutbio.2017.08.013` | Protein malnutrition after weaning disrupts peripheral clock and daily insulin secretion in mice | `2017-09-04T03:45:43Z` |
+| `10.1016/j.mimet.2018.03.010` | Real-time PCR-based method for rapid detection of Aspergillus niger and Aspergillus welwitschiae isolated from coffee | `2018-03-23T19:17:01Z` |
+| `10.1155/2016/7920631` | Small Interfering RNA Targeted to ASPP2 Promotes Progression of Experimental Proliferative Vitreoretinopathy | `2016-06-09T22:05:54Z` |
+| `10.1186/s12938-016-0298-3` | Pressure ulcer image segmentation technique through synthetic frequencies generation and contrast variation using toroidal geometry | `2017-01-13T09:21:33Z` |
+| `10.1016/j.ultsonch.2011.12.010` | Characterisation and improvement of a reference cylindrical sonoreactor | `2011-12-21T13:14:18Z` |
+| `10.4088/pcc.15l01844` | Resolution of Pathological Skin Picking With Fluvoxamine in a 74-Year-Old Dementia Patient | `2016-01-27T18:57:07Z` |
+
+Every row was checked live on 2026-10-22: each DOI redirects at `doi.org`, is indexed in
+PubMed, and is little-cited enough that its title is not common knowledge. `10.1000` is the DOI
+Foundation's own prefix, and `doi.org` answers a suffix nobody registered with a 404.
+
+**What each answer proves:**
+
+| answer | proves | role it clears |
+|---|---|---|
+| real DOI `FOUND` with the table's title | the route resolves identifiers | 2 |
+| fake DOI `NOT FOUND` | the route does not answer *something* to everything | 2 |
+| the `created.date-time` matches the table | the role can read an arbitrary web page, not only a database | 6 |
+
+A literature connector can pass the first two and not the third. That is enough for a
+deliverable whose only outside sources are papers. It is not enough for one that rests on a
+tool's or library's documentation, which role 6 has to read. Require the halves the deliverable
+needs. Do not run the probe through `fetch_paper.py`: it fetches open-access papers rather than
+resolving DOIs, and the fake DOI would land on the human's `_NEEDED.md` list.
+
+- **Every half it needs comes back right** → record `Lookup: live — <route>` (step 7). Keep the
+  probe's reply, verbatim: it goes into the role-report archive (step 4b) as
+  `00-lookup-probe.md`, and the roster gate looks for it whenever a record says `live` and
+  names its archive. Then fan out.
+- **Anything else** → **STOP before spawning any reviewer.** This is not a `MISMATCH` to carry
+  into the ledger. It is a stop. Tell the human which route was tried and what came back, then
+  look for the knob:
+  ```bash
+  [ -n "${SUBAGENTS:-}" ] && bash "$SUBAGENTS" --lookup --explain ; echo "exit=$?"
+  ```
+  It reads the settings files for a rule that blocks a lookup: a `WebFetch` or `curl` deny, a
+  `dontAsk` mode with nothing allowed, a sandbox that denies the resolver hosts. That is the
+  shape behind #74, where the project's own settings denied `WebFetch`, `curl` and `wget`.
+  **Its exit 0 is not an all-clear.** A launch flag, or a tool missing for some other reason,
+  is in no file.
+
+  The remedies are the human's: lift the rule for the review, run where the web is reachable,
+  or grant roles 2 and 6 a literature connector (see *A connector reaches a role only through
+  its grant* in `$PROCESS`). Then ask, and wait. **"Go ahead anyway" cannot buy a passing
+  record**: the roster gate fails `Lookup: unavailable` however it is written.
+
+The cost gate does not count the probe as a call-up, because it carries none of the fan-out's
+vocabulary. That is harmless: it runs after the cost preflight, which has already stopped a
+blocked model.
 
 Scale to stakes in *how* you run them, never in *which* ones:
 
@@ -377,6 +410,11 @@ be told apart from the real thing.
 Consolidate, dedupe, rank by severity, adjudicate each finding (fix / flag-inline `⚠` /
 no-change), and **apply** the fixes. Rebuild the artifact if it is generated.
 
+**First, read roles 2 and 6 for sources they could not reach.** A probe that passed says the
+route worked once, before the fan-out. It does not say it kept working for every citation. If
+either role reports sources left unchecked *because no route reached them*, rather than because
+a paper is paywalled, stop here, as you would at a failed probe.
+
 ## 6. Blind verify pass — until it comes back empty
 
 Re-check the **corrected, rebuilt** artifact per the process file's step 4: a fresh pass that
@@ -407,7 +445,7 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - rounds:    <n> blind verify rounds to clean
 
 Execution: subagents | single-pass (forced) | single-pass (chosen)   # from step 1a
-Lookup: live | not needed                                            # from step 4a's probe
+Lookup: live | not needed            # step 4a: the probe passed, or there was nothing to look up
 ```
 
 The token before the dash is parsed and must be exact; everything after it is yours and is
@@ -417,13 +455,13 @@ The token before the dash is parsed and must be exact; everything after it is yo
 Execution: subagents — one per role, all eleven spawned
 Execution: single-pass (forced) — the Agent tool was unavailable; step 1a's probe failed
 Execution: single-pass (chosen) — a one-line caption, not worth an eleven-agent fan-out
-Lookup: live — WebFetch; probe found the Ioannidis DOI and refused the made-up one
-Lookup: live — PubMed connector; WebFetch absent from the session
+Lookup: live — curl to doi.org and Crossref; all three probe answers right
+Lookup: live — PubMed connector granted to role 2; a deliverable citing papers only
 Lookup: not needed — a caption that cites nothing and names no outside method
 ```
 
-`Lookup:` has a third token, `unavailable`, and the gate fails it — if you would be writing it,
-the run should have stopped at step 4a, and the record is not the place to say so.
+A third token, `unavailable`, always fails the gate. If you find yourself about to write it,
+the run should have stopped at the lookup probe, and a finished record is not where that goes.
 
 `roles:` and `Execution:` answer different questions and neither implies the other. `roles:`
 says which **prompt** each reviewer got — its compiled agent file, or the role's block inlined.
@@ -480,10 +518,10 @@ for it. A named archive that does not exist fails whether the flag is set or not
 "cited but missing" shape, and it reads to anyone downstream as the complete run. **Do not make
 it green by deleting the line**; write the reports, or declare the gap and tell the human.
 
-**And it reads the `Lookup:` line.** `unavailable` fails always; under `--require-lookup` a
-missing line fails too. Write the token from what step 4a's probe returned — the same limit as
-`Execution:` applies, and a `live` token over a probe that never ran is a false record no
-report-reading gate can catch.
+**And it reads the `Lookup:` line.** Under `--require-lookup` a missing line fails. A `live`
+line whose archive has no `00-lookup-probe.md` fails too, which is what makes "the probe ran"
+something the gate can check rather than take on trust. It still cannot check that the probe's
+answers were right. Write the token from what the probe returned.
 
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are

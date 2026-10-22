@@ -619,7 +619,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.15.2</b> &middot; Updated <time datetime="2026-10-21">2026-10-21</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.15.3</b> &middot; Updated <time datetime="2026-10-22">2026-10-22</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -694,6 +694,13 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
   <section class="ticker-sec" id="changes">
     <span class="eyebrow">What changed lately</span>
     <ul class="ticker">
+      <li>
+        <time datetime="2026-10-22">2026-10-22</time>
+        <div>
+          <b>A citation checker that cannot look anything up now stops the review</b>
+          <p>A review carried on after its citation checker said it had no web access, and every check still passed: the checker&rsquo;s own project settings blocked the web. Before any reviewer starts, the skill now asks for a little-known paper&rsquo;s exact title, a made-up DOI that must come back not found, and a value read off a web page. None of these can be answered from memory. The report must record the result, and &ldquo;unavailable&rdquo; always fails. <a class="more" href="https://github.com/syncytium2/murderboard/pull/80">Details &#8250; #80</a></p>
+        </div>
+      </li>
       <li>
         <time datetime="2026-10-19">2026-10-19</time>
         <div>
@@ -1185,10 +1192,11 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
             <th scope="row">Does the report account for every role?<br><code>murderboard_<wbr>roster.sh</code></th>
             <td>Reads the list of roles out of the process document, never from memory, and checks the
             finished report accounts for all of them. Add a role upstream and every copy's check picks
-            it up as soon as that copy is refreshed &mdash; with no script edit anywhere.</td>
+            it up as soon as that copy is refreshed &mdash; with no script edit anywhere. It also
+            fails a report that says its citation checker could not reach any source.</td>
             <td class="exits">
               <span class="pill ok">0</span>all present<br>
-              <span class="pill warn">1</span>a role is missing<br>
+              <span class="pill warn">1</span>a role is missing, or its sources were out of reach<br>
               <span class="pill unk">2</span>could not tell
             </td>
           </tr>

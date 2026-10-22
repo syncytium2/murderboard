@@ -184,14 +184,16 @@ jobs:
       # other code means it crashed.
       - name: subagent preflight runs against a real checkout
         run: |
-          set +e
-          bash murderboard_subagents.sh --explain; rc=$?
-          set -e
-          echo "exit=$rc"
-          case "$rc" in
-            0|1) ;;
-            *) echo "::error::preflight exited $rc against this checkout"; exit 1 ;;
-          esac
+          for mode in "" --lookup; do
+            set +e
+            bash murderboard_subagents.sh --explain $mode; rc=$?
+            set -e
+            echo "exit=$rc (${mode:-subagents})"
+            case "$rc" in
+              0|1) ;;
+              *) echo "::error::preflight ${mode:-subagents} exited $rc against this checkout"; exit 1 ;;
+            esac
+          done
 
       # The model gate is the only gate here that costs money to get wrong, and it is
       # SILENT on every call it allows -- so if it regressed to allowing everything,
