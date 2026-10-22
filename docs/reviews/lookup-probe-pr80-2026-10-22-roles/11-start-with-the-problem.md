@@ -1,8 +1,10 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 11 ok — Read, Grep, Glob
 
 **Argument order: PR #80 (branch lookup-probe)**
 
-I read each added section in place in `/Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/doc_review_process.md` and `/Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/skills/murderboard/SKILL.md`, using `/private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/pr80.diff` to find them. I could not read the PR description, so it is not reviewed.
+I read each added section in place in `<worktree>/doc_review_process.md` and `<worktree>/skills/murderboard/SKILL.md`, using `<scratch>/mb/pr80.diff` to find them. I could not read the PR description, so it is not reviewed.
 
 **Arc I judged against:** a runbook arc. For each instruction: the problem the reader is in → the rule → how to do it → how to tell pass from fail → what to do on each outcome. Appendix entries use the incident-log arc instead: what happened → why the gates missed it → the lesson.
 

@@ -1,6 +1,8 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 4 MISMATCH — missing Grep, Glob; holds Edit, Write, NotebookEdit (deferred), plus Agent, Artifact, Skill, ToolSearch outside the grant
 
-(I searched with grep through Bash. I edited, wrote and deleted nothing in any repo. All scratch work is under /private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/v-4/. I read only 00-lookup-probe.md from the earlier review's archive.)
+(I searched with grep through Bash. I edited, wrote and deleted nothing in any repo. All scratch work is under <scratch>/mb/scratch/v-4/. I read only 00-lookup-probe.md from the earlier review's archive.)
 
 **Answer key: correct.** I resolved all six rows live on 2026-10-22:
 - doi.org returned 302 for every row.

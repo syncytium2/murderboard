@@ -1,8 +1,10 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 1 MISMATCH — missing Grep, Glob; holds no forbidden tools (held: Read, Bash, SubagentHandback)
 
-(Run note for the ledger: I used `grep` through Bash instead of the missing tools, so the review itself lost nothing. I edited nothing in either repo. Scratch files are only under /private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/role-1/.)
+(Run note for the ledger: I used `grep` through Bash instead of the missing tools, so the review itself lost nothing. I edited nothing in either repo. Scratch files are only under <scratch>/mb/scratch/role-1/.)
 
-**Input defect, for the main thread.** The diff file the reviewers were given (/private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/pr80.diff) covers 5 files. The PR changes 7 (`git diff --stat origin/main...HEAD`). The diff file leaves out `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, and the brief's list of changed files leaves them out too.
+**Input defect, for the main thread.** The diff file the reviewers were given (<scratch>/mb/pr80.diff) covers 5 files. The PR changes 7 (`git diff --stat origin/main...HEAD`). The diff file leaves out `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, and the brief's list of changed files leaves them out too.
 
 ## Claim ledger (quoted value · cited source · recomputed value · verdict)
 
@@ -24,7 +26,7 @@ GRANT 1 MISMATCH — missing Grep, Glob; holds no forbidden tools (held: Read, B
 | 14 | Roster and grants gates both exited 0 | re-ran 08f5ddb's roster (`--require-reports`) and `verify` on the record at 689b136 | both green ("9 ok, 2 mismatch, header agrees") | match. Note: issue #74 says `verify` first refused, until the header stopped claiming named agents. "Exited 0" describes the final state only |
 | 15 | Citations confirmed afterwards through PubMed and bioRxiv | run record, residual 3 | 11 via PubMed plus 1 via the bioRxiv API | match. "By the main session" comes from the issue only, since the record says "verified independently" |
 | 16 | The main session filed "DOIs not resolved live" as a **minor** residual | run record | It is residual 3 in the record (the issue says "item 2"), and the record does not call it minor. "Minor (run residual)" is the severity role 2 gave its own finding 6 | partly unsupported |
-| 17 | 2026-09-15: second time on that machine; WebFetch lost across two rounds; sources were documentation pages; role 2 worked from snippets and said so | REBOOTS_2026-09-15-roles | Windows `C:\Users\defazio` paths, like #74. Round 1 and round 2 roles 2 and 6 all say missing WebFetch and `curl` denied (round 3 ran role 5 only). Sources were Slurm, MathWorks, ARC and RFC pages. Role 2 says "search-result summaries" | match |
+| 17 | 2026-09-15: second time on that machine; WebFetch lost across two rounds; sources were documentation pages; role 2 worked from snippets and said so | REBOOTS_2026-09-15-roles | Windows `<consumer machine>` paths, like #74. Round 1 and round 2 roles 2 and 6 all say missing WebFetch and `curl` denied (round 3 ran role 5 only). Sources were Slurm, MathWorks, ARC and RFC pages. Role 2 says "search-result summaries" | match |
 | 18 | "Seven roles" hold Bash (scan comment) | grants in `agents/*.md` | roles 1, 2, 4, 6, 7, 9, 10 = 7 | match |
 | 19 | Roles 2 and 6 share a grant | agent `tools:` lines | identical: Read, Grep, Glob, Bash, WebSearch, WebFetch | match |
 | 20 | **"WebFetch was absent from the session, which no file records"** (process file lines 174 and 1346, SKILL.md line 285, the caveat `murderboard_subagents.sh` prints on every run at line 340, its selftest comment at line 425, commit message, PR body) | consumer repo `.claude/settings.json` at 689b136 | **The committed file has `permissions.deny` containing `"WebFetch"`, `"Bash(curl:*)"` and `"Bash(wget:*)"`, all since 575463b5 (2026-05-15), before both incidents.** The branch's own `--lookup` scan, run against a copy of that file, prints 3 BLOCKs and exits 1, then prints directly below them the caveat that "no file said so" | **mismatch** |
@@ -62,7 +64,7 @@ GRANT 1 MISMATCH — missing Grep, Glob; holds no forbidden tools (held: Read, B
 **Sources not consulted by the PR:** the consumer's own permission settings. These are the record of the incident's environment, and they contradict the diagnosis (finding 1).
 
 Key paths:
-- /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/murderboard_roster.sh (`lookup_line`, line 349)
-- /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/murderboard_subagents.sh (lines 339–340, 425)
-- /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/doc_review_process.md (lines 162–175, 1346)
-- /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/skills/murderboard/SKILL.md (line 285)
+- <worktree>/murderboard_roster.sh (`lookup_line`, line 349)
+- <worktree>/murderboard_subagents.sh (lines 339–340, 425)
+- <worktree>/doc_review_process.md (lines 162–175, 1346)
+- <worktree>/skills/murderboard/SKILL.md (line 285)

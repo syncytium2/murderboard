@@ -179,8 +179,10 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      **the run stops before any reviewer is spawned**, rather than being recorded as a missing
      tool and carried on. The prompt and its answer key are in the skill's step 4a, under
      *Before the fan-out: probe the lookup*; a review run by hand opens the vendored skill for
-     them. The key is hashed, so the agent being probed cannot read the answers off the page.
-     The record carries a `Lookup:` line (see *Output contract*), and the appendix tells the
+     them. **The probe catches an agent that honestly cannot reach its sources**, which is what
+     #74 was. It cannot catch one that guesses or invents its answers: a capable model knows
+     many titles, and whatever sits on the machine can be read. No fixed answer key closes that,
+     so the probe is a check on equipment, not on honesty. The record carries a `Lookup:` line (see *Output contract*), and the appendix tells the
      incident behind this
      ([issue #74](https://github.com/syncytium2/murderboard/issues/74)).
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
@@ -999,7 +1001,8 @@ to your session — a PubMed or bioRxiv integration, say — whose tools are nam
 role compiled with an explicit tool list receives what the list names and nothing more. If a
 connector is your route, add its server to rows 2 and 6 **in your copy** of the table, re-run
 `murderboard_agents.py write`, and let the lookup probe confirm it. ⚠ That copy is then a
-locally adapted file: `murderboard_revendor.py` will not overwrite it, and every later upstream
+locally adapted file. List it under `adapted` in `.murderboard-vendor.json`, or the next
+`murderboard_revendor.py` run copies upstream's table back over your grant; and every later upstream
 change to this file has to be merged into it by hand. A grant read from the consumer's own
 configuration instead would avoid that, and it is not built.
 
@@ -1364,12 +1367,16 @@ Lookup: not needed — the deliverable cites nothing and rests on no outside met
 
 | token | honest when | the gate, by default | under `--require-lookup` |
 |---|---|---|---|
-| `live` | the lookup probe passed every item the deliverable needs | passes; if the record names its archive, that archive must hold `00-lookup-probe.md` containing the probe DOI the line names, and no `unreached:` count above zero from role 2 or 6 | passes, with the same conditions |
+| `live` | the lookup probe passed every item the deliverable needs | passes; if the record names its archive, that archive must hold `00-lookup-probe.md` containing the probe DOI the line names | passes, with the same condition |
 | `not needed` | no references, no named attribution, no outside method or tool; never after a probe that failed | passes | passes |
 | `unavailable` | never, in a finished record: the run should have stopped at the probe | **fails** | **fails** |
 | *(no line)* | records written before this line existed | passes, reported as undeclared | **fails** |
 
-Two lines declaring different tokens fail, as a contradiction; the gate does not pick one.
+Whatever the token, a record whose archive holds a role 2 or role 6 report counting
+`unreached:` sources above zero fails: that is #74 itself, and writing `not needed` must not buy
+the pass `unavailable` cannot. Two lines declaring different tokens fail, as a contradiction,
+and so does a token the gate does not know; it picks neither. A `Lookup:` line inside fenced
+code is a quotation and is skipped, which is how to quote the grammar in a record.
 
 **`live` certifies the route, not the references:** it says the probe passed, so the roles the
 line names could look things up. Name them after the dash — `roles 2 and 6`, or `role 2 only`
@@ -1670,20 +1677,22 @@ seriously than a rule stated in the abstract.
   could: it found each of the twelve DOIs printed in that paper's own saved text, which shows
   the identifier belongs to the paper and does not show it resolves; and it could not open the
   four candidate papers or the two review articles that would have tested the table's claim to
-  list *every* published recording. It filed "DOIs not resolved live" as a run residual, and
-  the main session carried it into the record as one. The roster gate passed, and so did the
+  list *every* published recording. It filed "live DOI resolution not tested" as a minor run
+  residual, and the record carried it as "DOIs not resolved live". The roster gate passed, and so did the
   grants gate once the header stopped claiming named agents — correctly, since every role left
   a trace and declared its tools. Afterwards the main session confirmed all twelve through PubMed
   and bioRxiv connectors that role 2 had never been granted. The literature-database lookup
   showed a trap of its own: the PubMed Central ID converter has no entry for
   `10.1210/endocr/bqad150`, a 2023 *Endocrinology* paper not deposited in PMC (*"Identifier not
-  found in PMC"* from its API, an empty record through the connector), while PubMed indexes it
+  found in PMC"* from its API; through the PubMed connector, a record with no PMID and no
+  error, as this repository's review of the fix observed on 2026-10-22), while PubMed indexes it
   as PMID 37793082 and a title search found it. **It was the second such run on that machine**,
   per the consumer session: a 2026-09-15 run there lost WebFetch the same way across two rounds,
   on a deliverable whose sources were documentation pages, and role 2 worked from search-result
   snippets and said so. Nothing between "declare it" and "someone notices" existed. Lessons:
-  separate the tool from the capability; probe the capability before the fan-out, with
-  questions a model cannot answer from memory and a search engine does not settle; record the
-  result on a line a gate reads; and when a probe fails, read the settings files, since here
-  the cause sat in one. Reported by the consumer session that ran it, which quoted the run
-  record and the role reports.
+  separate the tool from the capability; probe the capability before the fan-out; record the
+  result on a line a gate reads; and when a probe fails, read the settings files — here the
+  committed ones denied the fetch tools, and the issue attributes the refusals to permission
+  settings. Reported by the consumer session that ran it, which quoted the run record and the
+  role reports. (Reviewing the fix showed the probe's limit: a capable model passed a fixed
+  answer key from memory, so the probe checks equipment, not honesty.)

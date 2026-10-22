@@ -286,6 +286,14 @@ outside the repository, and a role that cannot reach them still returns a full r
 them ([issue #74](https://github.com/syncytium2/murderboard/issues/74); the process file's
 appendix tells it).
 
+**What the probe can and cannot catch.** It catches an agent that honestly cannot reach its
+sources. That is the case #74 was: role 2 said it lacked WebFetch, and nothing stopped the run.
+It cannot catch an agent that guesses or invents the answers. A capable model knows many titles
+from memory, and anything kept on this machine, from the key below to the session's own
+transcript, can be read. No fixed answer key closes that gap. The drawn rows, the hashed key
+and the scored route make a careless pass harder, and they make a record of what the probe was
+asked and what came back.
+
 - **Skip it only when there is nothing to look up:** no references, no named attribution, and no
   method, tool or library documented outside this repository. Record `Lookup: not needed` and go
   on to the fan-out. A probe that ran and failed cannot be followed by `not needed`.
@@ -295,19 +303,17 @@ appendix tells it).
   foreground probe can hide one a background reviewer cannot answer. In a single-pass run, the
   main thread answers the probe itself.
 
-**The answer key is hashed, and that is the point.** The probing agent can read this file, so a
-key in plain text could be copied rather than looked up. Each title below is stored as the
-first 16 hex characters of the SHA-256 of its normalized form: lower case, with every run of
-characters other than letters and digits turned into one space. A title cannot be recovered
-from that, and an honest answer that differs only in case or punctuation still matches. Fill
-the prompt in fresh for each run:
+Fill the prompt in fresh for each run. The block draws a row of each table and a DOI made up
+for this run only, and defines `key`, which prints a title's hash in the form the tables use:
 
 ```bash
-doi_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))   # a row of the DOI table
-rfc_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))   # a row of the RFC table
-fake="10.1000/$(openssl rand -hex 6)"                     # a DOI made up for this run only
+doi_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))
+rfc_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))
+fake="10.1000/$(openssl rand -hex 6)"
 key() { python3 -c 'import hashlib,re,sys,unicodedata
-t=re.sub(r"[^0-9a-z]+"," ",unicodedata.normalize("NFKD",sys.argv[1]).lower()).strip()
+d=unicodedata.normalize("NFKD",sys.argv[1])
+t="".join(c for c in d if not unicodedata.combining(c)).lower()
+t=re.sub(r"[^0-9a-z]+"," ",t).strip()
 print(hashlib.sha256(t.encode()).hexdigest()[:16])' "$1"; }
 ```
 
@@ -316,12 +322,17 @@ print(hashlib.sha256(t.encode()).hexdigest()[:16])' "$1"; }
 > neither does any file on this machine.
 >
 > 1. Resolve `<the DOI in row $doi_row>`. Reply `FOUND <title>` with the HTTP status or record
->    ID your route returned, or `NOT FOUND`.
+>    ID your route returned, or `NOT FOUND` with what the route returned instead.
 > 2. Resolve `<$fake>` the same way.
 > 3. Fetch `https://www.rfc-editor.org/rfc/rfc<the number in row $rfc_row>.html` and reply
->    with the document's title, or `CANNOT FETCH`.
+>    with the title in the page's heading, without the RFC number, or `CANNOT FETCH`.
 >
 > Then one line per item naming the route you used.
+
+The key is a hash so that the agent being probed cannot read the answers off this page: each
+title is stored as `key` of it, the first 16 hex characters of a SHA-256 over the title with
+accents dropped, lower-cased, and every run of other characters than `a`–`z` and `0`–`9` turned
+into one space. An honest answer that differs only in case or punctuation still matches.
 
 | row | DOI | `key` of its title |
 |---|---|---|
@@ -339,43 +350,43 @@ print(hashlib.sha256(t.encode()).hexdigest()[:16])' "$1"; }
 | 3 | 6127 | `3ef3d2782e39acb6` |
 | 4 | 7058 | `b5968f1390b32c3d` |
 | 5 | 8137 | `23e9af9d35639e48` |
-| 6 | 3364 | `3033e5ed1516b9ce` |
+| 6 | 7154 | `613447dfa6fb99dc` |
 
 Checked live on 2026-10-22. Each DOI redirects at `doi.org`, is indexed in PubMed, is
-little-cited, and gives the same key from its Crossref and its PubMed title. Each RFC page
-serves its title. `10.1000` is the DOI Foundation's own prefix, and `doi.org` answers a suffix
-nobody registered with a 404.
+little-cited, and gives the same key from its Crossref and its PubMed title. Each RFC page shows
+its title in a single heading. `10.1000` is the DOI Foundation's own prefix, and `doi.org`
+answers a suffix nobody registered with a 404.
+
+**Score each item on the answer and on the route.** The route must be named, and must be
+neither a search engine nor a file.
 
 | item | passes when | clears |
 |---|---|---|
-| 1 | `FOUND`, and `key "<the title it gave>"` matches the row | role 2: the route resolves identifiers |
-| 2 | `NOT FOUND` | role 2: the route does not answer *something* to everything |
-| 3 | `key "<the title it gave>"` matches the row | role 6: the role can read a documentation page |
+| 1 | `FOUND`, `key "<the title given>"` matches the row, and an HTTP status or record ID is given | role 2: the route resolves identifiers |
+| 2 | `NOT FOUND`, with the route's own miss: a 404, or a database's empty result | role 2: the route does not answer *something* to everything |
+| 3 | `key "<the title given>"` matches the row | role 6: the role can read a documentation page |
 
 A literature connector can pass items 1 and 2 and not item 3. That is enough for a deliverable
-whose outside sources are papers alone. It is not enough for one that rests on a tool's or a
-library's documentation, which role 6 has to read. Require the items the deliverable needs.
-Two limits are stated rather than hidden:
+whose outside sources are papers alone, and not for one that rests on a tool's or a library's
+documentation, which role 6 has to read. Require the items the deliverable needs.
 
 - **Item 3 clears role 6 by proxy.** That holds while roles 2 and 6 have the same grant and are
   spawned by the same path. If your copy grants them differently, give item 3 to role 6's own
   agent.
-- **A literature database covers only itself.** Resolved through `doi.org`, items 1 and 2 test
-  every registration agency. Through Crossref or PubMed alone, a DataCite DOI (an arXiv or
-  Zenodo record) comes back missing while `doi.org` resolves it. If your route is a database,
-  name it on the `Lookup:` line, and role 2 counts identifiers outside its coverage as
-  unreached.
+- **A literature database covers only itself.** Through `doi.org`, items 1 and 2 test every
+  registration agency. Through Crossref or PubMed alone, a DataCite DOI (an arXiv or Zenodo
+  record) comes back missing while `doi.org` resolves it. Role 2 counts such an identifier as
+  unreached, and an unreached count stops the run, so a database-only route suits only a
+  deliverable that cites nothing outside that database.
 
 Do not run the probe through `fetch_paper.py`. It fetches open-access papers rather than
 resolving DOIs, and the fake DOI would land on the human's `_NEEDED.md` list.
 
 - **Every item it needs passes** → record `Lookup: live — <route>; roles <2 and 6 | 2>; probe
   <$fake>` (step 7). Save the prompt as sent, your scoring of each item, and the reply to the
-  role-report archive (step 4b) as `00-lookup-probe.md` — the reply verbatim **except that
-  each title is replaced by its key**, because a plain-text title on disk answers a later run's
-  probe. The roster gate requires that file under `live`, and requires it to contain the fake
-  DOI the `Lookup:` line names, so a reply copied from an older run does not count. Then fan
-  out.
+  role-report archive (step 4b) as `00-lookup-probe.md`, with each title in the reply replaced
+  by its key. When the record names its archive, the roster gate requires that file and the
+  fake DOI the `Lookup:` line names in it.
 - **Anything else** → **STOP before spawning any reviewer.** This is not a `MISMATCH` to carry
   into the ledger. It is a stop. Tell the human which route was tried and what came back, then
   look for the knob:
@@ -384,19 +395,18 @@ resolving DOIs, and the fake DOI would land on the human's `_NEEDED.md` list.
   ```
   It reads the settings and instruction files for what blocks a lookup: a `WebFetch` or `curl`
   deny, `dontAsk` with no lookup route allowed, a sandbox that denies the resolver hosts. That
-  is the shape behind #74, where the project's own settings denied `WebFetch`, `curl` and
+  is the shape behind #74, where the project's committed settings denied `WebFetch`, `curl` and
   `wget`. **Its exit 0 is not an all-clear.** A launch flag, or a tool missing for some other
   reason, is in no file.
 
   The remedies are the human's: lift the rule for the review, run where the web is reachable,
   or grant roles 2 and 6 a literature connector (see *A connector reaches a role only through
   its grant* in `$PROCESS`). Then ask, and wait. **"Go ahead anyway" cannot buy a passing
-  record**: the roster gate fails `Lookup: unavailable` however it is written.
+  record**: the gate fails `unavailable`, and it fails an archive in which role 2 or role 6
+  counts sources it could not reach, whatever token the record carries.
 
-Spawned by name, the probe is not a call-up to the cost gate, because it carries none of the
-fan-out's vocabulary. Spawned through the fallback, its prompt is role 2's agent file, and the
-gate counts it. Both are harmless: the probe runs after the cost preflight, which has already
-stopped a blocked model.
+The probe is one spawn after the cost preflight. If the cost gate asks about it, that is
+expected.
 
 Scale to stakes in *how* you run them, never in *which* ones:
 
@@ -485,7 +495,7 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - rounds:    <n> blind verify rounds to clean
 
 Execution: subagents | single-pass (forced) | single-pass (chosen)   # from step 1a
-Lookup: live | not needed            # step 4a: the probe passed, or there was nothing to look up
+Lookup: live — <route>; roles <2 and 6 | 2>; probe 10.1000/<hex> | not needed   # step 4a
 ```
 
 The token before the dash is parsed and must be exact; everything after it is yours and is
@@ -558,10 +568,12 @@ for it. A named archive that does not exist fails whether the flag is set or not
 "cited but missing" shape, and it reads to anyone downstream as the complete run. **Do not make
 it green by deleting the line**; write the reports, or declare the gap and tell the human.
 
-**And it reads the `Lookup:` line.** Under `--require-lookup` a missing line fails. A `live`
-line whose archive has no `00-lookup-probe.md` fails too, which is what makes "the probe ran"
-something the gate can check rather than take on trust. It still cannot check that the probe's
-answers were right. Write the token from what the probe returned.
+**And it reads the `Lookup:` line.** Under `--require-lookup` a missing line fails. When the
+record names its archive, a `live` line fails without `00-lookup-probe.md` holding the probe
+DOI the line names, and any record fails whose role 2 or role 6 report counts `unreached:`
+sources. That leaves a record of the probe a reader can check; it does not prove the probe
+was answered honestly, which no report-reading gate can. Write the token from what the probe
+returned. A quoted example of the grammar belongs in a fenced code block, which the gate skips.
 
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are

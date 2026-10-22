@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 2 MISMATCH — missing Grep, Glob; holds Edit, Write, Agent, Artifact, Skill, and NotebookEdit (deferred, loadable on demand). My granted tools Read, Bash, WebFetch and WebSearch are present; I loaded WebFetch and the PubMed tools on demand. I edited, wrote and deleted nothing.
 
 1. `10.1016/j.jnutbio.2017.08.013` — FOUND "[title replaced by its key: 8158b24485a47382]". PMID 29032081, from a PubMed search on the DOI. doi.org returned HTTP 302 to linkinghub.elsevier.com/retrieve/pii/S0955286316307458, and the Crossref API returned 200 with the same title.

@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 5 MISMATCH — missing Grep, Glob; holds Bash, Edit, Write, Agent, Skill, ToolSearch, Artifact, mcp__claude_ai_Claude_Docs__batch/update/guide
 
 **Grant mismatch.** Both Grep calls failed with "No such tool available: Grep … use grep via the Bash tool instead." I worked around it by reading the files with Read only. I did not use Bash, Edit or Write, as instructed. I could not rerun `murderboard_prose.sh`; I relied on the main thread's pasted output, which found **no banned constructions in any added line**. Data plural: no new uses of "data". Spelling: one idiom flagged in finding 14.

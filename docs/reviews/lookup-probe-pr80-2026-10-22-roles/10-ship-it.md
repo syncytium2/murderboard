@@ -1,10 +1,12 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 10 MISMATCH — missing Grep, Glob; holds none forbidden (held: Read, Bash, SubagentHandback)
 
 That is a finding about the run, not about the artifact. I did the grep and glob work through Bash, so the check lost nothing.
 
 Bottom line: both selftests pass, every Lookup token gives the right exit code, the markdown renders correctly, and CI needs nothing new to stay green. There are five small findings: one wrong remedy string, one undocumented WebSearch blocker, a `--help` cut-off, lines a few characters over 80, and a CI step that would be worth adding.
 
-**What was checked against what.** The build is current: `pr80.diff` matches `git diff <merge-base> HEAD` for its 5 files byte for byte (HEAD 2cd1427, 2026-10-21). The PR actually touches 7 files; the diff leaves out `.claude-plugin/{plugin,marketplace}.json`, which carry the version bump. The constructed reports and fixtures are in /private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/role-10/. Markdown was parsed with markdown-it 4.2.0 in CommonMark mode; pandoc is also installed.
+**What was checked against what.** The build is current: `pr80.diff` matches `git diff <merge-base> HEAD` for its 5 files byte for byte (HEAD 2cd1427, 2026-10-21). The PR actually touches 7 files; the diff leaves out `.claude-plugin/{plugin,marketplace}.json`, which carry the version bump. The constructed reports and fixtures are in <scratch>/mb/scratch/role-10/. Markdown was parsed with markdown-it 4.2.0 in CommonMark mode; pandoc is also installed.
 
 | # | Item | Checked against | Result | Severity / fix | Verified |
 |---|---|---|---|---|---|
@@ -38,4 +40,4 @@ Bottom line: both selftests pass, every Lookup token gives the right exit code, 
 | 28 | Does CI need to run anything new? | Read `.github/workflows/ci.yml` | Both selftests already run on ubuntu and macOS, so the new lookup cases are covered. Nothing new is needed to stay green. One gap: the step "subagent preflight runs against a real checkout" only runs the default scan, so `--lookup`'s Python and prose paths never meet a real checkout | Low. Add `bash murderboard_subagents.sh --lookup --explain` to that step, accepting exit 0/1 and failing on anything else | yes |
 | 29 | `$SUBAGENTS` in the new SKILL.md snippet | grep | Defined at SKILL.md:86 and :112. When it is unset, `[ -n … ] && … ; echo exit=$?` prints exit=1, the same as the existing line 190 | Info, existing pattern | yes |
 
-Files: /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/murderboard_subagents.sh (rows 10 and 11: the hard-coded WebFetch text in the lookup WARN remedy, and the `websearch` regex), /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/murderboard_roster.sh (the `sed -n '2,30p'` help range at lines 822 and 832), /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/.github/workflows/ci.yml (the real-checkout step).
+Files: <worktree>/murderboard_subagents.sh (rows 10 and 11: the hard-coded WebFetch text in the lookup WARN remedy, and the `websearch` regex), <worktree>/murderboard_roster.sh (the `sed -n '2,30p'` help range at lines 822 and 832), <worktree>/.github/workflows/ci.yml (the real-checkout step).

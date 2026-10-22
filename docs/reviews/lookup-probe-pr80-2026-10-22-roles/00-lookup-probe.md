@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 ## Prompt as sent (DOI row 2, RFC row 1, drawn at random; fake DOI made for this run)
 
 Lookup probe, not a review. Answer each item by looking it up now, through a resolver, a registry, a literature database, or a direct page fetch. A search engine does not count, and neither does any file on this machine.

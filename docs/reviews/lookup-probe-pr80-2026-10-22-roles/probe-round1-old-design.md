@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 2 MISMATCH — missing Grep, Glob; holds Edit, Write, NotebookEdit (deferred, loadable) — plus other tools the grant doesn't include: Agent, Artifact, Skill, ToolSearch, SubagentHandback, the Claude Docs/Dropbox/Gmail/bio-research MCP tools, and Monitor/SendMessage/EnterWorktree and others (deferred). Of the granted set, Read, Bash, WebSearch and WebFetch (deferred) are held. I edited, wrote and deleted nothing.
 
 10.1371/journal.pmed.0020124 FOUND Why Most Published Research Findings Are False

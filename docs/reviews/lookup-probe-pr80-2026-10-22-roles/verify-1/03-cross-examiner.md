@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 3 ok — Read, Grep, Glob
 
 **Cross-Examiner findings for PR #80 (`lookup-probe`), blind verify pass**
@@ -96,4 +98,4 @@ Findings (location · issue · severity · suggested fix · could I verify it ag
 
 Not verified (outside my role): the six DOIs, titles and Crossref dates in the skill's table, apart from the first row, which matches the probe file; and the Claude Code `tools:` / MCP whole-server syntax.
 
-Files: /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/{doc_review_process.md, skills/murderboard/SKILL.md, murderboard_roster.sh, murderboard_subagents.sh, README.md, CLAUDE.md, docs/index.html, START-HERE.md, docs/reviews/lookup-probe-pr80-2026-10-22-roles/00-lookup-probe.md}
+Files: <worktree>/{doc_review_process.md, skills/murderboard/SKILL.md, murderboard_roster.sh, murderboard_subagents.sh, README.md, CLAUDE.md, docs/index.html, START-HERE.md, docs/reviews/lookup-probe-pr80-2026-10-22-roles/00-lookup-probe.md}

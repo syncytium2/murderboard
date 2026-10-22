@@ -1,6 +1,8 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 10 MISMATCH — missing Grep, Glob; holds no forbidden tools (held: Read, Bash, SubagentHandback)
 
-I used `rg`/`find` through Bash in place of Grep and Glob. This mismatch is a finding about the run, not about the artifact. I edited nothing in the repo; everything I wrote is under `/private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/v-10/`.
+I used `rg`/`find` through Bash in place of Grep and Glob. This mismatch is a finding about the run, not about the artifact. I edited nothing in the repo; everything I wrote is under `<scratch>/mb/scratch/v-10/`.
 
 **Verdict: one blocker on the public page. The markdown, both gates and CI pass.** The new exit-code label in the gates table's roster row is too long for its no-wrap column, and at desktop width the table becomes three times taller.
 
@@ -30,7 +32,7 @@ I used `rg`/`find` through Bash in place of Grep and Glob. This mismatch is a fi
 | c10 | Failure messages at 80 columns; escape codes | each lookup failure branch, piped vs under `script` (tty) | The `unavailable`, unrecognized, no-line-under-`--require-lookup` and live-without-probe messages are all 76 columns or under. Piped output has no escape codes; on a tty it has color. | pass | — | yes |
 | d1 | CI "subagent preflight runs against a real checkout" | ran the loop body under `bash -e` in the worktree; parsed `ci.yml` as YAML | The plain subagent run exits 1 (blockers exist on this machine) and `--lookup` exits 0; the step itself exits 0. YAML parses. Unquoted `$mode` is intended: the empty string drops out of the argument list. | pass | — | yes |
 
-Renders and measurements (all in `/private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/v-10/`):
+Renders and measurements (all in `<scratch>/mb/scratch/v-10/`):
 - `cdp-branch-1280-table.png`
 - `cdp-main-1280-table.png`
 - `cdp-branch-1280-row.png`

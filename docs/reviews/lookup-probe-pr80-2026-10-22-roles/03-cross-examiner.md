@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 3 ok — Read, Grep, Glob
 
 (SubagentHandback is the harness's hand-off tool, not a review tool. I hold no Edit, Write or NotebookEdit.)
@@ -105,4 +107,4 @@ Each finding: location · issue · severity · suggested fix · could I verify i
 - **Grants table:** rows 2 and 6 are identical (process 969 and 973), so "share a grant" holds. "Seven roles" hold Bash (roles 1, 2, 4, 6, 7, 9 and 10), matching scanner line 158.
 - **Cross-references:** "see *Output contract*" resolves to the heading at line 1200. The skill's pointer to *A connector reaches a role only through its grant* resolves at process line 943.
 
-Files: /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/doc_review_process.md, /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/skills/murderboard/SKILL.md, /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/murderboard_roster.sh, /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/murderboard_subagents.sh, /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/README.md, /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/CLAUDE.md, /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/docs/index.html, /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/START-HERE.md, /Users/tonydefazio/Developer/murderboard-worktrees/lookup-probe/DESCRIPTION-for-claude.md
+Files: <worktree>/doc_review_process.md, <worktree>/skills/murderboard/SKILL.md, <worktree>/murderboard_roster.sh, <worktree>/murderboard_subagents.sh, <worktree>/README.md, <worktree>/CLAUDE.md, <worktree>/docs/index.html, <worktree>/START-HERE.md, <worktree>/DESCRIPTION-for-claude.md

@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 8 MISMATCH — missing Grep, Glob; holds Edit, Write, Bash, Agent, Artifact, Skill, ToolSearch, mcp__claude_ai_Claude_Docs__batch, mcp__claude_ai_Claude_Docs__update (NotebookEdit and others deferred, loadable)
 
 I used Read only. I edited, wrote and deleted nothing. Without Grep or Glob I read the diff (all 1228 lines), SKILL.md lines 1–240 and 360–419 in place, and the allowed `00-lookup-probe.md`. I did not read the role archive.

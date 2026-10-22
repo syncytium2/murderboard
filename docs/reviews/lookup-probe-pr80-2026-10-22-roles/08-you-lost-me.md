@@ -1,8 +1,10 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 8 MISMATCH — missing Grep, Glob; holds Bash, Edit, Write, Agent, Artifact, Skill, ToolSearch, mcp__claude_ai_Claude_Docs__batch, mcp__claude_ai_Claude_Docs__update (plus deferred WebFetch, WebSearch, NotebookEdit and others reachable through ToolSearch)
 
 Run note: this role came up through the fallback path and holds editing tools that no reviewer may have. I used only Read. I could not search with Grep, so the Output contract cross-reference is marked unverified below.
 
-**What I checked:** all of /private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/pr80.diff. I also read the new text in place: SKILL.md lines 180–340 and doc_review_process.md lines 1255–1340. Two cold readers: a vendoring researcher, and someone who meets the roster gate's `Lookup: unavailable` message on their own run. "Panel" here means a block of added text.
+**What I checked:** all of <scratch>/mb/pr80.diff. I also read the new text in place: SKILL.md lines 180–340 and doc_review_process.md lines 1255–1340. Two cold readers: a vendoring researcher, and someone who meets the roster gate's `Lookup: unavailable` message on their own run. "Panel" here means a block of added text.
 
 ## Per-block verdict (terms first used · defined here? · can a cold reader follow?)
 

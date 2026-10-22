@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 7 MISMATCH — missing Grep, Glob; holds Read, Bash, SubagentHandback (no editing tool held: no Edit, Write or NotebookEdit)
 
 This is a finding about the run, not the artifact. I searched with `grep` through Bash instead, so the check itself lost nothing. The run record's `roles:` line should still say this role came in by a fallback path.
@@ -65,4 +67,4 @@ This is a finding about the run, not the artifact. I searched with `grep` throug
    - **Fix:** rename the scanner's version, for example `report_lookup_scan`.
    - **Verified:** yes.
 
-All scratch fixtures are in `/private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/role-7/`: `fn_base.sh`, `fn_new.sh`, `cases/`, `lk/`. Nothing in the repo was edited.
+All scratch fixtures are in `<scratch>/mb/scratch/role-7/`: `fn_base.sh`, `fn_new.sh`, `cases/`, `lk/`. Nothing in the repo was edited.

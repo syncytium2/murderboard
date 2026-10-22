@@ -158,13 +158,15 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `permissions.deny` rule, an allow-list without `Task`, a CLAUDE.md line forbidding subagents)
 > so allowing them is one edit. ⚠ **That scan's exit 0 is not an all-clear** — a launch flag or
 > an instruction injected at runtime is invisible to it, which is how the one degraded run on
-> record happened. The skill runs a second probe before the fan-out, for roles 2 and 6: a
-> hashed-key lookup of a real DOI, a made-up one, and a documentation page. Its reply is
+> record happened. The skill runs a second probe before the fan-out, for roles 2 and 6: look up
+> a real DOI, a made-up one and a documentation page, scored against hashed answers. It
+> catches a reviewer that honestly cannot reach its sources, not one that guesses. Its reply is
 > archived as `00-lookup-probe.md`, and the record's `Lookup:` line says what it found. If it
-> fails, `tools/murderboard_subagents.sh --lookup --explain` names a blocking rule on disk, and
-> the run stops there. `tools/murderboard_agents.py verify <report>` goes beside these, so a report
+> fails, the run stops, and `tools/murderboard_subagents.sh --lookup --explain` names a blocking
+> rule if a settings file holds one. `tools/murderboard_agents.py verify <report>` goes beside
+> the roster check, so a report
 > that does not carry a grant declaration for every role, naming the tools that role was granted,
-> cannot pass as one that does. The two ask different questions: *did every role leave a trace*
+> cannot pass as one that does. The roster check and `verify` ask different questions: *did every role leave a trace*
 > and *did every role state what it held*. `verify` set-compares each `ok` against the grants
 > table, so `GRANT n ok — nothing whatsoever` fails; and it refuses a report that declares both
 > verdicts for one role rather than picking one. ⚠ **It still cannot tell you a declaration is

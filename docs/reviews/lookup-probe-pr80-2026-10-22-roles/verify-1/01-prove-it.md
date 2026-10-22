@@ -1,10 +1,12 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 1 MISMATCH — missing Grep, Glob; holds no forbidden tools (holds Read, Bash, SubagentHandback)
 
 This is a run finding, not one about the artifact. I did my searching with grep through Bash, so nothing was lost.
 
 # Role 1 (Prove It): blind verify pass on PR #80, branch `lookup-probe` at 7cec2d7
 
-I didn't edit anything in any repo. All scratch files are under /private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/v-1/
+I didn't edit anything in any repo. All scratch files are under <scratch>/mb/scratch/v-1/
 
 ## Findings
 

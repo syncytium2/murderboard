@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 9 MISMATCH — missing Grep, Glob; holds no forbidden tools (Read, Bash, SubagentHandback)
 
 (I used grep and awk through Bash, so the missing tools cost the check nothing. Record the mismatch in the ledger as a finding about the run.)
@@ -13,7 +15,7 @@ GRANT 9 MISMATCH — missing Grep, Glob; holds no forbidden tools (Read, Bash, S
 - "Visual" means a code block, a table or a blockquote.
 
 **Measurements:**
-- `bash murderboard_prose.sh` on both files, output saved in /private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/role-9/.
+- `bash murderboard_prose.sh` on both files, output saved in <scratch>/mb/scratch/role-9/.
 - The script counts a whole list as one block, so its figures are coarse. The per-section counts below come from the diff's `+` lines.
 - On doc_review_process.md the script exits 1, but all its hits are at lines 600–611. That is the existing banned-word list, outside the diff and role 5's concern.
 

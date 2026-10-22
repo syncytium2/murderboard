@@ -1,3 +1,5 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 2 MISMATCH — missing Grep, Glob; holds Edit, Write, Agent, Artifact, Skill, ToolSearch, mcp__claude_ai_Claude_Docs__batch / __update (editing tools); WebFetch and WebSearch were deferred and loaded through ToolSearch; the bio-research PubMed connector was also loadable and used. No file was edited, written or deleted, and the scratch directory was not used. This reviewer was spawned through the fallback path, which belongs in the ledger. Losing Grep and Glob cost nothing, because I searched through Bash.
 
 **Role 2 (DOI or Die): PR #80, branch `lookup-probe`. Every identifier was resolved live on 2026-10-22, and each row names its route.**

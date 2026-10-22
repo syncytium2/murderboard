@@ -173,8 +173,11 @@ if scan == "lookup":
     # the tool; a scoped rule (`WebFetch(domain:x)`, `Bash(curl -X POST *)`) blocks only the
     # calls it matches, so it BLOCKs here only when it covers a resolver.
     import fnmatch
+    # The hosts the lookup probe and roles 2 and 6 depend on -- rfc-editor.org is the probe's
+    # documentation page, item 3.
     RESOLVERS = ("doi.org", "dx.doi.org", "api.crossref.org", "crossref.org",
-                 "eutils.ncbi.nlm.nih.gov", "pubmed.ncbi.nlm.nih.gov", "ncbi.nlm.nih.gov")
+                 "eutils.ncbi.nlm.nih.gov", "pubmed.ncbi.nlm.nih.gov", "ncbi.nlm.nih.gov",
+                 "www.rfc-editor.org", "rfc-editor.org")
     FETCHERS = ("curl", "wget", "invoke-webrequest", "iwr", "invoke-restmethod", "irm")
 
     def covers_resolver(pattern):
@@ -200,14 +203,25 @@ if scan == "lookup":
         if name in ("Bash", "PowerShell"):
             if arg.strip() in ("*", ":*", ""):
                 return "BLOCK"                            # `Bash(*)` is the whole shell
-            words = arg.replace(":", " ").split()
+            # `curl:*` is the prefix form: split only the FIRST word on its colon, so a URL's
+            # `https://` in a later word survives to have its host read.
+            words = arg.split()
             if not words:
                 return None
+            head, sep, tail = words[0].partition(":")
+            if sep:
+                words = [head] + ([tail] if tail else []) + words[1:]
             cmd = words[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
             if cmd not in FETCHERS:
                 return None
             rest = [w for w in words[1:] if w != "*"]
-            return "BLOCK" if not rest else "WARN"         # `curl`, `curl:*`, `curl *`
+            if not rest:
+                return "BLOCK"                            # `curl`, `curl:*`, `curl *`
+            hosts = [re.sub(r"^[a-z]+://", "", w.lower()).split("/")[0] for w in rest]
+            if any(h and covers_resolver(h) for h in hosts):
+                return "BLOCK"                            # a fetch aimed at a resolver
+            return "WARN"                                 # scoped to something else
+        return None
         return None
 
     for key, kind in (("deny", None), ("ask", "ask")):
@@ -224,10 +238,12 @@ if scan == "lookup":
     # dontAsk auto-denies anything not pre-approved, so there an allow list IS restrictive.
     mode = (cfg.get("permissions") or {}).get("defaultMode") if isinstance(cfg.get("permissions"), dict) else None
     if mode == "dontAsk":
-        # An allow entry is a route if, read as a deny, it would have removed one: WebFetch
-        # or a resolver domain, the shell or a fetcher in it, a connector.
+        # An allow entry is a route if, read as a deny, it would have BLOCKED one: WebFetch or
+        # a resolver domain, the shell, a fetcher or a fetch aimed at a resolver. A connector
+        # counts too, since this scan cannot tell a literature connector from any other; the
+        # probe settles whether it reaches anything.
         def opens_route(a):
-            return lookup_verdict(a) is not None
+            return lookup_verdict(a) == "BLOCK" or a.strip().lower().startswith("mcp__")
         if not any(opens_route(a) for a in entries("permissions", "allow")):
             print("BLOCK\t%s: permissions.defaultMode is dontAsk and nothing in permissions.allow "
                   "lets a lookup through (WebFetch, curl, or a connector)" % path)
@@ -347,8 +363,8 @@ scan_prose() {
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     if [ "$SCAN" = lookup ]; then
-      warn "$f:${line%%:*} — an instruction here may forbid fetching from the web" \
-           "read the line; if it does forbid it, lift it for the review or the probe will fail"
+      warn "$f:${line%%:*} — may forbid fetching" \
+           "if it forbids fetching, lift it for this review"
     else
     block "$f:${line%%:*} — an instruction here reads as forbidding subagents" \
           "no permission system is involved; edit the line, or tell the session to allow subagents for this run"
@@ -570,6 +586,14 @@ cmd_selftest() {
   lk 'deny a connector -> exit 0 (a warning)' 0 \
      '{"permissions":{"deny":["mcp__plugin_bio-research_pubmed"]}}'
   lk 'sandbox denying doi.org -> exit 1' 1 '{"sandbox":{"network":{"deniedDomains":["doi.org"]}}}'
+  # The probe's own documentation host, item 3, is a resolver for this purpose.
+  lk 'WebFetch denied for rfc-editor.org -> exit 1' 1 \
+     '{"permissions":{"deny":["WebFetch(domain:rfc-editor.org)"]}}'
+  # A curl rule aimed at a resolver blocks the lookup; one aimed elsewhere does not.
+  lk 'curl to doi.org denied -> exit 1' 1 '{"permissions":{"deny":["Bash(curl https://doi.org/*)"]}}'
+  # Under dontAsk, a curl allowed only for POSTs is not a lookup route.
+  lk 'dontAsk allowing only POST curl -> exit 1' 1 \
+     '{"permissions":{"defaultMode":"dontAsk","allow":["Bash(curl -X POST *)"]}}'
   # Prose is a WARN under --lookup, and a WARN must still be SHOWN on the clean path.
   mkdir -p "$tmp/lprose/.claude"
   printf '# repo\n\nNever use WebFetch on this machine.\n' > "$tmp/lprose/CLAUDE.md"

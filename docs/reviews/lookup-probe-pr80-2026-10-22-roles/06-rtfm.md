@@ -1,8 +1,10 @@
+> **Redacted for a public repository.** Local paths were replaced mechanically: `<worktree>`, `<scratch>`, `<session transcript>`, `<consumer repo>`, `<home>`, `<consumer machine>`. Everything else is verbatim. The unredacted original is kept outside the repository.
+
 GRANT 6 MISMATCH — missing Grep, Glob; holds no forbidden tools (I have Read, Bash, WebSearch, WebFetch, plus the SubagentHandback harness tool)
 
 This mismatch does not affect the check: I grepped through Bash. It still belongs in the run record's `roles:` line as a fallback-path grant.
 
-**Summary:** both selftests pass under macOS `/bin/bash` 3.2.57 (roster 72/0, subagents 19/0), and every factual claim about DOI and NCBI behavior checks out live. But the probe can be passed by a model answering from memory or from search snippets, and the probe does not test what role 6 needs. The `--lookup` scanner raises false blockers on scoped rules and stays silent on several real ones. I edited nothing in the repo; scratch files are in /private/tmp/claude-501/-Users-tonydefazio-Developer-murderboard/e08dd00d-458d-4dc7-8229-49f1f45d6e83/scratchpad/mb/scratch/role-6/
+**Summary:** both selftests pass under macOS `/bin/bash` 3.2.57 (roster 72/0, subagents 19/0), and every factual claim about DOI and NCBI behavior checks out live. But the probe can be passed by a model answering from memory or from search snippets, and the probe does not test what role 6 needs. The `--lookup` scanner raises false blockers on scoped rules and stays silent on several real ones. I edited nothing in the repo; scratch files are in <scratch>/mb/scratch/role-6/
 
 ## Findings (location · issue · severity · suggested fix · verified against a source?)
 
