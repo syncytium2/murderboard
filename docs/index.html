@@ -619,7 +619,7 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
 <div class="wrap">
 
   <header class="masthead">
-    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.15.2</b> &middot; Updated <time datetime="2026-10-21">2026-10-21</time></span></p>
+    <p class="kicker"><span>A review process for catching unchecked claims</span><span>Open source &middot; Apache-2.0</span><span class="stamp">Born <time datetime="2026-07-20">2026-07-20</time> &middot; Version <b>0.15.3</b> &middot; Updated <time datetime="2026-10-22">2026-10-22</time></span></p>
 
     <h1 class="wordmark">The <em>Murder</em>board</h1>
 
@@ -694,6 +694,13 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
   <section class="ticker-sec" id="changes">
     <span class="eyebrow">What changed lately</span>
     <ul class="ticker">
+      <li>
+        <time datetime="2026-10-22">2026-10-22</time>
+        <div>
+          <b>The skill now stops a review whose citation checker cannot reach its sources</b>
+          <p>A review carried on after its citation checker said it could not fetch pages, and the run&rsquo;s end-of-run checks still passed. Now, before the review fans out, the checker must look up a little-known paper, a made-up DOI and a documentation page. That tests its tools, not its honesty. A finished report that says its reviewers could not reach their sources fails the end-of-run check. <a class="more" href="https://github.com/syncytium2/murderboard/pull/80">Details &#8250; #80</a></p>
+        </div>
+      </li>
       <li>
         <time datetime="2026-10-19">2026-10-19</time>
         <div>
@@ -1185,7 +1192,8 @@ form.contact button:focus-visible { outline: 2px solid var(--ink); outline-offse
             <th scope="row">Does the report account for every role?<br><code>murderboard_<wbr>roster.sh</code></th>
             <td>Reads the list of roles out of the process document, never from memory, and checks the
             finished report accounts for all of them. Add a role upstream and every copy's check picks
-            it up as soon as that copy is refreshed &mdash; with no script edit anywhere.</td>
+            it up as soon as that copy is refreshed &mdash; with no script edit anywhere. It also
+            fails a report that says its reviewers could not reach their sources.</td>
             <td class="exits">
               <span class="pill ok">0</span>all present<br>
               <span class="pill warn">1</span>a role is missing<br>

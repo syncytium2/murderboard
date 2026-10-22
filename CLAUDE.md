@@ -146,8 +146,9 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > what you can't reach. Vendored from `syncytium2/murderboard` — put
 > `tools/murderboard_freshness.sh --hook` in your SessionStart hook so a stale copy announces
 > itself instead of silently omitting rules you have already paid for, and run
-> `tools/murderboard_roster.sh check --require-execution --require-reports <report>` on the
-> finished report so a dropped role cannot pass as a clean one, so a run whose role reports were
+> `tools/murderboard_roster.sh check --require-execution --require-reports --require-lookup
+> <report>` on the finished report so a dropped role cannot pass as a clean one, so a record
+> saying its citation checker could reach no source cannot pass, so a run whose role reports were
 > summarized and then lost cannot pass as one that kept them, **and so a run that could not spawn subagents cannot
 > pass as one that chose not to** — eleven roles played by the agent that wrote the draft
 > produce the same eleven ledger rows as eleven independent reviewers, and are a much weaker
@@ -157,9 +158,15 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 > `permissions.deny` rule, an allow-list without `Task`, a CLAUDE.md line forbidding subagents)
 > so allowing them is one edit. ⚠ **That scan's exit 0 is not an all-clear** — a launch flag or
 > an instruction injected at runtime is invisible to it, which is how the one degraded run on
-> record happened — and `tools/murderboard_agents.py verify <report>` goes beside it, so a report
+> record happened. The skill runs a second probe before the fan-out, for roles 2 and 6: look up
+> a real DOI, a made-up one and a documentation page, scored against hashed answers. It
+> catches a reviewer that honestly cannot reach its sources, not one that guesses. Its reply is
+> archived as `00-lookup-probe.md`, and the record's `Lookup:` line says what it found. If it
+> fails, the run stops, and `tools/murderboard_subagents.sh --lookup --explain` names a blocking
+> rule if a settings file holds one. `tools/murderboard_agents.py verify <report>` goes beside
+> the roster check, so a report
 > that does not carry a grant declaration for every role, naming the tools that role was granted,
-> cannot pass as one that does. The two ask different questions: *did every role leave a trace*
+> cannot pass as one that does. The roster check and `verify` ask different questions: *did every role leave a trace*
 > and *did every role state what it held*. `verify` set-compares each `ok` against the grants
 > table, so `GRANT n ok — nothing whatsoever` fails; and it refuses a report that declares both
 > verdicts for one role rather than picking one. ⚠ **It still cannot tell you a declaration is

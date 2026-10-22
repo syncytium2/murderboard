@@ -27,11 +27,16 @@
 #                                               ...and the report must declare its Execution:
 #   murderboard_roster.sh check --require-reports REPORT.md
 #                                               ...and its role reports must be on disk
+#   murderboard_roster.sh check --require-lookup REPORT.md
+#                                               ...and the report must declare its Lookup:
 #   murderboard_roster.sh --process PATH ...    use this process file (default: autodetect)
 #   murderboard_roster.sh --selftest            prove every branch can still fire
 #
-# EXIT CODES   0 = ok   1 = roles missing, a mode/execution line is missing or incoherent,
-#                         or the declared role-report archive is absent, incomplete, or empty
+# EXIT CODES   0 = ok   1 = roles missing, a mode/execution/lookup line is missing or
+#                         incoherent, Lookup: is `unavailable`, the declared
+#                         role-report archive is absent, incomplete, or empty, a
+#                         `live` archive lacks 00-lookup-probe.md with the line's
+#                         probe DOI, or role 2 or 6 counts `unreached:` sources
 #              2 = could not determine
 #
 # Project-neutral: no hardcoded consumer paths.
@@ -43,6 +48,7 @@ PROCESS=
 REQUIRE_MODE=0
 REQUIRE_EXECUTION=0
 REQUIRE_REPORTS=0
+REQUIRE_LOOKUP=0
 
 # Where the process file lives in a consumer, relative to the repo root. First hit wins.
 PROCESS_CANDIDATES="
@@ -209,24 +215,40 @@ execution_line() {
 # a second colon. NOT a comma or a semicolon -- "subagents, none of which started" would
 # hand back "subagents", which is the misread this design exists to end.
 execution_head() {
-  local raw
-  raw=$(execution_line "$1")
+  token_head "$(execution_line "$1")"
+}
+
+# Cut a declaration's value at its first separator. The ONE copy of the separator rules,
+# used by token_head and execution_tail alike, so a head and a tail can never be split in
+# different places.
+token_cut() {
+  local raw="$1"
+  raw=${raw%%—*}; raw=${raw%%–*}; raw=${raw%%--*}; raw=${raw%% - *}; raw=${raw%%:*}
+  printf '%s' "$raw"
+}
+
+# The head of any `Label: token — prose` declaration line. Shared by Execution: and Lookup:
+# so the two cannot drift into separator rules that disagree.
+token_head() {
+  local raw="$1"
   [ -n "$raw" ] || return 1
   raw=${raw#*:}
-  raw=${raw%%—*}; raw=${raw%%–*}; raw=${raw%%--*}; raw=${raw%% - *}; raw=${raw%%:*}
+  raw=$(token_cut "$raw")
   # Strip markdown decoration left over on the far side of the label. `**Execution:**
   # subagents` keeps its closing `**` after the colon is cut, and the head would be
   # `** subagents` -- a token match away from being refused for its formatting rather
-  # than its content, which is the thing the mode line is careful not to do.
+  # than its content, which is the thing the mode line is careful not to do. The same goes
+  # for a token in backticks or bold on its own (`**Lookup: live** — x`, ``Lookup: `live` ``):
+  # decoration at either end is stripped, and the token inside is what is read.
   printf '%s' "$raw" | tr 'A-Z' 'a-z' | tr -s '[:space:]' ' ' \
-    | sed -e 's/^[]['"'"'*_|>#[:space:]]*//' -e 's/ *$//'
+    | sed -e 's/^[]['"'"'*_|>#`[:space:]]*//' -e 's/[*`|[:space:]]*$//'
 }
 
 # Everything AFTER the separator. Read for exactly one purpose -- see report_execution.
 execution_tail() {
   local raw head
   raw=$(execution_line "$1"); raw=${raw#*:}
-  head=${raw%%—*}; head=${head%%–*}; head=${head%%--*}; head=${head%% - *}; head=${head%%:*}
+  head=$(token_cut "$raw")
   [ "$head" = "$raw" ] && return 1
   printf '%s' "${raw#"$head"}" | tr 'A-Z' 'a-z'
 }
@@ -307,6 +329,124 @@ execution_cause() {
     *\(chosen\)*) printf 'chosen\n' ;;
     *)            printf 'unstated\n' ;;
   esac
+}
+
+# THE LOOKUP LINE. Execution: records whether there was more than one reviewer. This one
+# records whether the two roles whose sources live OUTSIDE the repository -- 2 (DOI or Die)
+# and 6 (RTFM) -- could actually reach them. The ledger cannot show it and neither can the
+# grants gate: a role missing WebFetch declares `GRANT 2 MISMATCH`, which is honest and
+# deliberately not fatal (a fallback run is a real run), and then returns prose about
+# citations it could not resolve. Observed 2026-10-14 (issue #74): the project's settings
+# denied WebFetch, curl and wget; role 2 matched each DOI against the paper's own saved text
+# instead of resolving it, and this gate and the grants gate both passed.
+#
+# What stops the run is the PROBE in the skill, before the fan-out. This line is the record
+# of that probe, and the gate holds the record to it:
+#
+#     Lookup: live — curl to doi.org and rfc-editor.org; roles 2 and 6; probe 10.1000/7652153ccbdc
+#     Lookup: live — PubMed connector granted to role 2; role 2 only; probe 10.1000/0b9e44c1d2a7
+#     Lookup: not needed — the deliverable cites nothing and rests on no outside method
+#
+# `live` names no tool on purpose: any route that passes the probe is a route, and a gate
+# demanding WebFetch would fail a role 2 granted a working connector. The tool's name is not
+# the capability. What `live` must have, when the record names its archive, is evidence the
+# gate can read: `00-lookup-probe.md` holding the fake DOI the Lookup: line names (so a reply
+# copied from an older run does not count), and no report from role 2 or role 6 declaring
+# sources that no route reached (`unreached: N` with N above zero), which is #74 recurring
+# after a probe that passed.
+#
+# `unavailable` FAILS, always, flag or no flag. A run that could not look anything up did
+# not do role 2's job, and the probe exists so that it stops there; a finished record that
+# says `unavailable` is a record of the stop being skipped.
+#
+# Same token parser as Execution: -- token stated, prose after the separator never read -- for
+# the reasons written at execution_head. The LINE match is wider, because here a missed line
+# is a missed failure: a list bullet (`- Lookup:`), a numbered item, a heading mark and a
+# bolded key (`**Lookup**:`) all count. And ANY Lookup: line saying `unavailable` decides it,
+# wherever it sits, so a quoted `live` earlier in the report cannot mask a real `unavailable`.
+# Two lines declaring different tokens are CONTRADICTORY and fail, as the grants gate fails a
+# role declaring two verdicts: `not needed` above `live` must not quietly drop the evidence
+# `live` requires. Every failure prints the line it read. Undeclared exits 0 so older records
+# keep passing, and --require-lookup is how a project opts in.
+lookup_grammar() {
+  printf '%s  The token is parsed; everything after the dash is yours and never read:\n' "$RED" >&2
+  printf '      Lookup: live — <route>; roles 2 and 6; probe 10.1000/<its hex>\n' >&2
+  printf '      Lookup: live — PubMed connector; role 2 only; probe 10.1000/<its hex>\n' >&2
+  printf '      Lookup: not needed — no references, attribution or outside method%s\n' "$RST" >&2
+}
+
+# A file's lines outside fenced code. A record quoting the grammar -- or this gate's own
+# examples -- in a ``` block is citing it, not declaring it, and that is the one way to quote
+# a Lookup: or unreached: line. FAIL-SAFE: if a fence is left open at the end of the file,
+# every line is returned, because a stray fence must not hide a real verdict below it.
+unfenced() {
+  awk '{ line[NR] = $0
+         if ($0 ~ /^[[:space:]]*(```|~~~)/) { fence = !fence; inside[NR] = 1; next }
+         inside[NR] = fence }
+       END { for (i = 1; i <= NR; i++) if (fence || !inside[i]) print line[i] }' "$1" 2>/dev/null
+}
+
+# A two-column table row, `| Lookup | live |` or `| unreached | 3 |`, read as `Key: value`.
+table_rows_as_lines() {
+  sed -E 's/^[[:space:]]*\|[[:space:]]*[*_`]*([A-Za-z][A-Za-z ()]*[A-Za-z)])[*_`]*[[:space:]]*\|[[:space:]]*/\1: /'
+}
+
+# The same line prefixes for both declarations: indentation, list bullets (`-`, `+`, `*`),
+# numbered items (`1.` or `1)`), headings, blockquotes, table pipes, and decoration.
+LINE_PREFIX='^[[:space:]]*([-+*_|>#`[:space:]]|[0-9]+[.)])*'
+
+lookup_lines() {
+  unfenced "$1" | table_rows_as_lines | grep -iE "${LINE_PREFIX}Lookup[*_]*[[:space:]]*:"
+}
+
+# The largest `unreached:` count in a role report, "?" for one that is not a number, or
+# nothing when the report has no such line. Decoration around the key or the value is
+# ignored (`**unreached:** 3` is 3), as are the prefixes a Lookup: line may carry, a
+# "sources" or "(no route)" beside the key, and `=` as a separator; `none` reads as 0. A
+# missed count is a missed failure.
+unreached_count() {
+  unfenced "$1" | table_rows_as_lines | sed 's/[*_`]//g' | tr 'A-Z' 'a-z' \
+    | grep -E "${LINE_PREFIX}(sources )?unreached( sources)?( \\([^)]*\\))?[[:space:]]*(:|=|—|–|-)" \
+    | sed -E "s/${LINE_PREFIX}(sources )?unreached( sources)?( \\([^)]*\\))?[[:space:]]*(:|=|—|–|-)+[[:space:]]*//" \
+    | sed -E 's/^none\b/0/; s/^none$/0/' \
+    | awk 'BEGIN { m = "" }
+           { if ($1 ~ /^[0-9]+$/) { if (m == "" || ($1 + 0) > (m + 0)) m = $1 } else bad = 1 }
+           END { if (bad && (m == "" || m == 0)) print "?"; else if (m != "") print m }'
+}
+
+lookup_canon() {
+  case "$1" in
+    live)                    printf 'live' ;;
+    unavailable)             printf 'unavailable' ;;
+    not\ needed|not-needed)  printf 'not needed' ;;
+    *)                       printf 'unrecognized' ;;
+  esac
+}
+
+report_lookup() {
+  local line head canon seen=
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    head=$(token_head "$line") || continue
+    canon=$(lookup_canon "$head")
+    [ "$canon" = unavailable ] && { printf 'unavailable\n'; return; }
+    if [ -z "$seen" ]; then seen=$canon
+    elif [ "$seen" != "$canon" ]; then printf 'contradictory\n'; return
+    fi
+  done <<EOF
+$(lookup_lines "$1")
+EOF
+  printf '%s\n' "${seen:-undeclared}"
+}
+
+# The line a lookup verdict was read from, for the failure messages: the `unavailable` one
+# if there is one, otherwise the first.
+lookup_read_line() {
+  local all
+  all=$(lookup_lines "$1")
+  printf '%s\n' "$all" | while IFS= read -r l; do
+    [ "$(lookup_canon "$(token_head "$l")")" = unavailable ] && { printf '%s\n' "$l"; exit 0; }
+  done | head -1 | grep . || printf '%s\n' "$all" | head -1
 }
 
 # THE REPORTS LINE. The ledger says a role ran. The record's prose says what the review
@@ -403,7 +543,7 @@ EOF
 }
 
 cmd_check() {
-  local report="$1" missing=0 total=0 num ttl nick mode execution cause
+  local report="$1" missing=0 total=0 num ttl nick mode execution cause lookup
   local decl dir reports
   resolve_process
   [ -r "$report" ] || die "murderboard_roster: cannot read report $report"
@@ -497,6 +637,49 @@ EOF
       ;;
   esac
 
+  lookup=$(report_lookup "$report")
+  case "$lookup" in
+    unavailable)
+      # ALWAYS, flag or no flag -- see lookup_lines.
+      printf '%smurderboard: a Lookup: line says unavailable — this always fails%s\n' "$RED" "$RST" >&2
+      printf '%s  read: %s\n' "$RED" "$(lookup_read_line "$report")" >&2
+      printf '  Roles 2 and 6 could not reach any source outside the repository, so their\n' >&2
+      printf '  checks did not happen; a reference never looked up is not a checked one.\n' >&2
+      printf '  (Roles 2 and 6 are the citation and methods reviewers.) To fix it:\n' >&2
+      printf '    1. murderboard_subagents.sh --lookup --explain  (looks for a blocking rule)\n' >&2
+      printf '    2. give roles 2 and 6 a working route: web access, or a literature\n' >&2
+      printf '       connector added to their grant (doc_review_process.md, "A connector\n' >&2
+      printf '       reaches a role only through its grant")\n' >&2
+      printf '    3. run the lookup probe again (the skill'\''s step 4a), then the whole review\n' >&2
+      printf '  "Lookup: not needed" is for a deliverable that never needed a lookup: no\n' >&2
+      printf '  references, attribution, or outside method or tool. It is not a way out\n' >&2
+      printf '  of a probe that ran and failed.%s\n' "$RST" >&2
+      return 1
+      ;;
+    contradictory)
+      printf '%smurderboard: Lookup: lines in this report declare different tokens%s\n' "$RED" "$RST" >&2
+      lookup_lines "$report" | sed "s/^/  read: /" >&2
+      printf '%s  The gate will not pick one. Keep the line that is true; to quote another,\n' "$RED" >&2
+      printf '  put it in a fenced code block, which the gate skips.%s\n' "$RST" >&2
+      return 1
+      ;;
+    unrecognized)
+      printf '%smurderboard: the Lookup: line does not start with a known token%s\n' "$RED" "$RST" >&2
+      printf '%s  read: %s%s\n' "$RED" "$(lookup_read_line "$report")" "$RST" >&2
+      lookup_grammar
+      return 1
+      ;;
+    undeclared)
+      if [ "$REQUIRE_LOOKUP" = 1 ]; then
+        printf '%smurderboard: report declares no Lookup: line (--require-lookup)%s\n' "$RED" "$RST" >&2
+        printf '%s  Roles 2 and 6 ran, but nothing says whether they could reach a source\n' "$RED" >&2
+        printf '  outside the repository; a role that could not still writes about one.%s\n' "$RST" >&2
+        lookup_grammar
+        return 1
+      fi
+      ;;
+  esac
+
   # --- the role reports -----------------------------------------------------
   decl=$(reports_decl "$report")
   if [ -z "$decl" ]; then
@@ -523,10 +706,65 @@ EOF
     fi
     check_reports_dir "$dir" || return 1
     reports="$dir"
+    # `live` claims the probe ran and passed. The file is the evidence, filed beside the role
+    # reports under exactly this name: it must carry the fake DOI this record's Lookup: line
+    # names (which ties it to this run, and only that), and the main thread's scoring lines,
+    # `item N: pass|fail`, with items 1 and 2 scored and none failed -- a live record over a
+    # probe that failed is #74 with extra steps. (It shows what the probe was asked and how it
+    # was scored; it cannot show the answers were honest, and no report-reading gate can.)
+    if [ "$lookup" = live ]; then
+      local probe="$dir/00-lookup-probe.md" fake scores
+      if [ ! -s "$probe" ]; then
+        printf '%smurderboard: Lookup: live, but %s holds no 00-lookup-probe.md%s\n' "$RED" "$dir" "$RST" >&2
+        printf '%s  Save the probe'\''s prompt, scoring and reply there, if you kept them. If\n' "$RED" >&2
+        printf '  not, run the probe again and then the whole review, with the new fake DOI\n' >&2
+        printf '  on the Lookup: line; never reconstruct a reply.%s\n' "$RST" >&2
+        return 1
+      fi
+      scores=$(sed 's/[*_`]//g' "$probe" | tr 'A-Z' 'a-z' \
+               | grep -oE '^[[:space:]>-]*item [123]:[[:space:]]*(pass|fail)' | sed -E 's/^[[:space:]>-]*//')
+      if printf '%s\n' "$scores" | grep -q 'fail$' \
+         || ! printf '%s\n' "$scores" | grep -q '^item 1:.*pass$' \
+         || ! printf '%s\n' "$scores" | grep -q '^item 2:.*pass$'; then
+        printf '%smurderboard: Lookup: live, but 00-lookup-probe.md does not score items 1 and 2\n' "$RED" >&2
+        printf '  as passed (lines "item N: pass", none "fail")%s\n' "$RST" >&2
+        printf '%s  A failed probe stops the run before the reviewers; it is not a live one.%s\n' "$RED" "$RST" >&2
+        return 1
+      fi
+      fake=$(lookup_lines "$report" | grep -oE '10\.1000/[0-9a-fA-F]{12}([^0-9a-fA-F]|$)' \
+             | cut -c1-20 | tail -1)
+      if [ -z "$fake" ]; then
+        printf '%smurderboard: Lookup: live names no probe DOI (10.1000/ + 12 hex)%s\n' "$RED" "$RST" >&2
+        printf '%s  End the line with "probe <the fake DOI this run used>" so the archived\n' "$RED" >&2
+        printf '  reply can be tied to this run.%s\n' "$RST" >&2
+        return 1
+      fi
+      if ! grep -qiF "$fake" "$probe"; then
+        printf '%smurderboard: 00-lookup-probe.md does not contain %s%s\n' "$RED" "$fake" "$RST" >&2
+        printf '%s  The reply on file is not from the probe this record names.%s\n' "$RED" "$RST" >&2
+        return 1
+      fi
+    fi
+    # Under ANY token: role 2 or 6 counting sources no route reached is #74 itself, whether
+    # the record calls the run live, not needed, or nothing. Writing `not needed` must not buy
+    # a pass the honest `unavailable` cannot.
+    local r f n
+    for r in 2 6; do
+      f=$(role_report_file "$dir" "$r" 2>/dev/null) || continue
+      n=$(unreached_count "$f")
+      if [ -n "$n" ] && [ "$n" != 0 ]; then
+        printf '%smurderboard: role %s reports unreached: %s%s\n' "$RED" "$r" "$n" "$RST" >&2
+        printf '%s  Sources no route reached are checks that did not happen. Fix the route,\n' "$RED" >&2
+        printf '  then run the lookup probe and the whole review again.%s\n' "$RST" >&2
+        return 1
+      fi
+    done
   fi
 
-  printf '%smurderboard: all %s roles accounted for in %s (mode: %s, execution: %s, reports: %s)%s\n' \
-         "$GRN" "$total" "$report" "$mode" "$execution" "$reports" "$RST"
+  # `live` is the word a reader of this line is likeliest to over-read: say what it certifies.
+  [ "$lookup" = live ] && lookup='live (the route, not the references)'
+  printf '%smurderboard: all %s roles accounted for in %s (mode: %s, execution: %s, lookup: %s, reports: %s)%s\n' \
+         "$GRN" "$total" "$report" "$mode" "$execution" "$lookup" "$reports" "$RST"
   return 0
 }
 
@@ -785,6 +1023,160 @@ MB
   t '--require-reports: full archive passes' 0 cmd_check "$tmp/rep_ok.md"
   REQUIRE_REPORTS=0
 
+  # --- the lookup line -------------------------------------------------------
+  # Backward compatibility first, as for every other declaration line.
+  t 'undeclared lookup still passes'    0 cmd_check "$tmp/full.md"
+
+  L='Prove It / DOI or Die / Kill Your Darlings — clean\n'
+  printf '%b' "${L}Lookup: live — curl to doi.org and Crossref; probe answers right\n" > "$tmp/lk_live.md"
+  t 'Lookup: live passes'               0 cmd_check "$tmp/lk_live.md"
+  # THE ROUTE IS NOT THE TOOL. A role 2 granted a working connector, with no WebFetch, is a
+  # live lookup; a gate demanding WebFetch would fail it.
+  printf '%b' "${L}Lookup: live — PubMed connector granted to role 2; WebFetch denied\n" > "$tmp/lk_mcp.md"
+  t 'live through a connector passes'   0 cmd_check "$tmp/lk_mcp.md"
+  printf '%b' "${L}**Lookup:** live — WebFetch\n" > "$tmp/lk_bold.md"
+  t 'bolded lookup line recognized'     0 cmd_check "$tmp/lk_bold.md"
+  printf '%b' "${L}Lookup: not needed — no references, attribution or outside method\n" > "$tmp/lk_nn.md"
+  t 'Lookup: not needed passes'         0 cmd_check "$tmp/lk_nn.md"
+
+  # THE HEADLINE CASE (issue #74): the run continued past a role that could not reach a
+  # source, and every gate stayed green. `unavailable` fails WITHOUT the flag -- in every
+  # form a record actually writes it, since a missed line here is a missed failure. The #74
+  # record wrote its declaration lines as list bullets.
+  printf '%b' "${L}Lookup: unavailable — no WebFetch, curl denied\n" > "$tmp/lk_un.md"
+  t 'Lookup: unavailable FAILS without the flag' 1 cmd_check "$tmp/lk_un.md"
+  printf '%b' "${L}- Lookup: unavailable — no WebFetch\n" > "$tmp/lk_un_li.md"
+  t 'a bulleted unavailable FAILS'      1 cmd_check "$tmp/lk_un_li.md"
+  printf '%b' "${L}- **Lookup**: unavailable\n" > "$tmp/lk_un_bk.md"
+  t 'a bold-key bulleted unavailable FAILS' 1 cmd_check "$tmp/lk_un_bk.md"
+  printf '%b' "${L}3. Lookup: unavailable\n" > "$tmp/lk_un_no.md"
+  t 'a numbered unavailable FAILS'      1 cmd_check "$tmp/lk_un_no.md"
+  printf '%b' "${L}## Lookup: unavailable\n" > "$tmp/lk_un_h.md"
+  t 'a heading unavailable FAILS'       1 cmd_check "$tmp/lk_un_h.md"
+  # A quoted `live` earlier in the report must not mask the real `unavailable` below it.
+  printf '%b' "${L}\`\`\`\nLookup: live — an example\n\`\`\`\nLookup: unavailable — the real one\n" > "$tmp/lk_mask.md"
+  t 'a quoted live cannot mask a real unavailable' 1 cmd_check "$tmp/lk_mask.md"
+  # A quoted example in a fence is a citation, not a declaration: an honest record that
+  # quotes the grammar must not fail for it.
+  printf '%b' "${L}\`\`\`\nLookup: unavailable — always fails\n\`\`\`\nLookup: live — curl\n" > "$tmp/lk_fq.md"
+  t 'a fenced unavailable is a quote, not a verdict' 0 cmd_check "$tmp/lk_fq.md"
+  # RECOGNITION tests run under the flag: without it, a missed line reads as undeclared and
+  # also exits 0, so a pass would prove nothing.
+  REQUIRE_LOOKUP=1
+  printf '%b' "${L}- Lookup: live — WebFetch\n" > "$tmp/lk_li.md"
+  t 'a bulleted live is recognized'     0 cmd_check "$tmp/lk_li.md"
+  t 'bolded lookup line recognized (flag)' 0 cmd_check "$tmp/lk_bold.md"
+  printf '%b' "${L}| **Lookup** | live |\n" > "$tmp/lk_tbl.md"
+  t 'a two-column table row is read'     0 cmd_check "$tmp/lk_tbl.md"
+  printf '%b' "${L}| Lookup: live — curl |\n" > "$tmp/lk_tcell.md"
+  t 'a one-cell table row is read'       0 cmd_check "$tmp/lk_tcell.md"
+  REQUIRE_LOOKUP=0
+  # Forms a missed line would turn into a missed failure.
+  printf '%b' "${L}1) Lookup: unavailable\n" > "$tmp/lk_paren.md"
+  t 'a 1) numbered unavailable FAILS'    1 cmd_check "$tmp/lk_paren.md"
+  printf '%b' "${L}Lookup : unavailable\n" > "$tmp/lk_spc.md"
+  t 'a space before the colon is read'   1 cmd_check "$tmp/lk_spc.md"
+  printf '%b' "${L}| Lookup | unavailable |\n" > "$tmp/lk_tun.md"
+  t 'a table-row unavailable FAILS'      1 cmd_check "$tmp/lk_tun.md"
+  # A fence left open must not hide the real line beneath it.
+  printf '%b' "${L}\`\`\`\nnotes\nLookup: unavailable\n" > "$tmp/lk_open.md"
+  t 'an unclosed fence hides nothing'    1 cmd_check "$tmp/lk_open.md"
+
+  # `live` with an archive must carry the probe's reply: the claim and its evidence.
+  mkdir -p "$tmp/lkroles"
+  cp "$tmp/roles/"*.md "$tmp/lkroles/"
+  printf '%b' "${L}Lookup: live — curl; roles 2 and 6; probe 10.1000/0123456789ab\nreports: lkroles/\n" > "$tmp/lk_arch.md"
+  t 'live + archive without 00-lookup-probe FAILS' 1 cmd_check "$tmp/lk_arch.md"
+  # The NAME is the contract: any other file numbered 0 is not the probe's reply.
+  printf 'notes\n' > "$tmp/lkroles/0-notes.md"
+  t 'a different file numbered 0 does not count' 1 cmd_check "$tmp/lk_arch.md"
+  rm -f "$tmp/lkroles/0-notes.md"
+  : > "$tmp/lkroles/00-lookup-probe.md"
+  t 'live + an EMPTY 00-lookup-probe FAILS' 1 cmd_check "$tmp/lk_arch.md"
+  # An older run's reply, copied in, names a different fake DOI.
+  printf 'item 1: pass\nitem 2: pass\n2. 10.1000/ffffffffffff NOT FOUND\n' > "$tmp/lkroles/00-lookup-probe.md"
+  t 'a reply from another probe FAILS'  1 cmd_check "$tmp/lk_arch.md"
+  # The DOI ties the file to the run and nothing more: the SCORING is what says it passed.
+  # A probe whose every item failed, saved faithfully, must not stand behind `live`.
+  printf '2. 10.1000/0123456789ab\nitem 1: fail — no route\nitem 2: fail\nitem 3: fail\n' > "$tmp/lkroles/00-lookup-probe.md"
+  t 'live over a probe scored as failed FAILS' 1 cmd_check "$tmp/lk_arch.md"
+  printf '1. FOUND [key 8158b24485a47382]\n2. 10.1000/0123456789ab NOT FOUND\n' > "$tmp/lkroles/00-lookup-probe.md"
+  t 'live over an unscored probe FAILS' 1 cmd_check "$tmp/lk_arch.md"
+  printf '1. FOUND [key 8158b24485a47382]\n2. 10.1000/0123456789ab NOT FOUND\n- item 1: pass — curl to doi.org, 302\n- **item 2: pass** — 404\n' > "$tmp/lkroles/00-lookup-probe.md"
+  t 'live + this run'\''s scored probe passes' 0 cmd_check "$tmp/lk_arch.md"
+  # A 13-hex DOI on the line is not the 12-hex one in the file.
+  printf '%b' "${L}Lookup: live — curl; probe 10.1000/0123456789abc\nreports: lkroles/\n" > "$tmp/lk_13.md"
+  t 'a longer DOI is not a prefix match' 1 cmd_check "$tmp/lk_13.md"
+  printf '%b' "${L}Lookup: live — curl\nreports: lkroles/\n" > "$tmp/lk_nofake.md"
+  t 'live + archive, no probe DOI on the line FAILS' 1 cmd_check "$tmp/lk_nofake.md"
+  # #74 again, after a probe that passed: role 2 says no route reached three sources.
+  cp "$tmp/lkroles/02-doi-or-die.md" "$tmp/02.bak"
+  printf 'role 2 said things\nunreached: 3\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'role 2 unreached: 3 under live FAILS' 1 cmd_check "$tmp/lk_arch.md"
+  printf 'role 2 said things\n**unreached:** 3\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'a bolded unreached: 3 FAILS'       1 cmd_check "$tmp/lk_arch.md"
+  printf 'role 2 said things\nunreached: several\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'an unreached count that is not a number FAILS' 1 cmd_check "$tmp/lk_arch.md"
+  # Writing `not needed` must not buy the pass `unavailable` cannot: the count is read
+  # under every token.
+  printf 'role 2 said things\nunreached: 12\n' > "$tmp/lkroles/02-doi-or-die.md"
+  printf '%b' "${L}Lookup: not needed — nothing cited\nreports: lkroles/\n" > "$tmp/lk_nn_un.md"
+  t 'not needed + role 2 unreached: 12 FAILS' 1 cmd_check "$tmp/lk_nn_un.md"
+  for form in '1. unreached: 12' '+ unreached: 12' '### unreached: 12' '| unreached | 12 |' \
+              'Sources unreached: 12' 'unreached = 12' 'Unreached (no route): 12'; do
+    printf 'role 2 said things\n%s\n' "$form" > "$tmp/lkroles/02-doi-or-die.md"
+    t "unreached form '$form' FAILS" 1 cmd_check "$tmp/lk_arch.md"
+  done
+  printf 'role 2 said things\nunreached: none\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'unreached: none reads as 0'         0 cmd_check "$tmp/lk_arch.md"
+  # A role report quoting the grammar in a fence is citing it, not counting.
+  printf 'role 2 said things\nunreached: 0\n```\nunreached: N\n```\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'a fenced unreached: N quote is skipped' 0 cmd_check "$tmp/lk_arch.md"
+  printf 'role 2 said things\nunreached: 0\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'role 2 unreached: 0 under live passes' 0 cmd_check "$tmp/lk_arch.md"
+  # ⚠ STATED RESIDUAL, asserted so that it cannot change unnoticed: a role 2 report that never
+  # writes an `unreached:` line passes. The checklist requires the line; this gate reads it
+  # when it is there and cannot make a role write it. A role that says "could not resolve any
+  # DOI" in prose only is caught by the main thread's read before synthesis, not here.
+  printf 'role 2 said things; could not resolve any DOI\n' > "$tmp/lkroles/02-doi-or-die.md"
+  t 'RESIDUAL: no unreached: line passes' 0 cmd_check "$tmp/lk_arch.md"
+  mv "$tmp/02.bak" "$tmp/lkroles/02-doi-or-die.md"
+  # A fenced example DOI above the real line does not stand in for the real one.
+  printf '%b' "${L}\`\`\`\nLookup: live — x; probe 10.1000/7652153ccbdc\n\`\`\`\nLookup: live — curl; probe 10.1000/0123456789ab\nreports: lkroles/\n" > "$tmp/lk_exdoi.md"
+  t 'a fenced example DOI is not the probe DOI' 0 cmd_check "$tmp/lk_exdoi.md"
+  # Two tokens is a contradiction, never a choice.
+  printf '%b' "${L}Lookup: not needed — example\nLookup: live — curl; probe 10.1000/0123456789ab\nreports: lkroles/\n" > "$tmp/lk_two.md"
+  t 'not needed above live is contradictory' 1 cmd_check "$tmp/lk_two.md"
+  # Decoration around the token itself is formatting, not content (checked under the flag).
+  REQUIRE_LOOKUP=1
+  printf '%b' "${L}**Lookup: live** — curl\n" > "$tmp/lk_boldall.md"
+  t 'a fully bolded line is read'        0 cmd_check "$tmp/lk_boldall.md"
+  printf '%b' "${L}Lookup: \`live\` — curl\n" > "$tmp/lk_tick.md"
+  t 'a backticked token is read'         0 cmd_check "$tmp/lk_tick.md"
+  REQUIRE_LOOKUP=0
+  # not needed claims no probe, so it needs no reply on file.
+  printf '%b' "${L}Lookup: not needed — nothing cited\nreports: roles/\n" > "$tmp/lk_nn_arch.md"
+  t 'not needed + archive needs no probe reply' 0 cmd_check "$tmp/lk_nn_arch.md"
+  # Prose after the separator is never read, in either direction: "unavailable" in the tail
+  # of a `live` line is a role-level remark, not a verdict, and does not fail it.
+  printf "%b" "${L}Lookup: live — PubMed connector; WebFetch unavailable\n" > "$tmp/lk_tail.md"
+  t 'unavailable in the prose does not override live' 0 cmd_check "$tmp/lk_tail.md"
+  # A token the gate does not know is refused, never guessed at.
+  printf "${L}Lookup: offline matching against saved full text\n" > "$tmp/lk_junk.md"
+  t 'unrecognized lookup FAILS'         1 cmd_check "$tmp/lk_junk.md"
+  printf "${L}Lookup: partially — some DOIs resolved\n" > "$tmp/lk_part.md"
+  t 'a hedge is not a token'            1 cmd_check "$tmp/lk_part.md"
+
+  REQUIRE_LOOKUP=1
+  t '--require-lookup: undeclared FAILS'  1 cmd_check "$tmp/full.md"
+  t '--require-lookup: live passes'       0 cmd_check "$tmp/lk_live.md"
+  t '--require-lookup: not needed passes' 0 cmd_check "$tmp/lk_nn.md"
+  REQUIRE_LOOKUP=0
+
+  # A declared lookup must never rescue a missing role.
+  printf 'Prove It / DOI or Die — clean\nLookup: live — WebFetch\n' > "$tmp/lk_short.md"
+  t 'declared lookup does NOT excuse a missing role' 1 cmd_check "$tmp/lk_short.md"
+
   # a process file with no team section must NOT pass vacuously
   printf '# nothing\n' > "$tmp/noteam.md"
   PROCESS="$tmp/noteam.md"
@@ -804,6 +1196,7 @@ while [ $# -gt 0 ]; do
     --require-mode) REQUIRE_MODE=1; shift ;;
     --require-execution) REQUIRE_EXECUTION=1; shift ;;
     --require-reports) REQUIRE_REPORTS=1; shift ;;
+    --require-lookup) REQUIRE_LOOKUP=1; shift ;;
     check)
       CMD=check; shift
       # The flag may sit either side of `check`, because both read naturally and a
@@ -813,13 +1206,14 @@ while [ $# -gt 0 ]; do
           --require-mode) REQUIRE_MODE=1; shift ;;
           --require-execution) REQUIRE_EXECUTION=1; shift ;;
           --require-reports) REQUIRE_REPORTS=1; shift ;;
+          --require-lookup) REQUIRE_LOOKUP=1; shift ;;
           *) break ;;
         esac
       done
       REPORT="${1:-}"
-      [ -n "${REPORT:-}" ] || die "usage: murderboard_roster.sh check [--require-mode] [--require-execution] [--require-reports] REPORT.md"
+      [ -n "${REPORT:-}" ] || die "usage: murderboard_roster.sh check [--require-mode] [--require-execution] [--require-reports] [--require-lookup] REPORT.md"
       shift ;;
-    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,/^# Project-neutral/p' "$0"; exit 0 ;;
     *) die "murderboard_roster: unknown argument '$1'" ;;
   esac
 done
@@ -829,5 +1223,5 @@ case "${CMD:-}" in
   count)    cmd_count ;;
   check)    cmd_check "$REPORT" ;;
   selftest) cmd_selftest ;;
-  *)        sed -n '2,30p' "$0"; exit 2 ;;
+  *)        sed -n '2,/^# Project-neutral/p' "$0"; exit 2 ;;
 esac
