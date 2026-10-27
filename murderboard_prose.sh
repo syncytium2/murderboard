@@ -41,6 +41,8 @@
 #   murderboard_prose.sh --spelling us|uk DOC  check spelling against the named reader
 #                                            (default $MURDERBOARD_SPELLING; unset = both ways)
 #   murderboard_prose.sh --spelling-only ... spelling section only (this repo's CI uses it)
+#   murderboard_prose.sh --hook              PostToolUse hook on Write|Edit|MultiEdit: checks
+#                                            the text just written; exit 2 tells the model
 #   murderboard_prose.sh --process PATH ...  use this process file (default: autodetect)
 #   murderboard_prose.sh --selftest          prove every check can still fire
 #
@@ -401,9 +403,87 @@ selftest() {
   run --spelling us-ish "$tmp/c.md" >/dev/null 2>&1; [ $? -eq 2 ] && ok "an unknown --spelling value -> exit 2" \
     || bad "an unknown --spelling value was accepted"
 
+  # --hook. Fed the JSON Claude Code sends a PostToolUse hook. The reader comes from a
+  # CLAUDE.md the hook reads ITSELF -- the point of the hook is not depending on the model.
+  if command -v python3 >/dev/null 2>&1; then
+    mkdir -p "$tmp/proj"; printf '# x\nReader: US English, US dates.\n' > "$tmp/proj/CLAUDE.md"
+    hook() { CLAUDE_PROJECT_DIR="$tmp/proj" MURDERBOARD_SPELLING= bash "$self" --hook; }
+    printf '{"tool_name":"Write","tool_input":{"file_path":"a.md","content":"The colour is fine."}}' \
+      | hook 2>"$tmp/h.err"; hrc=$?
+    [ "$hrc" -eq 2 ] && grep -q colour "$tmp/h.err" && ok "hook: British in new text, Reader: line from CLAUDE.md -> exit 2 naming the word" \
+      || bad "hook: did not block British text for a US reader (exit $hrc)"
+    printf '{"tool_name":"Edit","tool_input":{"file_path":"a.md","old_string":"x","new_string":"The color is fine."}}' \
+      | hook 2>/dev/null && ok "hook: American Edit for a US reader passes" || bad "hook: American Edit was blocked"
+    printf '{"tool_name":"MultiEdit","tool_input":{"file_path":"a.md","edits":[{"new_string":"ok"},{"new_string":"we analysed it"}]}}' \
+      | hook 2>/dev/null; [ $? -eq 2 ] && ok "hook: MultiEdit's edits are all checked" || bad "hook: MultiEdit edits were not checked"
+    printf 'not json' | hook 2>/dev/null && ok "hook: unparseable input never blocks a write" || bad "hook: unparseable input blocked"
+    printf '{"tool_input":{"file_path":"b.md","content":"colour"}}' \
+      | CLAUDE_PROJECT_DIR="$tmp/nowhere" MURDERBOARD_SPELLING= bash "$self" --hook 2>/dev/null \
+      && ok "hook: no reader declared, one variety -> not blocked" || bad "hook: blocked with no reader declared"
+  else
+    printf '  SKIP --hook cases: no python3 here, and the hook exits 0 without it.\n'
+  fi
+
   printf '\n%d passed, %d failed\n' "$pass" "$fail"
   [ "$fail" -eq 0 ] || rc=1
   return $rc
+}
+
+# --hook: a PostToolUse hook on Write|Edit|MultiEdit. Checks ONLY the text just written --
+# not the whole file, so an edit to a file with an old backlog is not blamed for it -- and
+# exit 2 hands the hits straight back to the model, which fixes them in the same turn.
+#
+# WHY A HOOK AND NOT AN INSTRUCTION. "Write American" in CLAUDE.md is a line the model must
+# notice, every time, against whatever spelling is in front of it -- and it does not, reliably.
+# The Reader: line is still the one place the choice is written, but here a PROGRAM reads it
+# (grep, below), so it holds whether or not the model was paying attention. CI catches what
+# gets past this; this catches it while the writer is still holding the pen.
+#
+# Reader, in order: $MURDERBOARD_SPELLING; else the first `Reader:` line in CLAUDE.md at the
+# repo root (US/American -> us, UK/British -> uk); else none, and only a MIX is flagged.
+# Never blocks on its own failure: no python3, no file path, unparseable input -> exit 0.
+hook_mode() {
+  local json txt root rline path
+  json=$(cat)
+  command -v python3 >/dev/null 2>&1 || exit 0
+  txt=$(mktemp); trap 'rm -f "$txt"' EXIT
+  path=$(printf '%s' "$json" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+t = d.get("tool_input") or {}
+parts = [t.get("content") or "", t.get("new_string") or ""]
+parts += [(e or {}).get("new_string") or "" for e in (t.get("edits") or [])]
+open(sys.argv[1], "w", encoding="utf-8").write("\n".join(p for p in parts if p))
+print(t.get("file_path") or "")
+' "$txt" 2>/dev/null) || exit 0
+  [ -n "$path" ] && [ -s "$txt" ] || exit 0
+  case "$path" in *murderboard_prose.sh) exit 0 ;; esac   # it names the words it searches for
+
+  if [ -z "$SPELLING" ]; then
+    root=${CLAUDE_PROJECT_DIR:-$(repo_root)}
+    rline=$(grep -m1 -iE '^[[:space:]>]*reader:' "$root/CLAUDE.md" 2>/dev/null)
+    if   printf '%s' "$rline" | grep -qE '\b(US|American)\b'; then SPELLING=us
+    elif printf '%s' "$rline" | grep -qE '\b(UK|British)\b';  then SPELLING=uk
+    fi
+  fi
+
+  local out
+  out=$(SPELLING="$SPELLING" SPELLING_ONLY=1 main_scan_text "$txt") && exit 0
+  {
+    printf 'Spelling: what you just wrote to %s does not match the reader' "$path"
+    [ -n "$SPELLING" ] && printf ' (%s English, from %s)' "$SPELLING" "${MURDERBOARD_SPELLING:+MURDERBOARD_SPELLING}${MURDERBOARD_SPELLING:-the Reader: line in CLAUDE.md}"
+    printf '.\nLine numbers count within the new text only.\n%s\n' "$out"
+    printf 'Fix these now. A proper name or quotation that must stay: put spelling-ok on its line, with the reason.\n'
+  } >&2
+  exit 2
+}
+
+# The spelling section over a plain-text file, without the per-document header.
+main_scan_text() {
+  scan_spelling_section "$1" "$1"
 }
 
 DOCS=""
@@ -414,8 +494,9 @@ while [ $# -gt 0 ]; do
     --blocks)  BLOCKS_ONLY=1 ;;
     --spelling) shift; SPELLING="${1:-}" ;;
     --spelling-only) SPELLING_ONLY=1 ;;
+    --hook) HOOK=1 ;;
     --selftest) selftest; exit $? ;;
-    -h|--help) sed -n '2,50p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,52p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "unknown option: $1" ;;
     *) DOCS="$DOCS $1" ;;
   esac
@@ -423,6 +504,7 @@ while [ $# -gt 0 ]; do
 done
 
 case "$SPELLING" in us|uk|"") ;; *) die "--spelling must be us or uk (got '$SPELLING')" ;; esac
+[ "${HOOK:-0}" -eq 1 ] && hook_mode
 [ -n "${DOCS# }" ] || die "no document given (try --help)"
 
 RC=0

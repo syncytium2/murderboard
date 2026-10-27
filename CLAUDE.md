@@ -97,9 +97,13 @@ what a reviewer actually checks while the document consumers read still says the
   down, and both sweeps worked from a list of known British words, so the words nobody listed
   survived (twelve, found 2026-10-27). It matters beyond this repo: every file here is
   vendored into consumers and read by their sessions, and a model matches the spelling in
-  front of it. CI now runs `murderboard_prose.sh --spelling us` over every tracked file and
-  matches British forms by **shape**, so a new one fails the build. A quotation or identifier
-  that must stay British carries `spelling-ok` on its line, with the reason.
+  front of it. **This paragraph is not what enforces it** — an instruction the model must
+  notice every time is the thing that already failed. Two programs do:
+  `murderboard_prose.sh --hook`, a `PostToolUse` hook on `Write|Edit|MultiEdit` that reads the
+  `Reader:` line above *itself* and hands any British spelling in the text just written back
+  to the model in the same turn; and CI, which runs `--spelling us` over every tracked file
+  and fails the build. Both match British forms by **shape**, not by list. A quotation or
+  identifier that must stay British carries `spelling-ok` on its line, with the reason.
 - `fetch_paper.py` has no external dependencies beyond the standard library (+ optional
   `pypdf`/`pdftotext`). Keep it that way — a consumer must be able to drop it in and run it.
 - **`docs/index.html` loads nothing over the network** — no webfont, no script, no analytics,
@@ -143,8 +147,10 @@ Paste this into a consuming project's `CLAUDE.md` (adjust the vendored paths):
 
 > ## Document deliverables — run the murderboard first (anti-slop)
 > Reader: US English, US dates and units, US setting unless the brief says otherwise.
-> *(Adjust to your readers. Every draft and every review reads this line, so it is never
-> inferred from the draft; `murderboard_prose.sh --spelling us|uk` checks the spelling half.)*
+> *(Adjust to your readers. Do not rely on the model reading this line: wire
+> `tools/murderboard_prose.sh --hook` as a `PostToolUse` hook on `Write|Edit|MultiEdit`, which
+> reads it with grep and returns every off-variety spelling in the text just written, and run
+> `murderboard_prose.sh --spelling us|uk` in CI. The skill also reads it before a review.)*
 > When asked for a **document** deliverable — explainer, methods/manuscript/abstract text,
 > a figure or its caption, a report, or a human-facing handoff — do **not** hand over a
 > first draft. **Invoke `/murderboard <artifact>`** (the vendored skill in
