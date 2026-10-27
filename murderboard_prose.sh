@@ -208,6 +208,7 @@ scan_spelling() {
       if (NR in skip) next
       line = $0; gsub(/^[[:space:]]+/, "", line)
       t = tolower($0)
+      gsub(/\\[a-z]/, " ", t)   # "\nfour" in a code string is two words, not "nfour"
       if (t ~ /(^|[^a-z])per cent([^a-z]|$)/) { ukhits++; if (variety != "uk") report("uk", "per cent") }
       gsub(/[^a-z]+/, " ", t)
       m = split(t, w, " ")
@@ -377,6 +378,10 @@ selftest() {
   run --spelling-only "$tmp/y.md" > "$tmp/y.out" 2>/dev/null; yrc=$?
   [ "$yrc" -eq 0 ] && grep -q 'no reader was declared' "$tmp/y.out" && ok "no reader: one variety is reported, not failed" \
     || bad "no reader: one variety was not reported as undeclared (exit $yrc)"
+
+  printf '%s\n' 'print("done\nfour files\nyour turn")' > "$tmp/n.md"
+  run --spelling us --spelling-only "$tmp/n.md" >/dev/null 2>&1 && ok "a \\n escape before a word is not read as part of it" \
+    || bad "a \\n escape glued onto the next word (\"nfour\")"
 
   printf 'The colour (spelling-ok: quoted) stays.\n' > "$tmp/z.md"
   run --spelling us --spelling-only "$tmp/z.md" >/dev/null 2>&1 && ok "a spelling-ok line is skipped" \
