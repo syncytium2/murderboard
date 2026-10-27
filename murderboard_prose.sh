@@ -313,14 +313,24 @@ selftest() {
   # assert a FAILURE pass on it -- the negative controls report green while testing nothing.
   # Caught by this selftest's own positive cases, which is the only reason it was caught.
   self=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
-  resolve_process
-  run() { bash "$self" --process "$PROCESS" "$@"; }
+  # The spelling half needs no process file, so a project that vendors only this tool for
+  # its spelling check can still prove that half. It says out loud what it skipped: a
+  # selftest that silently ran half its cases would read exactly like one that ran them all.
+  if ( resolve_process ) >/dev/null 2>&1; then resolve_process; HAVE_PROCESS=1; else HAVE_PROCESS=0; fi
+  run() {
+    if [ "$HAVE_PROCESS" -eq 1 ]; then bash "$self" --process "$PROCESS" "$@"; else bash "$self" "$@"; fi
+  }
 
   ok()  { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 
   printf 'murderboard_prose --selftest\n'
+  printf 'A clean sentence about cells.\n' > "$tmp/c.md"
 
+  if [ "$HAVE_PROCESS" -eq 0 ]; then
+    printf '  SKIP banned-word, form and block cases: no doc_review_process.md here.\n'
+    printf '       Only the spelling half is tested, and only it may be relied on.\n'
+  else
   banned_words > "$tmp/w" 2>/dev/null
   [ "$(wc -l < "$tmp/w")" -ge 5 ] && ok "banned words derive from the process file ($(wc -l < "$tmp/w" | tr -d ' ') found)" \
     || bad "banned words did not derive"
@@ -351,6 +361,7 @@ selftest() {
     || bad "long block not flagged"
 
   run "$tmp/nope.md" >/dev/null 2>&1; [ $? -eq 2 ] && ok "unreadable file -> exit 2" || bad "unreadable file did not exit 2"
+  fi
 
   # Spelling. Each British form below is one NO list names -- matched by shape -- so this
   # fails if the patterns are ever swapped back for a word list.
