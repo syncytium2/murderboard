@@ -63,7 +63,7 @@ resolve() {
 }
 
 # --process, NOT an env var. murderboard_roster.sh takes the path as a flag; an
-# unrecognised environment variable is silently ignored, and it would autodetect the
+# unrecognized environment variable is silently ignored, and it would autodetect the
 # repo's OWN process file instead -- which looks like success and tests nothing.
 roles() { bash "$ROSTER" --process "$PROCESS" list; }
 

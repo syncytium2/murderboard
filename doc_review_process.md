@@ -107,7 +107,7 @@ No fabricated or approximate citation. No internal contradiction. No filler.
 > and why the blocklist carries a review-by date.
 >
 > **If you are blocked or declined, stop.** Do not re-invoke, do not run the roles by hand to
-> route around a refusal, and never economise by running fewer roles — a review missing roles
+> route around a refusal, and never economize by running fewer roles — a review missing roles
 > is indistinguishable in the report from a clean one, which is the defect this whole apparatus
 > exists to prevent. Tell the human and let them choose.
 >
@@ -432,7 +432,7 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
    - **Ask what the humans hold. Correspondence is a source.** Before reporting that a claim is
      unattributed, or that prior art could not be found, ask the people involved whether anyone
      **has already asked someone** — an email to a tool's author, a reviewer exchange, a
-     conference conversation, an enquiry that was answered months ago and never written down.
+     conference conversation, an inquiry that was answered months ago and never written down.
      That evidence is real, it is frequently decisive, and it is invisible to every literature
      search that will ever be run. It is also the **cheapest check in this document**: one
      question, no database, no paywall. **"Nobody was asked" is a residual `⚠`**, recorded exactly
@@ -560,7 +560,7 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
    - **The house voice.** Short sentences, concrete nouns, active verbs. Cut every word that does
      not change the meaning. Prefer the specific example to the general claim. Name what the
      document does not know instead of hedging around it. No throat-clearing, no preview of what
-     a section is about to say, no closing paragraph that recaps. Dry humour is fine where it is
+     a section is about to say, no closing paragraph that recaps. Dry humor is fine where it is
      also true; cut it where it is decoration.
    - **Count first, then judge — and run the tool, do not describe it.** Role 5 owns both a
      judgment (is this block longer than its point?) and a search (does this word appear?). The

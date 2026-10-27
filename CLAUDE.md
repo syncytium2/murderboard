@@ -18,7 +18,7 @@ touches it deploys it, with no review step in between. That file is the explaine
 enforced by `tests/published_page_test.py` in CI. Do not add a second copy, and do not point
 anything at `docs/murderboard-explainer.html` — that was its name before #36.
 
-**The division of labour matters when editing.** `doc_review_process.md` is the authority on
+**The division of labor matters when editing.** `doc_review_process.md` is the authority on
 *what* gets reviewed and by whom; the skill owns only *how the review is summoned* — the parts
 that must not depend on being remembered. A new **rule** goes in the process file. A new step
 that would otherwise be skipped goes in the skill. Putting a rule in the skill hides it from

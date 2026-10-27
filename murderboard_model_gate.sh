@@ -501,7 +501,7 @@ fi
 if [ "$CONFIRM" != "0" ]; then
   sid=$(printf '%s' "$payload" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
          | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
-  # Sanitise: the session id becomes part of a filename. Anything unexpected collapses
+  # Sanitize: the session id becomes part of a filename. Anything unexpected collapses
   # to a constant rather than escaping the directory.
   case "$sid" in (*[!A-Za-z0-9._-]*|'') sid=nosession ;; esac
   state_dir="${MURDERBOARD_GATE_STATE:-${TMPDIR:-/tmp}/murderboard-gate}"

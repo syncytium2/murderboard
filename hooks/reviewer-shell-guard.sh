@@ -11,9 +11,9 @@
 #     sed -i        mv f elsewhere             git checkout -- .   git clean -fd
 #
 # THAT IS WHY THIS IS AN ALLOWLIST. A denylist of destructive commands enumerates a subset of
-# an unbounded set and is wrong in the dangerous direction: an unrecognised command runs. This
+# an unbounded set and is wrong in the dangerous direction: an unrecognized command runs. This
 # inverts it. A command runs only if every executable in it is on the list below; anything
-# unrecognised is REFUSED. New tooling breaks loudly and gets added deliberately, which is the
+# unrecognized is REFUSED. New tooling breaks loudly and gets added deliberately, which is the
 # failure we want rather than the one where a novel command sails through.
 #
 # IT ALSO SURVIVES PERSUASION, WHICH IS THE POINT. A reviewer reads the artifact under review,

@@ -108,7 +108,7 @@ paper you only half-remember: get the text or flag the paper.
 - **Ask what the humans hold. Correspondence is a source.** Before reporting that a claim is
   unattributed, or that prior art could not be found, ask the people involved whether anyone
   **has already asked someone** — an email to a tool's author, a reviewer exchange, a
-  conference conversation, an enquiry that was answered months ago and never written down.
+  conference conversation, an inquiry that was answered months ago and never written down.
   That evidence is real, it is frequently decisive, and it is invisible to every literature
   search that will ever be run. It is also the **cheapest check in this document**: one
   question, no database, no paywall. **"Nobody was asked" is a residual `⚠`**, recorded exactly

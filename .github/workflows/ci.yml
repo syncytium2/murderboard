@@ -104,7 +104,7 @@ jobs:
       #   reason: it declares grants and FAILS. All eleven reviewers reported MISMATCH
       #   under a header claiming `named agents`; role 1 declared `GRANT 1 ok -- nothing
       #   whatsoever` beside its own MISMATCH. That record is this branch's evidence
-      #   that the defect is real and was observed, not theorised. Repairing it would
+      #   that the defect is real and was observed, not theorized. Repairing it would
       #   delete the finding, and the mode vocabulary still has no term for what
       #   actually happened -- reviewers that WERE named agents whose grants did not
       #   take effect. Writing "fallback" there would be a second false claim.

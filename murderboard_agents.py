@@ -932,7 +932,7 @@ def cmd_selftest():
            report("extra.md", clean.replace("GRANT 1 ok — Read, Bash",
                                             "GRANT 1 ok — Read, Bash, Write")) == 1)
         # Generous about format, strict about substance: a reviewer typing its own tools back is
-        # not required to reproduce the table's order or capitalisation.
+        # not required to reproduce the table's order or capitalization.
         ok("the same tools in another order and case PASS",
            report("order.md", clean.replace("GRANT 1 ok — Read, Bash",
                                             "GRANT 1 ok — bash,  READ")) == 0)

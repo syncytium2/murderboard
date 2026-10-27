@@ -36,7 +36,7 @@ RULES
 6. No throat-clearing, no preview of what the section is about to say, no closing
    paragraph that recaps.
 
-7. Dry humour only where it is also true. Decoration is not wit.
+7. Dry humor only where it is also true. Decoration is not wit.
 
 8. "Data" is plural: the data are, the data show, these data. "Dataset" and "metadata"
    keep their own grammar. Quoted words keep the speaker's.

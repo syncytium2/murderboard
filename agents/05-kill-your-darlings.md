@@ -77,7 +77,7 @@ exactly one true thing.
 - **The house voice.** Short sentences, concrete nouns, active verbs. Cut every word that does
   not change the meaning. Prefer the specific example to the general claim. Name what the
   document does not know instead of hedging around it. No throat-clearing, no preview of what
-  a section is about to say, no closing paragraph that recaps. Dry humour is fine where it is
+  a section is about to say, no closing paragraph that recaps. Dry humor is fine where it is
   also true; cut it where it is decoration.
 - **Count first, then judge — and run the tool, do not describe it.** Role 5 owns both a
   judgment (is this block longer than its point?) and a search (does this word appear?). The
