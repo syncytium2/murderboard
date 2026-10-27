@@ -161,6 +161,13 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      cannot be satisfied at all, so a deliverable making an attribution claim does not proceed;
      and the block will recur on every run in that environment until somebody changes it, which
      is why it is worth surfacing before a review rather than after.
+   - **Name the reader in the brief, before any role runs.** Every role's brief states who the
+     reader is and the conventions the deliverable must follow: the language variety (US or UK
+     English, and so on), date order and time format, currency and units, and which country's
+     places, laws and institutions it may assume. **If the human has not said, ask; never infer it
+     from the draft.** A draft written in one variety teaches its reviewers that variety, and they
+     will enforce it. Any convention the drafter picked without being told is a claim like any
+     other, and is checked like one.
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
    See **"The team is not optional"** below.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
@@ -588,6 +595,12 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      *data*, then a singular verb. The determiner is what keeps it off code such as
      `data is None`. A match split across a line break is missed, so read for it as well. Like
      the banned list, this is a house convention: a consuming project may drop it, and says so.
+   - **Spelling and conventions match the reader named in the brief.** Check every word's
+     spelling variety, the date order, the time format and the number and currency style against
+     the brief, and flag each one that belongs to another variety. Flag a **mix** too
+     (*judgment* in one file, *judgement* in the next), which is a defect even when the brief is
+     silent. If the brief names no reader, that is the first finding, not a reason to adopt the
+     draft's variety as the house style. Quotations keep the source's spelling.
    - **The passage test — what does this block assert that its last sentence does not?** A block
      can be true, correctly placed, and clean line by line, and still spend four hundred words
      arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11
@@ -657,6 +670,12 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
      correct; a line can pass both and still be read as something else. Boundary with the
      three-undefined-terms rule below: that one is about a reader who cannot follow; this is about
      a reader who follows and arrives somewhere false.)
+   - **Settings nobody asked for.** A place, a currency, a time zone, a law or an institution
+     from somewhere other than the reader's own looks right to everyone who checks it: it is
+     internally consistent, and other roles verify it *against that country's sources*, which
+     makes it more convincing, not less. Read as the reader named in the brief, and flag every
+     such setting the brief did not ask for. A deliberate foreign setting stays, once someone says
+     it is deliberate.
    - **Output contract: a per-slide verdict, not a deck-wide list of terms.** One row per
      slide/panel: *terms and identifiers first used here · which are defined on the slide · can a
      cold reader follow it (yes / no / blocking)*. A pooled list of undefined terms lets the worst
@@ -1543,3 +1562,14 @@ seriously than a rule stated in the abstract.
   and the record was fine. Lesson: the summary is not the evidence, the evidence must be written
   as it arrives rather than at the end, and a file a tool wrote on your behalf is not a file with
   content in it until you look.
+- **The review learned the draft's accent** (a consumer's response to a training design brief,
+  2026-10-23 to 2026-10-27) — three blind rounds and a follow-up pass shipped a deliverable for a
+  US reader in British spelling, with day-first dates, 24-hour times and a UK setting nobody had
+  asked for: a job advert in Leeds, salaries in pounds, a note on UK equality law. The owner caught
+  it on the finished attachment, not the review. No brief had said who the reader was, so the
+  line editor read the drafter's habits as the house style and enforced them, recommending British
+  punctuation "because house spelling is British"; the drafter followed it. Methods reviewers
+  checked the UK legal notes against UK guidance, which made the setting more convincing, not
+  less. By the end the files mixed *judgment* and *judgement*, and no role flagged it. Lessons: the
+  brief names the reader before anyone reviews, a convention nobody chose is a claim to check, and
+  a setting verified against the wrong country's sources looks right to everyone who checks it.

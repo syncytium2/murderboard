@@ -105,6 +105,12 @@ exactly one true thing.
   *data*, then a singular verb. The determiner is what keeps it off code such as
   `data is None`. A match split across a line break is missed, so read for it as well. Like
   the banned list, this is a house convention: a consuming project may drop it, and says so.
+- **Spelling and conventions match the reader named in the brief.** Check every word's
+  spelling variety, the date order, the time format and the number and currency style against
+  the brief, and flag each one that belongs to another variety. Flag a **mix** too
+  (*judgment* in one file, *judgement* in the next), which is a defect even when the brief is
+  silent. If the brief names no reader, that is the first finding, not a reason to adopt the
+  draft's variety as the house style. Quotations keep the source's spelling.
 - **The passage test — what does this block assert that its last sentence does not?** A block
   can be true, correctly placed, and clean line by line, and still spend four hundred words
   arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11
