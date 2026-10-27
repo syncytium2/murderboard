@@ -238,6 +238,10 @@ bash "$ROSTER" count
 
 Spawn **one subagent per row returned**, no fewer. The roster is derived from the process
 file, so when upstream adds role 12 every consumer picks it up without editing this skill.
+Every role's brief names the reader and the conventions the deliverable must follow (process
+step 2, *Name the reader in the brief*); if the human has not said, ask before spawning anything.
+Every role's brief names the reader and the conventions the deliverable must follow (process
+step 2, *Name the reader in the brief*); if the human has not said, ask before spawning anything.
 
 ### 4a. Compile the specialists, then spawn them BY NAME
 
