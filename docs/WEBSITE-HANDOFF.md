@@ -122,8 +122,8 @@ use Cloudflare's CNAME flattening at the apex.
 > **Full (strict)**. On **Flexible**, Cloudflare talks HTTP to GitHub Pages while Pages forces
 > HTTPS, and the result is a redirect loop that looks like a broken site with no obvious cause.
 > If you proxy (orange cloud), also expect GitHub's certificate provisioning to fail until the
-> record is temporarily set to DNS-only (grey cloud) so GitHub can validate the domain. Start
-> grey, get the cert issued and "Enforce HTTPS" checked in repo settings, then decide about
+> record is temporarily set to DNS-only (grey cloud) so GitHub can validate the domain. Start <!-- spelling-ok: Cloudflare UI label, quoted -->
+> grey, get the cert issued and "Enforce HTTPS" checked in repo settings, then decide about <!-- spelling-ok: Cloudflare UI label, quoted -->
 > proxying.
 
 ### 5. Repo settings

@@ -108,9 +108,13 @@ exactly one true thing.
 - **Spelling and conventions match the reader named in the brief.** Check every word's
   spelling variety, the date order, the time format and the number and currency style against
   the brief, and flag each one that belongs to another variety. Flag a **mix** too
-  (*judgment* in one file, *judgement* in the next), which is a defect even when the brief is
+  (*judgment* in one file, *judgement* in the next), which is a defect even when the brief is <!-- spelling-ok: names the UK form as the example -->
   silent. If the brief names no reader, that is the first finding, not a reason to adopt the
-  draft's variety as the house style. Quotations keep the source's spelling.
+  draft's variety as the house style. Quotations keep the source's spelling. **The spelling
+  half is a search:** run `murderboard_prose.sh --spelling us` (or `uk`) and paste its output
+  here. It matches British forms by shape rather than by list, so a word nobody thought to
+  list still trips it; two sweeps of this repo by word list each missed words that later
+  turned up.
 - **The passage test — what does this block assert that its last sentence does not?** A block
   can be true, correctly placed, and clean line by line, and still spend four hundred words
   arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11

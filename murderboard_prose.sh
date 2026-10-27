@@ -38,6 +38,9 @@
 #   murderboard_prose.sh DOC [DOC...]        scan; table to stdout
 #   murderboard_prose.sh --words             print the banned word list and exit
 #   murderboard_prose.sh --blocks DOC        block word counts only
+#   murderboard_prose.sh --spelling us|uk DOC  check spelling against the named reader
+#                                            (default $MURDERBOARD_SPELLING; unset = both ways)
+#   murderboard_prose.sh --spelling-only ... spelling section only (this repo's CI uses it)
 #   murderboard_prose.sh --process PATH ...  use this process file (default: autodetect)
 #   murderboard_prose.sh --selftest          prove every check can still fire
 #
@@ -51,6 +54,8 @@ LC_ALL=C; export LC_ALL
 
 PROCESS=
 BLOCKS_ONLY=0
+SPELLING_ONLY=0
+SPELLING="${MURDERBOARD_SPELLING:-}"
 LONG_BLOCK=120   # words. A convention this project may tune, not a researched optimum.
 
 die() { printf 'murderboard_prose: %s\n' "$*" >&2; exit 2; }
@@ -139,6 +144,108 @@ EOF
   return $((1 - found))
 }
 
+# SPELLING. Flags words from the other variety than the reader's (process step 2, "Name the
+# reader in the brief"; role 5, "Spelling and conventions match the reader").
+#
+# PATTERNS, NOT A WORD LIST, for the British forms. This repo swept British spellings out
+# twice (#12, #70), both times by searching for a list of known words, and both times the words
+# nobody thought of survived: a CI scan on 2026-10-27 found twelve that #70's list had missed.
+# So -our, -ise/-isation, -yse, -tre/-bre, -ll-, and the ae/oe medical spellings are matched
+# by SHAPE, and the American words of the same shape (hour, raise, promise, lyse, macabre...)
+# are an allowlist. An unknown word therefore FAILS LOUDLY and a human decides, instead of
+# passing silently because nobody listed it. The fixed forms (licence, grey, whilst...) are
+# a list because they have no shared shape.
+#
+# The American forms (for a UK reader) ARE a list: -or, -er and -ize are all ordinary British
+# shapes too (doctor, water, and Oxford's -ize), so no pattern separates them.
+#
+# With no variety declared it runs BOTH directions. A document that hits both is MIXED, which
+# is a defect whatever the reader (exit 1). A document that hits only one is reported as
+# reading that way, with a reminder that nobody declared a reader -- not a failure, because
+# the tool cannot know which reader was wanted, and guessing is the defect it exists to catch.
+#
+# A line containing the text  spelling-ok  is skipped: for a quotation, an identifier, or a
+# file that names the words (like this one). Say why on the same line.
+scan_spelling() {
+  local doc="$1" txt="$2" variety="$3"
+  awk -v variety="$variety" -v skipfile="$doc" '
+    BEGIN {
+      while ((getline l < skipfile) > 0) { n++; if (l ~ /spelling-ok/) skip[n] = 1 }
+      close(skipfile)
+      split("our your four hour tour pour flour sour scour dour detour contour devour glamour amour paramour velour troubadour", a, " ")
+      for (i in a) ourok[a[i]] = 1
+      split("rais ris nois otherwis precis imprecis promis exercis expertis advis advertis surpris premis aris franchis merchandis enterpris compromis concis disguis despis devis revis supervis televis improvis paradis prais apprais chastis circumcis excis incis demis pois porpois treatis tortois cruis bruis anis mortis appris compris repris vis upris sunris liais cheris chemis valis", a, " ")
+      for (i in a) iseok[a[i]] = 1
+      split("analyses paralyses lyse lysed lyses lysing", a, " ")
+      for (i in a) yseok[a[i]] = 1
+      split("macabre timbre timbres ombre", a, " ")
+      for (i in a) treok[a[i]] = 1
+      split("licence licences licenced defence defences offence offences pretence grey greys greyed greying greyer greyish greyness judgement judgements ageing sceptic sceptics sceptical sceptically scepticism programme programmes whilst amongst learnt spelt enquiry enquiries enquire enquired enquiring artefact artefacts aluminium manoeuvre manoeuvres cheque cheques tyre tyres plough mould moulds mouldy draught draughts kerb storey storeys cosy pyjamas aeroplane moustache sulphur sulphate catalogue catalogues catalogued analogue analogues fulfil fulfils fulfilment enrol enrols enrolment instil distil skilful wilful instalment focussed focussing practise practised practising advert adverts maths", a, " ")
+      for (i in a) ukword[a[i]] = 1
+      split("color colors colored coloring colorful behavior behaviors behavioral favor favors favorite favorites favored honor honors honored labor labored neighbor neighbors neighboring neighborhood humor rumor armor vapor odor endeavor harbor savior flavor flavors center centers centered centering liter liters fiber fibers theater caliber gray grays defense offense pretense catalog catalogs skeptic skeptical skepticism aging labeled labeling modeled modeling traveled traveling traveler canceled canceling signaled fueled leveled totaled counseled channeled fulfill fulfills fulfillment enroll enrollment skillful willful installment mold molds plow pajamas airplane mustache sulfur fetus fetal hemoglobin anemia pediatric anesthesia edema esophagus estrogen leukemia diarrhea gynecology analyze analyzed analyzing paralyze catalyze", a, " ")
+      for (i in a) usword[a[i]] = 1
+    }
+    function british(w,   s) {
+      if (w in ukword) return 1
+      if (w ~ /^[a-z]+our(s|ed|ing|ite|ites|able|ably|ful|less|er|ers)?$/) {
+        s = w; sub(/(s|ed|ing|ite|ites|able|ably|ful|less|er|ers)$/, "", s)
+        if (!(s in ourok) && s ~ /our$/) return 1
+      }
+      if (w ~ /^[a-z]+is(e|es|ed|ing|ation|ations|er|ers)$/) {
+        s = w; sub(/(e|es|ed|ing|ation|ations|er|ers)$/, "", s)
+        if (!(s in iseok) && s !~ /wis$/) return 1
+      }
+      if (w ~ /^[a-z]+ys(e|es|ed|ing|er|ers)$/ && !(w in yseok)) return 1
+      if (w ~ /^[a-z]+(tre|bre)(s|d)?$/ && !(w in treok)) return 1
+      if (w ~ /^(label|model|travel|cancel|signal|fuel|level|total|counsel|channel|tunnel|marshal|dial|duel|equal|jewel|libel|marvel|panel|pedal|quarrel|shovel|snorkel|swivel|towel|bevel|chisel|enamel|funnel|grovel|kennel|refuel|rival|spiral|stencil|pencil|yodel)l(ed|ing|er|ers)$/) return 1
+      if (w ~ /(haem|anaem|anaesth|paed|oedem|oesoph|oestr|foet|leukaem|diarrhoe|gynaec|ischaem)/) return 1
+      return 0
+    }
+    function report(kind, w) {
+      printf "  %-6s %-34s %-6s %s\n", NR, w, kind, "in: " substr(line, 1, 60)
+    }
+    {
+      if (NR in skip) next
+      line = $0; gsub(/^[[:space:]]+/, "", line)
+      t = tolower($0)
+      if (t ~ /(^|[^a-z])per cent([^a-z]|$)/) { ukhits++; if (variety != "uk") report("uk", "per cent") }
+      gsub(/[^a-z]+/, " ", t)
+      m = split(t, w, " ")
+      for (i = 1; i <= m; i++) {
+        if (british(w[i]))  { ukhits++; if (variety != "uk") report("uk", w[i]) }
+        if (w[i] in usword) { ushits++; if (variety != "us") report("us", w[i]) }
+      }
+    }
+    END {
+      if (variety == "us") { print "VERDICT:" (ukhits ? "fail" : "ok") }
+      else if (variety == "uk") { print "VERDICT:" (ushits ? "fail" : "ok") }
+      else if (ukhits && ushits) print "VERDICT:mixed"
+      else if (ukhits) print "VERDICT:reads-uk"
+      else if (ushits) print "VERDICT:reads-us"
+      else print "VERDICT:ok"
+    }
+  ' "$txt"
+}
+
+scan_spelling_section() {
+  local doc="$1" txt="$2" out verdict label
+  case "$SPELLING" in us) label="US reader";; uk) label="UK reader";; *) label="no reader declared";; esac
+  printf '  spelling (%s)\n' "$label"
+  out=$(scan_spelling "$doc" "$txt" "$SPELLING")
+  verdict=$(printf '%s\n' "$out" | sed -n 's/^VERDICT://p')
+  printf '%s\n' "$out" | grep -v '^VERDICT:'
+  case "$verdict" in
+    ok)    printf '  %s\n' "— no spelling from the other variety found"; return 0 ;;
+    fail)  return 1 ;;
+    mixed) printf '  %s\n' "MIXED: both US and UK spellings above. A defect whatever the reader."; return 1 ;;
+    reads-uk|reads-us)
+      printf '  %s\n' "reads as ${verdict#reads-} English, and no reader was declared. Name the reader"
+      printf '  %s\n' "(--spelling us|uk, or MURDERBOARD_SPELLING); never adopt the draft's variety."
+      return 0 ;;
+    *) die "spelling scan returned no verdict for $doc; it would report clean on every document" ;;
+  esac
+}
+
 # Blocks = runs of non-blank lines. Mechanical: how many words, how many sentences.
 # WHICH sentence carries the payload is role 5's call and is deliberately absent here.
 scan_blocks() {
@@ -170,9 +277,17 @@ main_scan() {
 
   printf '\n%s\n' "$doc"
 
+  if [ "$SPELLING_ONLY" -eq 1 ]; then
+    scan_spelling_section "$doc" "$txt" || rc=1
+    rm -f "$txt"; trap - RETURN
+    return $rc
+  fi
+
   if [ "$BLOCKS_ONLY" -eq 0 ]; then
     printf '  %-6s %-34s %-6s %s\n' "line" "construction" "kind" "context"
     if scan_hits "$doc" "$txt"; then rc=1; else printf '  %s\n' "— no banned construction found"; fi
+    printf '\n'
+    scan_spelling_section "$doc" "$txt" || rc=1
     printf '\n'
   fi
 
@@ -236,6 +351,40 @@ selftest() {
 
   run "$tmp/nope.md" >/dev/null 2>&1; [ $? -eq 2 ] && ok "unreadable file -> exit 2" || bad "unreadable file did not exit 2"
 
+  # Spelling. Each British form below is one NO list names -- matched by shape -- so this
+  # fails if the patterns are ever swapped back for a word list.
+  printf 'The data were theorised, then organisation of haemoglobin centres was labelled.\n' > "$tmp/s.md"
+  for w in theorised organisation haemoglobin centres labelled; do
+    run --spelling us --spelling-only "$tmp/s.md" 2>/dev/null | grep -qw "$w" \
+      && ok "US reader: \"$w\" trips it by shape" || bad "US reader: \"$w\" did not trip it"
+  done
+
+  printf 'Raise the noise; I promise the lysed cells, macabre hour and spelled travel are otherwise fine.\n' > "$tmp/t.md"
+  run --spelling us --spelling-only "$tmp/t.md" >/dev/null 2>&1 && ok "US reader: American words of the same shape pass" \
+    || bad "US reader: an American word was flagged as British"
+
+  printf 'The colour of the centre.\n' > "$tmp/u.md"
+  run --spelling uk --spelling-only "$tmp/u.md" >/dev/null 2>&1 && ok "UK reader: British spelling passes" \
+    || bad "UK reader: British spelling was flagged"
+  printf 'The color of the center.\n' > "$tmp/v.md"
+  run --spelling uk --spelling-only "$tmp/v.md" >/dev/null 2>&1 && bad "UK reader: American spelling did not trip it" \
+    || ok "UK reader: American spelling trips it"
+
+  printf 'Use judgment here and judgement there; the colour is gray.\n' > "$tmp/x.md"
+  run --spelling-only "$tmp/x.md" 2>/dev/null | grep -q MIXED && ok "no reader: a mix of both is reported MIXED" \
+    || bad "no reader: a mix was not reported"
+  printf 'The colour of the centre.\n' > "$tmp/y.md"
+  run --spelling-only "$tmp/y.md" > "$tmp/y.out" 2>/dev/null; yrc=$?
+  [ "$yrc" -eq 0 ] && grep -q 'no reader was declared' "$tmp/y.out" && ok "no reader: one variety is reported, not failed" \
+    || bad "no reader: one variety was not reported as undeclared (exit $yrc)"
+
+  printf 'The colour (spelling-ok: quoted) stays.\n' > "$tmp/z.md"
+  run --spelling us --spelling-only "$tmp/z.md" >/dev/null 2>&1 && ok "a spelling-ok line is skipped" \
+    || bad "a spelling-ok line was still flagged"
+
+  run --spelling us-ish "$tmp/c.md" >/dev/null 2>&1; [ $? -eq 2 ] && ok "an unknown --spelling value -> exit 2" \
+    || bad "an unknown --spelling value was accepted"
+
   printf '\n%d passed, %d failed\n' "$pass" "$fail"
   [ "$fail" -eq 0 ] || rc=1
   return $rc
@@ -247,14 +396,17 @@ while [ $# -gt 0 ]; do
     --process) shift; PROCESS="${1:-}"; [ -n "$PROCESS" ] || die "--process needs a path" ;;
     --words)   banned_words; exit 0 ;;
     --blocks)  BLOCKS_ONLY=1 ;;
+    --spelling) shift; SPELLING="${1:-}" ;;
+    --spelling-only) SPELLING_ONLY=1 ;;
     --selftest) selftest; exit $? ;;
-    -h|--help) sed -n '2,42p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,50p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "unknown option: $1" ;;
     *) DOCS="$DOCS $1" ;;
   esac
   shift
 done
 
+case "$SPELLING" in us|uk|"") ;; *) die "--spelling must be us or uk (got '$SPELLING')" ;; esac
 [ -n "${DOCS# }" ] || die "no document given (try --help)"
 
 RC=0

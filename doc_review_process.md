@@ -167,7 +167,10 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      places, laws and institutions it may assume. **If the human has not said, ask; never infer it
      from the draft.** A draft written in one variety teaches its reviewers that variety, and they
      will enforce it. Any convention the drafter picked without being told is a claim like any
-     other, and is checked like one.
+     other, and is checked like one. **Declare it once per project, not once per run:** a
+     `Reader:` line in the consuming project's `CLAUDE.md` (for example *Reader: US English, US
+     dates and units, US setting unless the brief says otherwise*) is the human having said, and
+     every run reads it. Ask only when nothing is declared, and then write the answer there.
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
    See **"The team is not optional"** below.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
@@ -598,9 +601,13 @@ defect a role whose unit matches it (11, 9), or it will be found by the reader i
    - **Spelling and conventions match the reader named in the brief.** Check every word's
      spelling variety, the date order, the time format and the number and currency style against
      the brief, and flag each one that belongs to another variety. Flag a **mix** too
-     (*judgment* in one file, *judgement* in the next), which is a defect even when the brief is
+     (*judgment* in one file, *judgement* in the next), which is a defect even when the brief is <!-- spelling-ok: names the UK form as the example -->
      silent. If the brief names no reader, that is the first finding, not a reason to adopt the
-     draft's variety as the house style. Quotations keep the source's spelling.
+     draft's variety as the house style. Quotations keep the source's spelling. **The spelling
+     half is a search:** run `murderboard_prose.sh --spelling us` (or `uk`) and paste its output
+     here. It matches British forms by shape rather than by list, so a word nobody thought to
+     list still trips it; two sweeps of this repo by word list each missed words that later
+     turned up.
    - **The passage test — what does this block assert that its last sentence does not?** A block
      can be true, correctly placed, and clean line by line, and still spend four hundred words
      arriving at one. **Every other role passes it**: role 4 finds the claim supported, role 11
@@ -1565,11 +1572,11 @@ seriously than a rule stated in the abstract.
 - **The review learned the draft's accent** (a consumer's response to a training design brief,
   2026-10-23 to 2026-10-27) — three blind rounds and a follow-up pass shipped a deliverable for a
   US reader in British spelling, with day-first dates, 24-hour times and a UK setting nobody had
-  asked for: a job advert in Leeds, salaries in pounds, a note on UK equality law. The owner caught
+  asked for: a job ad in Leeds, salaries in pounds, a note on UK equality law. The owner caught
   it on the finished attachment, not the review. No brief had said who the reader was, so the
   line editor read the drafter's habits as the house style and enforced them, recommending British
   punctuation "because house spelling is British"; the drafter followed it. Methods reviewers
   checked the UK legal notes against UK guidance, which made the setting more convincing, not
-  less. By the end the files mixed *judgment* and *judgement*, and no role flagged it. Lessons: the
+  less. By the end the files mixed *judgment* and *judgement*, and no role flagged it. Lessons: the <!-- spelling-ok: quotes the mix -->
   brief names the reader before anyone reviews, a convention nobody chose is a claim to check, and
   a setting verified against the wrong country's sources looks right to everyone who checks it.

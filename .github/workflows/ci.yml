@@ -169,6 +169,19 @@ jobs:
       - name: prose gate --selftest
         run: bash murderboard_prose.sh --selftest
 
+      # This repo's house style is American (#70), and it ships into consumers whose style is
+      # American too. Two sweeps by word list (#12, #70) each left words behind; the next
+      # sweep found twelve. So every tracked text file is checked by SHAPE on every push, and
+      # a new British spelling fails here instead of being vendored. The prose tool itself is
+      # the one file left out: it names the words it searches for, and --selftest covers it.
+      # A quotation or identifier that must stay British carries `spelling-ok` on its line.
+      - name: no British spellings in the repo
+        run: |
+          # -f drops the two tracked symlinks into directories (.claude/agents|skills/murderboard).
+          files=$(git ls-files | grep -vE '\.(png|jpg|jpeg|gif|ico|pdf|zip)$|^docs/CNAME$|^murderboard_prose\.sh$' \
+                  | while read -r f; do [ -f "$f" ] && echo "$f"; done)
+          bash murderboard_prose.sh --spelling us --spelling-only $files
+
       # The subagent preflight is the one tool here that is NOT a gate -- it reports what it
       # can read and says on every run that a clean scan proves nothing. That makes its
       # selftest more important, not less: the branch most likely to rot is the one that

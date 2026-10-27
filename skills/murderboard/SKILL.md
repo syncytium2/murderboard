@@ -55,6 +55,23 @@ responsibility of its authors, and the gate is a safeguard, **not a spending cap
 imply it protects anyone from a bill.
 <https://github.com/syncytium2/murderboard/blob/main/TERMS.md>
 
+## Reader — settled before anything else runs
+
+Process step 2, *Name the reader in the brief*. A draft in one spelling teaches its reviewers
+that spelling, and they enforce it, so the reader is fixed **before** the draft is read:
+
+```bash
+grep -m1 -iE '^[[:space:]>]*reader:' CLAUDE.md 2>/dev/null || echo "NO READER DECLARED"
+```
+
+- **A `Reader:` line exists** → use it. Do not ask, and never override it from the draft.
+- **None** → ask the human one question: who reads this, and in which spelling, date style
+  and setting? Then offer to add their answer to `CLAUDE.md` as a `Reader:` line, so the next
+  run does not ask. Never infer it from the draft.
+
+Then `export MURDERBOARD_SPELLING=us` (or `uk`) so `murderboard_prose.sh` checks against it,
+and put the `Reader:` line in every role's brief and in the run record.
+
 ## 0. Resolve the paths — do not assume a layout
 
 There are two ways these files get onto a machine, and they land in different places:
@@ -238,10 +255,7 @@ bash "$ROSTER" count
 
 Spawn **one subagent per row returned**, no fewer. The roster is derived from the process
 file, so when upstream adds role 12 every consumer picks it up without editing this skill.
-Every role's brief names the reader and the conventions the deliverable must follow (process
-step 2, *Name the reader in the brief*); if the human has not said, ask before spawning anything.
-Every role's brief names the reader and the conventions the deliverable must follow (process
-step 2, *Name the reader in the brief*); if the human has not said, ask before spawning anything.
+Every role's brief carries the `Reader:` line you settled in **Reader** above, verbatim.
 
 ### 4a. Compile the specialists, then spawn them BY NAME
 
