@@ -187,6 +187,24 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      contract*), and the appendix tells the
      incident behind this
      ([issue #74](https://github.com/syncytium2/murderboard/issues/74)).
+   - **The artifact is FROZEN while a round runs — the orchestrator included (blocking).** From
+     the first spawn of a round until its last report is banked, **nobody modifies the artifact or
+     anything it depends on**: the files it embeds or links locally (figures, tables, included
+     files) and the generators that build them. Fixes start when the round closes. If a fix cannot
+     wait, **abandon the round and rerun it on the new tree**; a round whose reviewers read
+     different versions of the artifact has not reviewed either of them. Blindness governs what
+     reviewers may *read*; this governs what everyone else may *write* while they read, and the
+     pull to break it is predictable — fixes are waiting, the reviewers are slow, and starting
+     early feels like using idle time.
+     **Fingerprint the closure, not the file, at both ends of every round.**
+     `murderboard_roster.sh manifest <artifact> --dep <generator>… --digest` hashes the artifact,
+     every local file it embeds or links, and every generator you name; take it at the first
+     spawn and again after the last report, and record both on a line per round (see *Output
+     contract*). A hash of the markdown alone passes a round in which every figure changed.
+     Cheap insurance on top: run the round against a clean commit, and spawn reviewers in a
+     read-only snapshot (`git worktree add --detach <sha>`) so an edit to the live checkout
+     cannot reach them. The snapshot does not replace the manifest — only the manifest *shows*
+     that nothing moved. (See the appendix, 2026-10-29.)
    A role with genuinely nothing to check returns **"no findings, and here is what I checked."**
    See **"The team is not optional"** below.
 3. **Synthesize** (main thread) — consolidate findings, dedupe, rank by severity,
@@ -252,6 +270,10 @@ No fabricated or approximate citation. No internal contradiction. No filler.
      - Role **10 re-runs in full in the blind pass**, always — it is the cheapest role, and every
        repair to a rendering deliverable changes the file it inspects. Its table must name the NEW
        render.
+     - **Every verify round is frozen like the first** (step 2): fixes from round *n* are applied
+       and rebuilt *before* round *n+1* spawns, never while it runs, and each round records its
+       manifest at spawn and at close. A mismatch voids the round — a blocking run-level finding,
+       not something one role happens to notice.
      - **Stop on SEVERITY, not on silence, and cap the rounds.** Stop when a blind round produces
        **no blocking and no major** findings, **or after 3 blind rounds**, whichever comes first.
        Minors surviving the final round are **recorded as residual `⚠`, not fixed** — fixing them
@@ -1288,6 +1310,24 @@ evidence*.
 An eleven-of-eleven ledger says every role ran. It does not say the loop finished, and until the
 mode line existed there was nowhere for that difference to be recorded.
 
+**The record also carries one manifest line per round**, showing that the artifact held still
+while that round read it:
+
+```
+- round 1 manifest: 3f9a0c1e… at spawn, 3f9a0c1e… at close
+- round 2 manifest: 8d21b7f4… at spawn, 8d21b7f4… at close
+```
+
+Each digest is `murderboard_roster.sh manifest <artifact> [--dep <generator>]… --digest`, taken
+at the first spawn and after the last report. The gate fails a round whose two digests differ
+**with or without a flag** — the honest record of a moving artifact must not pass — and fails a
+line without two digests or a gap in the numbering. A round voided for a mid-round edit is
+written with `VOID` after its digests and passes only beside its rerun (`round 2b …`) with
+matching ones. No lines at all is reported as undeclared and exits 0, on the same terms as the
+mode line; `--require-manifest` is how a project opts in. ⚠ **It reads digests a person typed**
+and cannot tell that they were computed, or computed when claimed. What it buys is that the
+check becomes a command the run executes rather than a habit one role happens to have.
+
 **The record also declares how the roles were executed**, on a line of its own, as a
 **controlled token** followed by prose the gate never reads:
 
@@ -1704,3 +1744,18 @@ seriously than a rule stated in the abstract.
   role reports. (Reviewing the fix showed the probe's limit: a capable model passed a fixed
   answer key from memory, so the probe checks equipment, not honesty. The drawn rows and the
   hashed key stay, as a hurdle for a careless pass and a record of the probe, not as proof.)
+- **The artifact moved under a blind round, and the fingerprint passed** (a dissertation chapter,
+  2026-10-29) — a full eleven-role run with two blind rounds reviewed a markdown chapter that
+  embeds sixteen generated figures. While round 3 was still out, the **orchestrator** — the
+  session running the review, which had also written the chapter — started a helper on figure
+  fixes. It edited two generator scripts and regenerated three PNGs in the working tree; one
+  figure's panels were relettered, and another PNG was left older than its edited generator. The
+  chapter's markdown never changed, so the only fingerprint the run kept, a hash of that one file,
+  matched at both ends, and both gates exited 0. **Role 10 caught it, and only because it compares
+  file timestamps** as part of hunting stale builds: a run-level check performed by a figure role,
+  outside its charter. No rule said the artifact was frozen during a round — blindness governed
+  what reviewers read, nothing governed what the orchestrator wrote — and nobody re-checked the
+  fingerprint at the end of a round, so even a complete one could not have fired. Lessons: freeze
+  the artifact for the duration of a round, the orchestrator first; fingerprint everything the
+  artifact puts in front of a reader, not the file that names it; and check the fingerprint at
+  **both** ends of every round, in a gate, rather than relying on one role's habits.

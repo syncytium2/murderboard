@@ -225,9 +225,17 @@ Ask what is actually shipping, and review *that*:
 - A deck / poster / PDF must be **rendered to images** and inspected page by page. A caption
   that overflows onto the figure below is invisible in the component figure, in the extracted
   text, and in a bounding-box check.
-- Record the artifact's path and a fingerprint now:
-  `git hash-object <artifact>` (or `sha256sum`). Step 6 needs it to prove the *corrected* file
-  was re-checked rather than merely claimed to be.
+- Record the artifact's path and fingerprint its **closure** now — the artifact, every local
+  file it embeds or links (figures, included files), and every generator you named above:
+  ```bash
+  MANIFEST="bash $ROSTER manifest <artifact> --dep <generator> --dep <generator2>"
+  $MANIFEST            # the per-file list; keep it in the run record's appendix
+  $MANIFEST --digest   # one digest for the whole closure
+  ```
+  Write the exact command down and reuse it verbatim — at both ends of every round (step 4c)
+  and in step 6, which needs it to prove the *corrected* file was re-checked rather than merely
+  claimed to be. **A hash of the one file is not enough:** on 2026-10-29 a chapter's markdown
+  hashed identically before and after a round in which three of its figures were regenerated.
 
 ## 4. Derive the roster — never recall it
 
@@ -475,6 +483,33 @@ do not reconstruct one from memory and file it as an archive. A paraphrase writt
 fact is a second summary, not evidence, and it is worse than an admitted gap because it cannot
 be told apart from the real thing.
 
+### 4c. Freeze the artifact for the whole round — you included
+
+From the first spawn of a round until its last report is written to disk, **nothing touches
+the artifact or anything in its manifest** — not a reviewer, not a helper agent, and not you.
+The fixes in your head wait until the round closes. That is the whole rule, and the run that
+produced it broke it in the obvious way: round 3 was slow, fixes were queued, and the
+orchestrator started a figure-fixing helper "in the meantime".
+
+```bash
+SPAWN=$($MANIFEST --digest)          # immediately before the first spawn of the round
+git status --porcelain -- <artifact> <its embedded files> <generators>   # ideally empty
+# ... spawn every role, bank every report (4b) ...
+CLOSE=$($MANIFEST --digest)          # immediately after the last report is written
+[ "$SPAWN" = "$CLOSE" ] || echo "ROUND VOID — the artifact moved under the reviewers"
+```
+
+Write the round's line into the record as you go: `- round <n> manifest: $SPAWN at spawn, $CLOSE
+at close`. **If the digests differ, the round is void:** say so on that line (`… — VOID, <what
+moved>`), rerun the round on the new tree as `round <n>b`, and record that line too. Do not
+write the matching digests you meant to get; step 7's gate passes a voided round only beside a
+frozen rerun, and fails a moved one with no flag needed.
+
+**Optional insurance:** spawn the reviewers against a detached snapshot rather than the live
+checkout — `git worktree add --detach <snapshot-dir> <sha>` on a commit holding the artifact,
+reviewers pointed at `<snapshot-dir>` — so an edit you make cannot reach what they read. It does
+not replace the two digests, which are what *show* nothing moved.
+
 ## 5. Synthesize and apply
 
 Consolidate, dedupe, rank by severity, adjudicate each finding (fix / flag-inline `⚠` /
@@ -491,7 +526,9 @@ Re-check the **corrected, rebuilt** artifact per the process file's step 4: a fr
 did not do the original review, a blind pass before any finding-list-driven pass, role 10
 re-run in full against the NEW render, and iterate until a blind pass produces no new
 findings. **Report the number of rounds.** Confirm the artifact's fingerprint changed from
-step 3 — if it did not, the fixes are not in the file you are about to ship.
+step 3 — if it did not, the fixes are not in the file you are about to ship. **Every verify
+round is frozen like the first (4c):** apply and rebuild between rounds, never during one, and
+record each round's manifest line.
 
 ## 7. Emit the run record, then let it be checked
 
@@ -513,6 +550,8 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - roles:     <n> of <n> run (named agents | inline fallback)   # from step 4a
 - reports:   <artifact-stem>_<YYYY-MM-DD>-roles/ | not preserved   # from step 4b
 - rounds:    <n> blind verify rounds to clean
+- round 1 manifest: <digest> at spawn, <digest> at close   # from step 4c, one line per round
+- round 2 manifest: <digest> at spawn, <digest> at close
 
 Execution: subagents | single-pass (forced) | single-pass (chosen)   # from step 1a
 Lookup: live — <route>; roles <2 and 6 | 2>; probe 10.1000/<hex> | not needed   # step 4a
@@ -548,7 +587,8 @@ Finally, gate your own output:
 
 ```bash
 REPORT=docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md
-bash "$ROSTER" check --require-execution --require-reports --require-lookup "$REPORT" ; echo "roster=$?"
+bash "$ROSTER" check --require-execution --require-reports --require-lookup --require-manifest \
+    "$REPORT" ; echo "roster=$?"
 [ -n "${COMPILER:-}" ] && python3 "$COMPILER" --process "$PROCESS" verify "$REPORT" ; echo "grants=$?"
 ```
 
@@ -587,6 +627,11 @@ that resolves and holds a non-empty file for every role, or say `not preserved` 
 for it. A named archive that does not exist fails whether the flag is set or not — that is the
 "cited but missing" shape, and it reads to anyone downstream as the complete run. **Do not make
 it green by deleting the line**; write the reports, or declare the gap and tell the human.
+**And it reads the round manifest lines.** Under `--require-manifest` every round needs one; a
+round whose spawn and close digests differ fails whether the flag is set or not, as does a line
+with a placeholder for a digest or a gap in the round numbers. A failure here means the
+reviewers did not all read the same artifact: void the round and rerun it (4c). Never retype a
+digest to make the two agree.
 
 **And it reads the `Lookup:` line.** Under `--require-lookup` a missing line fails. When the
 record names its archive, a `live` line fails without `00-lookup-probe.md` holding the probe

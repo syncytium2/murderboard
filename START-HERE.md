@@ -108,6 +108,9 @@ A rule that depends on being remembered is not a rule. So:
   one thing that cannot be re-read later. Add `--require-lookup` and the report must also say
   whether the citation and methods reviewers could reach their sources; a report saying they
   could not fails either way.
+  Add `--require-manifest` and every review round must show, by a fingerprint of the
+  artifact *and* its figures taken at both ends, that nobody edited it while the reviewers
+  were reading.
 - **Freshness** — `bash murderboard_freshness.sh --hook` tells you when your copy has fallen
   behind this repo. Wire it into your `SessionStart` hook. A stale process silently omits rules
   you already paid for.

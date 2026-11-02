@@ -29,6 +29,10 @@
 #                                               ...and its role reports must be on disk
 #   murderboard_roster.sh check --require-lookup REPORT.md
 #                                               ...and the report must declare its Lookup:
+#   murderboard_roster.sh check --require-manifest REPORT.md
+#                                               ...and every round must record its manifest
+#   murderboard_roster.sh manifest ARTIFACT [--dep FILE]... [--digest]
+#                                               fingerprint the artifact AND what it embeds
 #   murderboard_roster.sh --process PATH ...    use this process file (default: autodetect)
 #   murderboard_roster.sh --selftest            prove every branch can still fire
 #
@@ -36,7 +40,8 @@
 #                         incoherent, Lookup: is `unavailable`, the declared
 #                         role-report archive is absent, incomplete, or empty, a
 #                         `live` archive lacks 00-lookup-probe.md with the line's
-#                         probe DOI, or role 2 or 6 counts `unreached:` sources
+#                         probe DOI, role 2 or 6 counts `unreached:` sources, or a
+#                         round's manifest changed between its spawn and its close
 #              2 = could not determine
 #
 # Project-neutral: no hardcoded consumer paths.
@@ -49,6 +54,9 @@ REQUIRE_MODE=0
 REQUIRE_EXECUTION=0
 REQUIRE_REPORTS=0
 REQUIRE_LOOKUP=0
+REQUIRE_MANIFEST=0
+MANIFEST_DEPS=
+MANIFEST_DIGEST_ONLY=0
 
 # Where the process file lives in a consumer, relative to the repo root. First hit wins.
 PROCESS_CANDIDATES="
@@ -554,6 +562,193 @@ EOF
   return 0
 }
 
+# --- the round manifest ------------------------------------------------------
+# THE FREEZE. A blind round reviews one fixed artifact, and nothing used to check that it
+# stayed fixed. Observed 2026-10-29 (issue #82): round 3 of a dissertation-chapter run was
+# still out when the orchestrator, the session running the review, started fixing figures. The
+# chapter's markdown never changed, so the one fingerprint the run kept (`git hash-object
+# chapter.md`) was identical before and after, while three of its embedded PNGs and two of
+# their generator scripts changed under the reviewers. Role 10 caught it by comparing
+# timestamps, which is not its job. Both gates passed.
+#
+# So the fingerprint covers the CLOSURE, not the file: the artifact, every local file it embeds
+# or links to, and every generator the run names with --dep. The record carries one line per
+# round, with the digest taken at the first spawn and again after the last report is banked:
+#
+#   - round 3 manifest: 1f0e9c2a at spawn, 1f0e9c2a at close
+#
+#   differing digests      -> FAILURE, always, flag or no flag: the round reviewed a moving target
+#   fewer than two digests -> FAILURE: an unfilled template is not a recorded round
+#   a gap (rounds 1 and 3) -> FAILURE: a missing line is the silent version of a differing one
+#   "void" after the digests -> an honestly voided round, accepted ONLY if the same round number
+#                            also appears un-voided with matching digests: the rerun
+#   no lines at all        -> reported as undeclared, exits 0; --require-manifest makes it fail
+#
+# ⚠ This reads digests a person typed. It cannot tell that they were computed, or computed at
+# the moments claimed -- the limit every declaration gate here states. What it buys is that the
+# honest record of a moved artifact can no longer pass, and that the check is a command the run
+# executes rather than a habit one role happens to have.
+
+# Local references a document makes: markdown links and images (inline and reference-style),
+# HTML src/href, LaTeX \includegraphics / \input / \include. One level deep, by design: the
+# question is what this artifact puts in front of a reader, and --dep names anything further.
+manifest_refs() {
+  {
+    grep -oE '\]\([^)]*\)' "$1" | sed 's/^](//; s/)$//'
+    grep -oE '^[[:space:]]*\[[^]]+\]:[[:space:]]*[^[:space:]]+' "$1" | sed 's/^[^]]*\]:[[:space:]]*//'
+    grep -oE "(src|href)=[\"'][^\"']*[\"']" "$1" | sed 's/^[a-z]*=.//; s/.$//'
+    grep -oE '\\(includegraphics|input|include)(\[[^]]*\])?\{[^}]*\}' "$1" | sed 's/^.*{//; s/}$//'
+  } 2>/dev/null | while IFS= read -r r; do
+    r=${r#<}; r=${r%%>*}; r=${r%%[[:space:]]*}; r=${r%%#*}; r=${r%%\?*}
+    case "$r" in ''|*://*|mailto:*|data:*|tel:*) continue ;; esac
+    printf '%s\n' "$r"
+  done
+}
+
+# Physical path, then relative to the root of the repo that holds it, so a file names itself
+# the same way from whatever directory the command runs in -- otherwise the two ends of a round
+# disagree about nothing.
+manifest_path() {
+  local f="$1" d root
+  d=$(cd "$(dirname "$f")" 2>/dev/null && pwd -P) || { printf '%s\n' "$f"; return; }
+  f="$d/${f##*/}"
+  # the repo that holds the FILE, not the one the shell is in; outside any repo, absolute
+  root=$(git -C "$d" rev-parse --show-toplevel 2>/dev/null) && root=$(cd "$root" && pwd -P) \
+    && case "$f" in "$root"/*) f=${f#"$root"/} ;; esac
+  printf '%s\n' "$f"
+}
+
+manifest_hash() { # manifest_hash FILE, or manifest_hash with no argument to hash stdin
+  if command -v git >/dev/null 2>&1; then
+    if [ $# -gt 0 ]; then git hash-object -- "$1"; else git hash-object --stdin; fi
+  elif command -v sha256sum >/dev/null 2>&1; then sha256sum ${1+"$1"} | awk '{print $1}'
+  else shasum -a 256 ${1+"$1"} | awk '{print $1}'; fi
+}
+
+# Print "<hash>  <path>" per file, or "MISSING  <path>" for a reference that resolves to
+# nothing -- a file that APPEARS mid-round must move the digest too -- then "manifest: <digest>".
+cmd_manifest() {
+  local art="$1" dir r f ext list digest
+  [ -f "$art" ] || die "murderboard_roster: cannot read artifact $art"
+  dir=$(dirname "$art")
+  list=$(
+    printf '%s\n' "$art"
+    manifest_refs "$art" | while IFS= read -r r; do
+      case "$r" in /*) f="$r" ;; *) f="$dir/$r" ;; esac
+      # LaTeX may omit the extension: \includegraphics{fig1} means fig1.pdf or fig1.png
+      if [ ! -e "$f" ]; then
+        case "${r##*/}" in
+          *.*) ;;
+          *) for ext in pdf png jpg jpeg eps svg tex; do
+               [ -f "$f.$ext" ] && { f="$f.$ext"; break; }
+             done ;;
+        esac
+      fi
+      [ -d "$f" ] && continue
+      printf '%s\n' "$f"
+    done
+    printf '%s' "$MANIFEST_DEPS"
+  )
+  list=$(printf '%s\n' "$list" | while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    if [ -f "$f" ]; then printf '%s  %s\n' "$(manifest_hash "$f")" "$(manifest_path "$f")"
+    else printf 'MISSING  %s\n' "$(manifest_path "$f")"; fi
+  done | sort -k2 -u)
+  digest=$(printf '%s\n' "$list" | manifest_hash)
+  [ -n "$digest" ] || die "murderboard_roster: could not hash the manifest"
+  if [ "$MANIFEST_DIGEST_ONLY" = 1 ]; then
+    printf '%s\n' "$digest"
+  else
+    printf '%s\n' "$list"
+    printf 'manifest: %s\n' "$digest"
+  fi
+}
+
+# "id<TAB>spawn<TAB>close<TAB>void" per round line; spawn and close are empty unless the line
+# carries two digests.
+round_manifests() {
+  awk '{
+    key = $0
+    gsub(/[*`_|>]/, "", key)
+    sub(/^[ \t]+/, "", key); sub(/^-[ \t]+/, "", key)
+    low = tolower(key)
+    if (low !~ /^round[ \t]+[0-9]+[a-z]?[ \t]+manifest:/) next
+    id = low; sub(/^round[ \t]+/, "", id); sub(/[ \t].*$/, "", id)
+    rest = substr(low, index(low, "manifest:") + 9)
+    n = 0; d1 = ""; d2 = ""
+    while (n < 2 && match(rest, /[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]+/)) {
+      n++
+      if (n == 1) d1 = substr(rest, RSTART, RLENGTH); else d2 = substr(rest, RSTART, RLENGTH)
+      rest = substr(rest, RSTART + RLENGTH)
+    }
+    if (n < 2) { d1 = ""; d2 = "" }
+    v = (rest ~ /(^|[^a-z])void/) ? 1 : 0
+    printf "%s\t%s\t%s\t%s\n", id, d1, d2, v
+  }' "$1" 2>/dev/null
+}
+
+# Does any un-voided line for round number $2 carry two matching digests?
+round_rerun_ok() {
+  printf '%s\n' "$1" | awk -F'\t' -v n="$2" '
+    { m = $1; sub(/[a-z]$/, "", m) }
+    m == n && $4 == 0 && $2 != "" && $2 == $3 { f = 1 }
+    END { exit !f }'
+}
+
+# 0 = every declared round held still (or none declared and none required), 1 = not.
+check_manifests() {
+  local report="$1" lines id a b v bad=0 max=0 k num
+  lines=$(round_manifests "$report")
+  if [ -z "$lines" ]; then
+    MANIFEST_VERDICT=undeclared
+    if [ "$REQUIRE_MANIFEST" = 1 ]; then
+      printf '%smurderboard: report records no round manifest (--require-manifest)%s\n' "$RED" "$RST" >&2
+      printf '%s  add "- round N manifest: <digest> at spawn, <digest> at close" for every round,\n' "$RED" >&2
+      printf '  from `murderboard_roster.sh manifest ARTIFACT --digest` at both ends. Without it\n' >&2
+      printf '  nothing shows that the reviewers all read the same artifact%s\n' "$RST" >&2
+      return 1
+    fi
+    return 0
+  fi
+  while IFS=$'\t' read -r id a b v; do
+    [ -n "$id" ] || continue
+    num=${id%%[!0-9]*}
+    [ "$num" -gt "$max" ] && max=$num
+    if [ -z "$a" ]; then
+      printf '%s  round %s: the manifest line does not carry two digests (spawn and close)%s\n' \
+             "$RED" "$id" "$RST" >&2
+      bad=1; continue
+    fi
+    [ "$a" = "$b" ] && continue
+    if [ "$v" = 1 ]; then
+      round_rerun_ok "$lines" "$num" && continue
+      printf '%s  round %s was voided and never rerun on the new tree%s\n' "$RED" "$id" "$RST" >&2
+      bad=1; continue
+    fi
+    printf '%s  round %s: the artifact CHANGED while its reviewers were reading it (%s at spawn, %s at close)%s\n' \
+           "$RED" "$id" "$a" "$b" "$RST" >&2
+    bad=1
+  done <<EOF
+$lines
+EOF
+  k=1
+  while [ "$k" -le "$max" ]; do
+    if ! printf '%s\n' "$lines" | awk -F'\t' -v n="$k" '{ m = $1; sub(/[a-z]$/, "", m) } m == n { f = 1 } END { exit !f }'; then
+      printf '%s  round %s has no manifest line, though round %s does%s\n' "$RED" "$k" "$max" "$RST" >&2
+      bad=1
+    fi
+    k=$((k + 1))
+  done
+  if [ "$bad" = 1 ]; then
+    printf '%smurderboard: a round did not review a frozen artifact — void it and rerun it%s\n' "$RED" "$RST" >&2
+    printf '%s  nobody, the orchestrator included, may modify the artifact or anything it embeds\n' "$RED" >&2
+    printf '  from the first spawn of a round until its last report is banked%s\n' "$RST" >&2
+    return 1
+  fi
+  MANIFEST_VERDICT="$max rounds frozen"
+  return 0
+}
+
 cmd_check() {
   local report="$1" missing=0 total=0 num ttl nick mode execution cause lookup
   local decl dir reports
@@ -774,9 +969,13 @@ EOF
   fi
 
   # `live` is the word a reader of this line is likeliest to over-read: say what it certifies.
+  # --- the round manifests --------------------------------------------------
+  MANIFEST_VERDICT=undeclared
+  check_manifests "$report" || return 1
+
   [ "$lookup" = live ] && lookup='live (the route, not the references)'
-  printf '%smurderboard: all %s roles accounted for in %s (mode: %s, execution: %s, lookup: %s, reports: %s)%s\n' \
-         "$GRN" "$total" "$report" "$mode" "$execution" "$lookup" "$reports" "$RST"
+  printf '%smurderboard: all %s roles accounted for in %s (mode: %s, execution: %s, lookup: %s, reports: %s, manifest: %s)%s\n' \
+         "$GRN" "$total" "$report" "$mode" "$execution" "$lookup" "$reports" "$MANIFEST_VERDICT" "$RST"
   return 0
 }
 
@@ -1210,6 +1409,70 @@ MB
   printf 'Prove It / DOI or Die — clean\nLookup: live — WebFetch\n' > "$tmp/lk_short.md"
   t 'declared lookup does NOT excuse a missing role' 1 cmd_check "$tmp/lk_short.md"
 
+  # --- the round manifest ----------------------------------------------------
+  # THE HEADLINE CASE, issue #82: a figure changes and the markdown does not. A fingerprint of
+  # the markdown alone passes it, so the first thing proved is that the manifest does not.
+  mkdir -p "$tmp/art/fig"
+  printf '# Chapter\n![Fig 1](fig/one.png)\n![Fig 2](fig/two.png "caption")\n[gen]: gen.py\nSee [web](https://example.org) and [here](#top).\n' > "$tmp/art/ch.md"
+  printf 'png-one\n' > "$tmp/art/fig/one.png"
+  printf 'png-two\n' > "$tmp/art/fig/two.png"
+  printf 'print(1)\n' > "$tmp/art/gen.py"
+  printf 'x\n' > "$tmp/art/make_figs.py"
+  local m0 m1 m2 m3 h0 h1
+  m0=$(cmd_manifest "$tmp/art/ch.md" | tail -1)
+  h0=$(manifest_hash "$tmp/art/ch.md")
+  printf 'png-two, regenerated\n' > "$tmp/art/fig/two.png"
+  m1=$(cmd_manifest "$tmp/art/ch.md" | tail -1)
+  h1=$(manifest_hash "$tmp/art/ch.md")
+  if [ "$h0" = "$h1" ] && [ -n "$m0" ] && [ "$m0" != "$m1" ]; then
+    pass=$((pass+1)); printf '  ok   a changed figure moves the manifest, not the markdown hash\n'
+  else fail=$((fail+1)); printf '  %sFAIL%s a changed figure did not move the manifest\n' "$RED" "$RST"; fi
+  # a named generator is in the closure too: aim1_figure.py changed without a PNG following it
+  MANIFEST_DEPS="$tmp/art/make_figs.py
+"
+  m2=$(cmd_manifest "$tmp/art/ch.md" | tail -1)
+  printf 'y\n' > "$tmp/art/make_figs.py"
+  m3=$(cmd_manifest "$tmp/art/ch.md" | tail -1)
+  MANIFEST_DEPS=
+  if [ "$m2" != "$m3" ]; then pass=$((pass+1)); printf '  ok   a changed --dep generator moves the manifest\n'
+  else fail=$((fail+1)); printf '  %sFAIL%s a changed --dep generator did not move the manifest\n' "$RED" "$RST"; fi
+  # and the negative control: nothing changed, nothing moves -- or every round would void
+  m2=$(cmd_manifest "$tmp/art/ch.md" | tail -1)
+  m3=$(cd "$tmp/art" && cmd_manifest ch.md | tail -1)
+  if [ "$m1" = "$m2" ] && [ "$m2" = "$m3" ]; then pass=$((pass+1)); printf '  ok   an unchanged closure is stable, from any directory\n'
+  else fail=$((fail+1)); printf '  %sFAIL%s an unchanged closure gave two digests\n' "$RED" "$RST"; fi
+  if cmd_manifest "$tmp/art/ch.md" | grep -q 'gen\.py$' && ! cmd_manifest "$tmp/art/ch.md" | grep -q 'example'; then
+    pass=$((pass+1)); printf '  ok   reference-style links are in, web links are out\n'
+  else fail=$((fail+1)); printf '  %sFAIL%s the closure picked up the wrong references\n' "$RED" "$RST"; fi
+  # a referenced file that appears mid-round must move the digest as well
+  printf '![Fig 3](fig/three.png)\n' >> "$tmp/art/ch.md"
+  m2=$(cmd_manifest "$tmp/art/ch.md" | tail -1)
+  printf 'png-three\n' > "$tmp/art/fig/three.png"
+  m3=$(cmd_manifest "$tmp/art/ch.md" | tail -1)
+  if [ "$m2" != "$m3" ]; then pass=$((pass+1)); printf '  ok   a referenced file that appears moves the manifest\n'
+  else fail=$((fail+1)); printf '  %sFAIL%s a referenced file appearing was invisible\n' "$RED" "$RST"; fi
+
+  t 'undeclared manifest still passes'    0 cmd_check "$tmp/full.md"
+  printf '%s\n- round 1 manifest: aaaaaaa1 at spawn, aaaaaaa1 at close\n- round 2 manifest: `bbbbbbb2` at spawn, `bbbbbbb2` at close\n' "$roles" > "$tmp/man_ok.md"
+  t 'frozen rounds pass'                  0 cmd_check "$tmp/man_ok.md"
+  printf '%s\n- round 1 manifest: aaaaaaa1 at spawn, aaaaaaa1 at close\n- round 2 manifest: bbbbbbb2 at spawn, ccccccc3 at close\n' "$roles" > "$tmp/man_moved.md"
+  t 'a round whose closure moved FAILS without the flag' 1 cmd_check "$tmp/man_moved.md"
+  printf '%s\n- round 1 manifest: <digest> at spawn, <digest> at close\n' "$roles" > "$tmp/man_tmpl.md"
+  t 'an unfilled template FAILS'          1 cmd_check "$tmp/man_tmpl.md"
+  printf '%s\n- round 1 manifest: aaaaaaa1 at spawn, aaaaaaa1 at close\n- round 3 manifest: ddddddd4 at spawn, ddddddd4 at close\n' "$roles" > "$tmp/man_gap.md"
+  t 'a round with no line FAILS'          1 cmd_check "$tmp/man_gap.md"
+  printf '%s\n- round 1 manifest: aaaaaaa1 at spawn, aaaaaaa1 at close\n- round 2 manifest: bbbbbbb2 at spawn, ccccccc3 at close — VOID, figures edited mid-round\n' "$roles" > "$tmp/man_void.md"
+  t 'a voided round never rerun FAILS'    1 cmd_check "$tmp/man_void.md"
+  printf -- '- round 2b manifest: ccccccc3 at spawn, ccccccc3 at close — rerun of round 2\n' >> "$tmp/man_void.md"
+  t 'a voided round, rerun frozen, passes' 0 cmd_check "$tmp/man_void.md"
+  # The mode must never rescue a missing role, and neither may a frozen manifest.
+  printf 'Prove It / DOI or Die — clean\n- round 1 manifest: aaaaaaa1 at spawn, aaaaaaa1 at close\n' > "$tmp/man_short.md"
+  t 'a frozen manifest does NOT excuse a missing role' 1 cmd_check "$tmp/man_short.md"
+  REQUIRE_MANIFEST=1
+  t '--require-manifest: undeclared FAILS' 1 cmd_check "$tmp/full.md"
+  t '--require-manifest: frozen rounds pass' 0 cmd_check "$tmp/man_ok.md"
+  REQUIRE_MANIFEST=0
+
   # a process file with no team section must NOT pass vacuously
   printf '# nothing\n' > "$tmp/noteam.md"
   PROCESS="$tmp/noteam.md"
@@ -1230,6 +1493,21 @@ while [ $# -gt 0 ]; do
     --require-execution) REQUIRE_EXECUTION=1; shift ;;
     --require-reports) REQUIRE_REPORTS=1; shift ;;
     --require-lookup) REQUIRE_LOOKUP=1; shift ;;
+    --require-manifest) REQUIRE_MANIFEST=1; shift ;;
+    manifest)
+      CMD=manifest; shift
+      ARTIFACT=
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --dep) [ -n "${2:-}" ] || die "murderboard_roster: --dep needs a file"
+                 MANIFEST_DEPS="$MANIFEST_DEPS$2
+"; shift 2 ;;
+          --digest) MANIFEST_DIGEST_ONLY=1; shift ;;
+          *) [ -z "$ARTIFACT" ] || die "murderboard_roster: manifest takes one artifact (name the rest with --dep)"
+             ARTIFACT="$1"; shift ;;
+        esac
+      done
+      [ -n "$ARTIFACT" ] || die "usage: murderboard_roster.sh manifest ARTIFACT [--dep FILE]... [--digest]" ;;
     check)
       CMD=check; shift
       # The flag may sit either side of `check`, because both read naturally and a
@@ -1240,11 +1518,12 @@ while [ $# -gt 0 ]; do
           --require-execution) REQUIRE_EXECUTION=1; shift ;;
           --require-reports) REQUIRE_REPORTS=1; shift ;;
           --require-lookup) REQUIRE_LOOKUP=1; shift ;;
+          --require-manifest) REQUIRE_MANIFEST=1; shift ;;
           *) break ;;
         esac
       done
       REPORT="${1:-}"
-      [ -n "${REPORT:-}" ] || die "usage: murderboard_roster.sh check [--require-mode] [--require-execution] [--require-reports] [--require-lookup] REPORT.md"
+      [ -n "${REPORT:-}" ] || die "usage: murderboard_roster.sh check [--require-mode] [--require-execution] [--require-reports] [--require-lookup] [--require-manifest] REPORT.md"
       shift ;;
     -h|--help) sed -n '2,/^# Project-neutral/p' "$0"; exit 0 ;;
     *) die "murderboard_roster: unknown argument '$1'" ;;
@@ -1255,6 +1534,7 @@ case "${CMD:-}" in
   list)     cmd_list ;;
   count)    cmd_count ;;
   check)    cmd_check "$REPORT" ;;
+  manifest) cmd_manifest "$ARTIFACT" ;;
   selftest) cmd_selftest ;;
   *)        sed -n '2,/^# Project-neutral/p' "$0"; exit 2 ;;
 esac
