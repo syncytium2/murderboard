@@ -236,12 +236,33 @@ selftest() {
 
   run "$tmp/nope.md" >/dev/null 2>&1; [ $? -eq 2 ] && ok "unreadable file -> exit 2" || bad "unreadable file did not exit 2"
 
+  # A path is one argument, whatever is in it. The document list used to be one string split
+  # on spaces, so ".../a b/doc.md" became ".../a" and "b/doc.md" and the run died on the first
+  # half -- every path in a synced folder whose name has a space. Worse, an unquoted list is
+  # also GLOBBED: "x*.md" scanned a neighbor nobody named and still exited 0. The space case
+  # fails loudly; the asterisk case passes a file it never searched for one it was not asked to.
+  mkdir -p "$tmp/a b"
+  printf 'This is a robust solution.\n' > "$tmp/a b/doc.md"
+  run "$tmp/a b/doc.md" >/dev/null 2>&1; [ $? -eq 1 ] && ok "a path with a space is read as one path" \
+    || bad "a path with a space was not read as one path"
+
+  printf 'A clean sentence about cells.\n' > "$tmp/x*.md"
+  printf 'This is a robust solution.\n' > "$tmp/xy.md"
+  run "$tmp/x*.md" >/dev/null 2>&1; [ $? -eq 0 ] && ok "a path with an asterisk scans that file and no other" \
+    || bad "a path with an asterisk was globbed onto other files"
+
+  # The control: the list change must not cost the ordinary case of several plain paths.
+  run "$tmp/c.md" "$tmp/xy.md" 2>/dev/null | grep -c "^$tmp/" > "$tmp/n"
+  [ "$(cat "$tmp/n")" -eq 2 ] && ok "two documents are both scanned" || bad "two documents were not both scanned"
+
   printf '\n%d passed, %d failed\n' "$pass" "$fail"
   [ "$fail" -eq 0 ] || rc=1
   return $rc
 }
 
-DOCS=""
+# An array, so each path stays one argument (see the selftest). Never expand it before the
+# emptiness check below: under `set -u`, macOS's bash 3.2 calls an empty "${DOCS[@]}" unbound.
+DOCS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --process) shift; PROCESS="${1:-}"; [ -n "$PROCESS" ] || die "--process needs a path" ;;
@@ -250,14 +271,14 @@ while [ $# -gt 0 ]; do
     --selftest) selftest; exit $? ;;
     -h|--help) sed -n '2,42p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "unknown option: $1" ;;
-    *) DOCS="$DOCS $1" ;;
+    *) DOCS+=("$1") ;;
   esac
   shift
 done
 
-[ -n "${DOCS# }" ] || die "no document given (try --help)"
+[ ${#DOCS[@]} -gt 0 ] || die "no document given (try --help)"
 
 RC=0
-for d in $DOCS; do main_scan "$d" || RC=1; done
+for d in "${DOCS[@]}"; do main_scan "$d" || RC=1; done
 printf '\n'
 exit $RC
