@@ -1210,17 +1210,27 @@ with the `MURDERBOARD_LIT` environment variable (see the tool's header). Three s
    python3 fetch_paper.py --have <author> <keyword> <keyword>
    ```
    This is the step that "prevents many downloads" — the `_autofetch` cache only dedupes by
-   URL, but `--have` finds a paper already filed under a human name.
+   URL, but `--have` finds a paper already filed under a human name. It matches the text of
+   each PDF's first pages as well as its filename, so a PDF saved under the publisher's name
+   is still found; if it reports that part of the library is not yet indexed, repeat the
+   query before concluding the paper is missing.
 2. **Promote the keepers.** When a fetched paper actually earns its place in the review
    (verified a citation, grounded a method), copy it into the curated library so the next
    session finds it via `--have` instead of re-fetching:
    ```
-   python3 fetch_paper.py --promote <url> "Author Year short title.pdf"
+   python3 fetch_paper.py --promote <url> --name "Author Year short title.pdf"
    ```
-3. **Flag what you can't get.** Every failed or paywalled fetch is auto-appended to
-   **`<lit>/_NEEDED.md`** (a `--need "<citation>"` also flags a citation with no reachable
-   URL). **Surface that want-list in the delivery message** — a human can get any PDF; a
-   paper you couldn't reach becomes a residual `⚠`, never a guess about its contents.
+3. **Flag what you can't get.** A paywalled host, an access denial, or a captcha page is
+   auto-appended to **`<lit>/_NEEDED.md`** (a `--need "<citation>"` also flags a citation
+   with no reachable URL); a temporary server error or a wrong URL is reported but not
+   flagged — retry or find the right route first. **Surface that want-list in the delivery
+   message** — a human can get any PDF; a paper you couldn't reach becomes a residual `⚠`,
+   never a guess about its contents. **Never try to get past a captcha or bot check**; it
+   is the host declining automation, and the paper goes on the want-list.
+   A run that is **not working for the library's owner** — a test, a cost measurement, a
+   review of someone else's paper — passes `--no-flag` (or sets `MURDERBOARD_NO_FLAG=1`)
+   so it reads the library without writing the owner's want-list, and lists what it could
+   not get in its own report instead.
 
 ## Adjudication (main thread)
 
