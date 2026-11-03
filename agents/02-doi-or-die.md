@@ -81,6 +81,27 @@ Existence and correct attribution are half the check.
 need the paper itself, follow the **lit-cache protocol** below — check the library
 first, fetch the OA copy, flag what you can't get. Do **not** verify a claim against a
 paper you only half-remember: get the text or flag the paper.
+- **Existence is established by resolving the identifier, not by finding it on the page.** A
+  DOI printed in the paper's own saved copy shows the identifier *belongs to* that paper. It
+  does not show the identifier resolves, that the work has not since been corrected or
+  retracted, or whether a cited preprint now has a journal version — and those are what a
+  reader clicking the link meets. Resolve each identifier live and name the route you used
+  (WebFetch, a shell fetch, a literature connector; a search-engine snippet is not a
+  resolution). Offline matching is a supplement, never the check.
+  **A lookup that returns nothing is not evidence the work does not exist** — know what the
+  route covers before reading its silence. NCBI's ID converter returns IDs only for articles
+  in PubMed Central, so it answers *"Identifier not found in PMC"* for a paper PubMed indexes
+  perfectly well; through a connector the same miss can arrive as an empty record with no
+  error at all (an instance is in the appendix). A database answers only for what it holds:
+  Crossref and PubMed have no record of a DataCite DOI, such as an arXiv or Zenodo one, that
+  `doi.org` resolves. Before reporting a citation as unresolvable, try a second route, and
+  prefer `doi.org`, which answers for every registration agency.
+  **Count what no route reached** — a source your route could not connect to, errored on, or
+  does not cover, as opposed to one a registry answered "no such record" for, or a paper
+  behind a paywall. Put the count on a line of its own, `unreached: N`. Above zero, the main
+  thread stops before synthesis, because a route that passed the lookup probe stopped
+  working during the review; the roster gate fails any record whose archive shows it, whatever
+  its `Lookup:` token. Write the line as `unreached: N`, outside any code block.
 - **How to establish the origin.** Open the cited work's own references for the claim and follow
   them backwards until they stop. **Report where you stopped and why** — "the root is paywalled,
   verified to one step short" is a finding; silence is not. Prefer the root and cite later work

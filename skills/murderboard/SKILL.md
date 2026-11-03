@@ -239,7 +239,7 @@ bash "$ROSTER" count
 Spawn **one subagent per row returned**, no fewer. The roster is derived from the process
 file, so when upstream adds role 12 every consumer picks it up without editing this skill.
 
-### 4a. Compile the specialists, then spawn them BY NAME
+### 4a. Compile the specialists, probe the lookup, then spawn them BY NAME
 
 Each role has its own agent file — frontmatter, its own checklist, and the tool grant the
 process file gives it — compiled out of `$PROCESS`. Bring them up to date first; a stale
@@ -253,8 +253,8 @@ if [ -n "${COMPILER:-}" ]; then
 fi
 ```
 
-Then spawn each row's `agent-name` as the subagent type. **If the named agent does not
-resolve**, fall back to spawning a generic subagent whose prompt is **the contents of that
+Each role is spawned by its row's `agent-name` as the subagent type. **If the named agent does
+not resolve**, fall back to spawning a generic subagent whose prompt is **the contents of that
 role's agent file**, and if there is no agent file either, the role's block from `$PROCESS`.
 
 **Expect the fallback on a repo's FIRST run, always.** Claude Code watches the agent
@@ -278,7 +278,155 @@ header takes a suffix: `11 of 11 run (named agents)` or `11 of 11 run (inline fa
 its role to open with `GRANT <n> ok — <tools held>` or `GRANT <n> MISMATCH — …`. Carry those
 lines into the role ledger verbatim; step 7 gates the header against them. A `MISMATCH` is not
 a failed run — a fallback review is a real review — it just may not be written up as something
-else.
+else. **The one exception is roles 2 and 6 losing their sources:** that is not a mismatch to
+record but a stop, and the lookup probe below is where it stops.
+
+**Before the fan-out: probe the lookup.** Roles 2 and 6 are the only roles whose sources live
+outside the repository, and a role that cannot reach them still returns a full report about
+them ([issue #74](https://github.com/syncytium2/murderboard/issues/74); the process file's
+appendix tells it).
+
+**What the probe can and cannot catch.** It catches an agent that honestly cannot reach its
+sources. That is the case #74 was: role 2 said it lacked WebFetch, and nothing stopped the run.
+It cannot catch an agent that guesses or invents the answers. A capable model knows many titles
+from memory, and anything kept on this machine, from the key below to the session's own
+transcript, can be read. No fixed answer key closes that gap. The rows drawn below, the hashed
+key and the scored route make a careless pass harder, and they leave a record of what the probe
+was asked and what came back.
+
+- **Skip it only when there is nothing to look up:** no references, no named attribution, and no
+  method, tool or library documented outside this repository. Record `Lookup: not needed` and go
+  on to the fan-out. A probe that ran and failed cannot be followed by `not needed`.
+- **Otherwise spawn role 2's `agent-name` once, by the path the roles will use** — by name, or
+  the fallback above if the name does not resolve, and in the background if the roles will run
+  there — so it holds what role 2 will hold. A permission prompt the human answers for a
+  foreground probe can hide one a background reviewer cannot answer. In a single-pass run, the
+  main thread answers the probe itself and scores its own answers, which is weaker; say so in
+  the record.
+
+Fill the prompt in fresh for each run. The block draws a row of each table and a DOI made up
+for this run only, and prints them. **Copy the three values into the prompt and into your draft
+of the run record now**: a later shell will not have them, and drawing again gives different
+ones, which the gate would then refuse to match.
+
+```bash
+doi_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))
+rfc_row=$(( $(od -An -N1 -tu1 /dev/urandom) % 6 + 1 ))
+fake="10.1000/$(openssl rand -hex 6)"
+echo "doi_row=$doi_row rfc_row=$rfc_row fake=$fake"
+```
+
+> Lookup probe, not a review. Answer each item by looking it up now, through a resolver, a
+> registry, a literature database, or a direct page fetch. A search engine does not count, and
+> neither does any file on this machine. A registry record is enough for items 1 and 2: Crossref's
+> `https://api.crossref.org/works/<DOI>`, or `doi.org` asked for CSL-JSON.
+>
+> 1. Resolve `<the DOI in row $doi_row>`. Reply `FOUND <title>` with the HTTP status or record
+>    ID your route returned, or `NOT FOUND` with what the route returned instead.
+> 2. Resolve `<$fake>` the same way.
+> 3. Fetch `https://www.rfc-editor.org/rfc/rfc<the number in row $rfc_row>.html` and reply
+>    with the title in the page's heading, without the RFC number, or `CANNOT FETCH`.
+>
+> Then one line per item naming the route you used.
+
+**The key is a hash, so that the agent being probed cannot read the answers off this page.**
+Each title is stored as the first 16 hex characters of a SHA-256 over the title with its accents
+dropped, lower-cased, and every run of characters other than unaccented `a`–`z` and `0`–`9`
+turned into one space, so an honest answer that differs only in case or punctuation still
+matches. To score an answer, paste its title between the two `TITLE` lines; the quoted heredoc
+keeps any `$`, backtick or quote in it literal:
+
+```bash
+python3 -c 'import hashlib,re,sys,unicodedata
+d=unicodedata.normalize("NFKD",sys.stdin.read().strip())
+t="".join(c for c in d if not unicodedata.combining(c)).lower()
+t=re.sub(r"[^0-9a-z]+"," ",t).strip()
+print(hashlib.sha256(t.encode()).hexdigest()[:16])' <<'TITLE'
+Characterisation and improvement of a reference cylindrical sonoreactor
+TITLE
+```
+
+| row | DOI | key of its title |
+|---|---|---|
+| 1 | `10.1016/j.jnutbio.2017.08.013` | `8158b24485a47382` |
+| 2 | `10.1016/j.mimet.2018.03.010` | `c3c981a0da8ad342` |
+| 3 | `10.1155/2016/7920631` | `f2239725e003e19e` |
+| 4 | `10.1186/s12938-016-0298-3` | `4155c5c381b502f4` |
+| 5 | `10.1016/j.ultsonch.2011.12.010` | `b652e1992adf872a` |
+| 6 | `10.4088/pcc.15l01844` | `9641451be262bf12` |
+
+| row | RFC | key of its title |
+|---|---|---|
+| 1 | 4691 | `9fecaf80ad677470` |
+| 2 | 5153 | `0092afed0fda5485` |
+| 3 | 6127 | `3ef3d2782e39acb6` |
+| 4 | 7058 | `b5968f1390b32c3d` |
+| 5 | 8137 | `23e9af9d35639e48` |
+| 6 | 7154 | `613447dfa6fb99dc` |
+
+Checked live on 2026-10-22. Each DOI redirects at `doi.org`, is indexed in PubMed, is
+little-cited, and gives the same key from its Crossref and its PubMed title. Each RFC page shows
+its title in a single heading. `10.1000` is the DOI Foundation's own prefix, and `doi.org`
+answers a suffix nobody registered with a 404.
+
+**Score each item on the answer and on the route.** The route must be named, and must be
+neither a search engine nor a file.
+
+| item | passes when | clears an honest route for |
+|---|---|---|
+| 1 | `FOUND`, the title's key matches the row, and an HTTP status or record ID is given | role 2: resolving identifiers |
+| 2 | `NOT FOUND`, with the route's own miss: a 404, or a database's empty result | role 2: not answering *something* to everything |
+| 3 | the title's key matches the row | role 6: reading a documentation page |
+
+**A key that does not match is not yet a failure.** Look at the reply. If the route plainly
+resolved — it gave a status or record ID — the title may have come back reworded by a page
+summarizer or with markup in it: ask once more for the registry record named in the prompt, and
+score that. Never edit a title until it hashes. If the registry's title does not match either,
+the item fails.
+
+A literature connector can pass items 1 and 2 and not item 3. That is enough for a deliverable
+whose outside sources are papers alone, and not for one that rests on a tool's or a library's
+documentation, which role 6 has to read. Require the items the deliverable needs.
+
+- **Item 3 clears role 6 by proxy.** That holds while roles 2 and 6 have the same grant and are
+  spawned by the same path. If your copy grants them differently, give item 3 to role 6's own
+  agent.
+- **A literature database covers only itself.** Through `doi.org`, items 1 and 2 test every
+  registration agency. Through Crossref or PubMed alone, a DataCite DOI (an arXiv or Zenodo
+  record) comes back missing while `doi.org` resolves it. Role 2 counts such an identifier as
+  unreached, and an unreached count stops the run, so a database-only route suits only a
+  deliverable that cites nothing outside that database.
+
+Do not run the probe through `fetch_paper.py`. It fetches open-access papers rather than
+resolving DOIs, and the fake DOI would land on the human's `_NEEDED.md` list.
+
+- **Every item it needs passes** → record `Lookup: live — <route>; <roles 2 and 6 | role 2
+  only>; probe <$fake>` (step 7). Save the probe to the role-report archive (step 4b) as
+  `00-lookup-probe.md`: the prompt as sent, the reply with each title replaced by its key, and
+  one scoring line per item, `item N: pass` or `item N: fail`, followed by the route and the
+  status. When the record names its archive, the roster gate requires that file, the fake DOI
+  the `Lookup:` line names in it, and items 1 and 2 scored `pass` with no item `fail`.
+- **Anything else** → **STOP before spawning any reviewer.** This is not a `MISMATCH` to carry
+  into the ledger. It is a stop. Tell the human which route was tried and what came back, then
+  look for the knob:
+  ```bash
+  [ -n "${SUBAGENTS:-}" ] && bash "$SUBAGENTS" --lookup --explain ; echo "exit=$?"
+  ```
+  It reads the settings files for what blocks a lookup — a `WebFetch` or `curl` deny, a deny on
+  the whole shell, `dontAsk` with no lookup route allowed, a sandbox that denies the resolver
+  hosts — and warns on instruction-file lines that may forbid fetching. That is the shape behind
+  #74, where the project's committed settings denied `WebFetch`, `curl` and `wget`. **Its exit 0
+  is not an all-clear.** A launch flag, or a tool missing for some other reason, is in no file.
+
+  The remedies are the human's: lift the rule for the review, run where the web is reachable,
+  or grant roles 2 and 6 a literature connector (see *A connector reaches a role only through
+  its grant* in `$PROCESS`). Then ask, and wait. **"Go ahead anyway" cannot buy a passing
+  record**: the gate fails `unavailable`, a `live` record over a probe scored as failed, and an
+  archive in which role 2 or role 6 counts sources it could not reach, whatever token the record
+  carries.
+
+The probe is one spawn after the cost preflight. If the cost gate asks about it, that is
+expected.
 
 Scale to stakes in *how* you run them, never in *which* ones:
 
@@ -305,6 +453,7 @@ before you synthesize anything:
 REPORTS=docs/reviews/<artifact-stem>_<YYYY-MM-DD>-roles
 mkdir -p "$REPORTS"
 # one file per role, named after that role's agent file: 01-prove-it.md, 02-doi-or-die.md, …
+# plus 00-lookup-probe.md from step 4a. Create the directory before you save the probe's reply.
 ```
 
 Three reasons this is a step and not a nicety, in the order they bite:
@@ -330,6 +479,11 @@ be told apart from the real thing.
 
 Consolidate, dedupe, rank by severity, adjudicate each finding (fix / flag-inline `⚠` /
 no-change), and **apply** the fixes. Rebuild the artifact if it is generated.
+
+**First, read roles 2 and 6 for sources they could not reach.** A probe that passed says the
+route worked once, before the fan-out. It does not say it kept working for every citation. If
+either role reports sources left unchecked *because no route reached them*, rather than because
+a paper is paywalled, stop here, as you would at a failed probe.
 
 ## 6. Blind verify pass — until it comes back empty
 
@@ -361,6 +515,7 @@ Write the report to `docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md`, carrying thi
 - rounds:    <n> blind verify rounds to clean
 
 Execution: subagents | single-pass (forced) | single-pass (chosen)   # from step 1a
+Lookup: live — <route>; roles <2 and 6 | 2>; probe 10.1000/<hex> | not needed   # step 4a
 ```
 
 The token before the dash is parsed and must be exact; everything after it is yours and is
@@ -370,7 +525,13 @@ The token before the dash is parsed and must be exact; everything after it is yo
 Execution: subagents — one per role, all eleven spawned
 Execution: single-pass (forced) — the Agent tool was unavailable; step 1a's probe failed
 Execution: single-pass (chosen) — a one-line caption, not worth an eleven-agent fan-out
+Lookup: live — curl to doi.org and rfc-editor.org; roles 2 and 6; probe 10.1000/7652153ccbdc
+Lookup: live — PubMed connector granted to role 2; role 2 only; probe 10.1000/0b9e44c1d2a7
+Lookup: not needed — a caption that cites nothing and names no outside method
 ```
+
+A third token, `unavailable`, always fails the gate. If you find yourself about to write it,
+the run should have stopped at the lookup probe, and a finished record is not where that goes.
 
 `roles:` and `Execution:` answer different questions and neither implies the other. `roles:`
 says which **prompt** each reviewer got — its compiled agent file, or the role's block inlined.
@@ -387,7 +548,7 @@ Finally, gate your own output:
 
 ```bash
 REPORT=docs/reviews/<artifact-stem>_<YYYY-MM-DD>.md
-bash "$ROSTER" check --require-execution --require-reports "$REPORT" ; echo "roster=$?"
+bash "$ROSTER" check --require-execution --require-reports --require-lookup "$REPORT" ; echo "roster=$?"
 [ -n "${COMPILER:-}" ] && python3 "$COMPILER" --process "$PROCESS" verify "$REPORT" ; echo "grants=$?"
 ```
 
@@ -427,6 +588,13 @@ for it. A named archive that does not exist fails whether the flag is set or not
 "cited but missing" shape, and it reads to anyone downstream as the complete run. **Do not make
 it green by deleting the line**; write the reports, or declare the gap and tell the human.
 
+**And it reads the `Lookup:` line.** Under `--require-lookup` a missing line fails. When the
+record names its archive, a `live` line fails without `00-lookup-probe.md` holding the probe
+DOI the line names, and any record fails whose role 2 or role 6 report counts `unreached:`
+sources. That leaves a record of the probe a reader can check; it does not prove the probe
+was answered honestly, which no report-reading gate can. Write the token from what the probe
+returned. A quoted example of the grammar belongs in a fenced code block, which the gate skips.
+
 **grants exit 1 means the report does not account for what its reviewers said they held.** Four
 shapes fail: a role never declared its grant; a role declared `ok` while naming tools that are
 not the ones the process file grants it (naming none at all is this case, not a lesser one); a
@@ -445,9 +613,9 @@ verdict, break the quotation. Otherwise state, once, what the reviewer actually 
 ⚠ **What this gate still does NOT do, stated because the wording here has twice claimed more
 than was true.** It reads a report. It cannot tell you a declaration is *honest*: a reviewer
 that types its granted tools back without ever holding them passes, and so does one that could
-not perform its check. It proves that every role said what it held and that what it said matches
-the grant it was issued — not that the tools were there. Containment and equipment are enforced
-where the agent is spawned, not here.
+not perform its check (for roles 2 and 6, step 4a's lookup probe covers that). It proves that
+every role said what it held and that what it said matches the grant it was issued — not that
+the tools were there. Containment and equipment are enforced where the agent is spawned.
 
 ## What to hand the human
 
