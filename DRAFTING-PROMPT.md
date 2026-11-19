@@ -41,6 +41,10 @@ RULES
 8. "Data" is plural: the data are, the data show, these data. "Dataset" and "metadata"
    keep their own grammar. Quoted words keep the speaker's.
 
+9. Write in the reader's conventions: their spelling, date order, time format, currency,
+   units, and the country their places and laws come from. If nobody said, ask before
+   writing. Don't pick one.
+
 NEVER
 
    "not just X, but Y"  ·  "it's not about A, it's about B"  ·  "it's worth noting"

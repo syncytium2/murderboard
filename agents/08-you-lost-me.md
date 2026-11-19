@@ -96,6 +96,12 @@ evidence-adequacy rules to agent 4. Checklist:
   correct; a line can pass both and still be read as something else. Boundary with the
   three-undefined-terms rule below: that one is about a reader who cannot follow; this is about
   a reader who follows and arrives somewhere false.)
+- **Settings nobody asked for.** A place, a currency, a time zone, a law or an institution
+  from somewhere other than the reader's own looks right to everyone who checks it: it is
+  internally consistent, and other roles verify it *against that country's sources*, which
+  makes it more convincing, not less. Read as the reader named in the brief, and flag every
+  such setting the brief did not ask for. A deliberate foreign setting stays, once someone says
+  it is deliberate.
 - **Output contract: a per-slide verdict, not a deck-wide list of terms.** One row per
   slide/panel: *terms and identifiers first used here · which are defined on the slide · can a
   cold reader follow it (yes / no / blocking)*. A pooled list of undefined terms lets the worst
