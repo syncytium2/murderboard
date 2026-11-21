@@ -276,6 +276,13 @@ jobs:
       - name: the lit autodetect finds a shelf belonging to somebody else
         run: python tests/fetch_paper_lit_root_test.py
 
+      # Four silent defects found by three reviews on 2026-11-03: a PMC captcha cached as
+      # the paper; every failed fetch written to the owner's _NEEDED.md with no way to stop
+      # it; a Europe PMC HTTP 500 flagged like a paywall; and --have blind to any PDF saved
+      # under its publisher's filename. Offline: fetch() is replaced, temp dirs only.
+      - name: the lit tool tells a paper from a captcha, and a human's problem from a retry
+        run: python tests/fetch_paper_fetch_errors_test.py
+
       - name: revendor compiles
         run: python -m compileall -q murderboard_revendor.py
 
